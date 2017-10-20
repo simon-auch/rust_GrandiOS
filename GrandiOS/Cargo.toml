@@ -1,0 +1,8 @@
+[package]
+name = "GrandiOS"
+version = "0.1.0"
+authors = ["build"]
+
+[lib]
+crate-type = ["staticlib"]
+
