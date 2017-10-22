@@ -1,8 +1,24 @@
 #![no_std]
 #![feature(lang_items)]
+#![no_main]
 
-fn main() {
+
+//
+//#[no_mangle]
+//keep the function name so we can call it from assembler
+//pub extern
+//make the function use the standard C calling convention
+#[no_mangle]
+pub extern fn _start() {
+	foo();
+	loop {}
 }
+
+fn foo(){
+
+}
+
+
 
 // These functions and traits are used by the compiler, but not
 // for a bare-bones hello world. These are normally

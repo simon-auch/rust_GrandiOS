@@ -5,4 +5,3 @@ authors = ["build"]
 
 [lib]
 crate-type = ["staticlib"]
-
