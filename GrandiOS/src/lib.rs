@@ -2,15 +2,29 @@
 #![feature(lang_items)]
 #![no_main]
 
+//Include other parts of the kernal
+mod utils{
+	pub mod spinlock;
+}
+mod driver{
+	pub mod serial;
+}
 
-//
+
 //#[no_mangle]
 //keep the function name so we can call it from assembler
 //pub extern
 //make the function use the standard C calling convention
 #[no_mangle]
 pub extern fn _start() {
+	driver::serial::print();
 	foo();
+	let lock = utils::spinlock::Spinlock::new(0);
+	{
+		//lock is hold until data goes out of scope
+		let mut data = lock.lock();
+		* data += 1;
+	}
 	loop {}
 }
 
