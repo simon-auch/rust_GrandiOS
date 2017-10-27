@@ -5,4 +5,4 @@ DUMP_FU="/home/mi/linnert/arm/bin/arm-none-eabi-objdump"
 
 DUMP=$DUMP_FU
 
-$DUMPU -fhd kernel > kernel.dump
+$DUMP -fhd kernel > kernel.dump
