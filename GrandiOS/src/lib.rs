@@ -9,8 +9,8 @@ mod utils{
 }
 mod driver{
 	pub mod serial;
+	pub mod led;
 }
-
 
 //#[no_mangle]
 //keep the function name so we can call it from assembler
@@ -19,8 +19,14 @@ mod driver{
 #[no_mangle]
 #[naked]
 pub extern fn _start() {
+	let mut led_yellow = unsafe { driver::led::PIO::new(driver::led::PIO_LED_YELLOW) };
+	let mut led_red    = unsafe { driver::led::PIO::new(driver::led::PIO_LED_RED)    };
+	let mut led_green  = unsafe { driver::led::PIO::new(driver::led::PIO_LED_GREEN)  };
+	led_yellow.on();
+	led_red.on();
+	led_green.on();
+
 	driver::serial::print();
-	foo();
 	let lock = utils::spinlock::Spinlock::new(0);
 	{
 		//lock is hold until data goes out of scope
@@ -29,11 +35,6 @@ pub extern fn _start() {
 	}
 	loop {}
 }
-
-fn foo(){
-
-}
-
 
 
 // These functions and traits are used by the compiler, but not
