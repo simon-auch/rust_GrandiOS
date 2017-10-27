@@ -8,24 +8,22 @@ use core::cell::UnsafeCell;
 
 //function used for syncronisation
 //atomically moves new into tmp and the old value from tmp is returned
-fn swap(new: & u8, tmp: & u8) -> u8{
-	let mut ret : u8 = 0;
+fn swap(val1: &mut u8, val2: &mut u8){
 	unsafe {
 		asm!(
-			"SWPB r0, r1, [r2]" :
-			"={r0}"(ret):/*outputs*/
-			"{r1}"(new), "{r2}"(tmp as *const u8):/*inputs*/
+			"SWPB $0, $0, [$1]" :
+			"=r"(*val1):/*outputs*/
+			"r"(val2):/*inputs*/
 			:/*clobbers*/
 			"volatile"/*options*/
 		);
 	}
-	return ret;
 }
 
 
 //Can be shared across threads
 pub struct Spinlock<T: ?Sized>{
-	val: u8,
+	val: UnsafeCell<u8>,
 	data: UnsafeCell<T>,
 }
 
@@ -50,7 +48,7 @@ impl<'a, T> SpinlockGuard<'a, T>{
 impl<T> Spinlock<T>{
 	pub fn new(t: T) -> Self {
 		Spinlock{
-			val: 0,
+			val: UnsafeCell::new(0),
 			data: UnsafeCell::new(t),
 		}
 	}
@@ -59,13 +57,13 @@ impl<T> Spinlock<T>{
 		//returns always the previous value
 		let mut val: u8 = 1;
 		while val==1{
-			val = swap(& val,& self.val);
+			swap(&mut val, unsafe { &mut *self.val.get() } );
 		}
 		SpinlockGuard::new(self)
 	}
 	fn unlock(& self){
-		let val: u8 = 0;
-		swap(& val,& self.val);
+		let mut val: u8 = 0;
+		swap(&mut val, unsafe { &mut *self.val.get() });
 	}
 }
 
