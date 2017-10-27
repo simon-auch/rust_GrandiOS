@@ -14,11 +14,21 @@ pub struct PIO_PIN{
 
 #[repr(C)]
 struct HW_PIO{
-	per: u32,
-	un0: [u32; 3],
-	oer: u32,
-	un1: [u32; 7],
-	sodr: u32,
+	per: u32,	//pio enable register
+	pdr: u32,	//pio disable register
+	psr: u32,	//pio status register
+	reserver_0: u32,
+	oer: u32,	//pio output enable register
+	odr: u32,	//pio output disable register
+	osr: u32,	//pio output status register
+	reserved_1: u32,
+	ifer: u32,	//pio glitch input filter enable register
+	ifdr: u32,	//pio glitch input filter disable register
+	ifsr: u32,	//pio glitch input filter status register
+	reserved_2: u32,
+	sodr: u32,	//pio set output data register
+	codr: u32,	//pio clear output data register
+	odsr: u32,	//pio output data status register
 }
 
 pub struct PIO{
@@ -50,7 +60,7 @@ impl PIO {
 		write_volatile(&mut (*(self.hw_pio)).per, self.pin);
 		write_volatile(&mut (*(self.hw_pio)).oer, self.pin);
 		//Ausschalten
-		write_volatile(&mut (*(self.hw_pio)).sodr, 0u32);
+		write_volatile(&mut (*(self.hw_pio)).codr, self.pin);
 		}
 	}
 }
