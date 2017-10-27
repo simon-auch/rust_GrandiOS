@@ -22,17 +22,24 @@ pub extern fn _start() {
 	let mut led_yellow = unsafe { driver::led::PIO::new(driver::led::PIO_LED_YELLOW) };
 	let mut led_red    = unsafe { driver::led::PIO::new(driver::led::PIO_LED_RED)    };
 	let mut led_green  = unsafe { driver::led::PIO::new(driver::led::PIO_LED_GREEN)  };
-	led_yellow.on();
 	led_yellow.off();
-	led_red.on();
-	led_green.on();
+	led_red.off();
+	led_green.off();
 
 	driver::serial::print();
 	let lock = utils::spinlock::Spinlock::new(0);
 	{
 		//lock is hold until data goes out of scope
 		let mut data = lock.lock();
-		* data += 1;
+		led_yellow.on();
+		let mut data2 = lock.try_lock();
+		match data2{
+			Some(guard) => {
+				//we got the lock, but it should have been locked already..............
+				led_red.on();},
+			None => {
+				led_green.on();},
+		}
 	}
 	loop { }
 }

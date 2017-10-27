@@ -11,9 +11,9 @@ use core::cell::UnsafeCell;
 fn swap(val1: &mut u8, val2: &mut u8){
 	unsafe {
 		asm!(
-			"SWPB $0, $0, [$1]" :
-			"=r"(*val1):/*outputs*/
-			"r"(val2):/*inputs*/
+			"SWPB r1, r1, [r0]" :
+			"={r1}"(*val1):/*outputs*/
+			"{r0}"(val2),"{r1}"(*val1):/*inputs*/
 			:/*clobbers*/
 			"volatile"/*options*/
 		);
@@ -60,6 +60,17 @@ impl<T> Spinlock<T>{
 			swap(&mut val, unsafe { &mut *self.val.get() } );
 		}
 		SpinlockGuard::new(self)
+	}
+	pub fn try_lock(& self) -> Option<SpinlockGuard<T>>{
+		let mut val: u8 = 1;
+		swap(&mut val, unsafe { &mut *self.val.get() });
+		if val==1{
+			//lock was locked
+			return None
+		}else{
+			//lock was free and we locked it
+			return Some(SpinlockGuard::new(self));
+		}
 	}
 	fn unlock(& self){
 		let mut val: u8 = 0;
