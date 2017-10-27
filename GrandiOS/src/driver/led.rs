@@ -44,4 +44,13 @@ impl PIO {
 		write_volatile(&mut (*(self.hw_pio)).sodr, self.pin);
 		}
 	}
+	pub fn off(&mut self){
+		unsafe {
+		//Initialisieren
+		write_volatile(&mut (*(self.hw_pio)).per, self.pin);
+		write_volatile(&mut (*(self.hw_pio)).oer, self.pin);
+		//Ausschalten
+		write_volatile(&mut (*(self.hw_pio)).sodr, 0u32);
+		}
+	}
 }

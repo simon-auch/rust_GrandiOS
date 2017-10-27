@@ -23,6 +23,7 @@ pub extern fn _start() {
 	let mut led_red    = unsafe { driver::led::PIO::new(driver::led::PIO_LED_RED)    };
 	let mut led_green  = unsafe { driver::led::PIO::new(driver::led::PIO_LED_GREEN)  };
 	led_yellow.on();
+	led_yellow.off();
 	led_red.on();
 	led_green.on();
 
@@ -33,7 +34,7 @@ pub extern fn _start() {
 		let mut data = lock.lock();
 		* data += 1;
 	}
-	loop {}
+	loop { }
 }
 
 
