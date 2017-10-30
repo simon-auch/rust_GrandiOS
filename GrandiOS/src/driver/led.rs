@@ -7,11 +7,13 @@ pub const PIO_LED_YELLOW: PIO_PIN = PIO_PIN{ base_adress: PIO_B, pin: 1 << 27 };
 pub const PIO_LED_RED:    PIO_PIN = PIO_PIN{ base_adress: PIO_C, pin: 1 <<  0 };
 pub const PIO_LED_GREEN:  PIO_PIN = PIO_PIN{ base_adress: PIO_C, pin: 1 <<  1 };
 
+#[allow(non_camel_case_types)]
 pub struct PIO_PIN{
 	base_adress: u32,
 	pin: u32,
 }
 
+#[allow(non_camel_case_types)]
 #[repr(C)]
 struct HW_PIO{
 	per: u32,	//pio enable register

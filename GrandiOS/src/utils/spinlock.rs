@@ -46,7 +46,7 @@ impl<'a, T> SpinlockGuard<'a, T>{
 }
 
 impl<T> Spinlock<T>{
-	pub fn new(t: T) -> Self {
+	pub const fn new(t: T) -> Self {
 		Spinlock{
 			val: UnsafeCell::new(0),
 			data: UnsafeCell::new(t),
@@ -81,14 +81,14 @@ impl<T> Spinlock<T>{
 impl<'a, T> Deref for SpinlockGuard<'a, T>{
 	type Target = T;
 	
-	fn deref(&self) -> &T {
+	fn deref(& self) -> & T {
 		unsafe { &*self.spinlock.data.get() }
 	}
 }
 
 impl<'a, T> DerefMut for SpinlockGuard<'a, T>
 {
-	fn deref_mut (&mut self) -> &mut T {
+	fn deref_mut (& mut self) -> & mut T {
 		unsafe { &mut *self.spinlock.data.get() }
 	}
 }

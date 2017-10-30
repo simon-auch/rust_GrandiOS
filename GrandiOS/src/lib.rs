@@ -1,8 +1,13 @@
 #![no_std]
 #![feature(lang_items)]
-#![no_main]
 #![feature(asm)]
 #![feature(naked_functions)]
+#![feature(const_fn)]
+#![feature(const_unsafe_cell_new)]
+//disable some warnings
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+//alloc needs lots of features
 #![feature(alloc, global_allocator, allocator_api, heap_api)]
 //Include other parts of the kernal
 
@@ -10,10 +15,16 @@ mod utils{
 	pub mod spinlock;
 	pub mod allocator;
 }
+#[macro_use]
 mod driver{
+	#[macro_use]
 	pub mod serial;
 	pub mod led;
+	
+	pub use serial::*;
+	pub use led::*;
 }
+use driver::*;
 
 #[global_allocator]
 static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator;
@@ -33,14 +44,17 @@ pub extern fn _start() {
 	led_yellow.off();
 	led_red.off();
 	led_green.off();
+	
+	println!("hi");
+	let a = Box::new(2u8);
+    println!("{}", a);
 
-	//let a = Box::new(2u8);
-
-	driver::serial::print();
-	let lock = utils::spinlock::Spinlock::new(0);
+	let lock = utils::spinlock::Spinlock::new(0u32);
 	{
 		//lock is hold until data goes out of scope
 		let mut data = lock.lock();
+		*data += 1;
+		
 		led_yellow.on();
 		let mut data2 = lock.try_lock();
 		match data2{
@@ -62,4 +76,4 @@ pub extern fn _start() {
 extern fn eh_personality() {}
 #[lang = "panic_fmt"]
 #[no_mangle]
-fn panic_fmt() -> ! { loop {} }
+pub fn panic_fmt() -> ! { loop {} }
