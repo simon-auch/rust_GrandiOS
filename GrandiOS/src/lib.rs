@@ -3,14 +3,22 @@
 #![no_main]
 #![feature(asm)]
 #![feature(naked_functions)]
+#![feature(alloc, global_allocator, allocator_api, heap_api)]
 //Include other parts of the kernal
+
 mod utils{
 	pub mod spinlock;
+	pub mod allocator;
 }
 mod driver{
 	pub mod serial;
 	pub mod led;
 }
+
+#[global_allocator]
+static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator;
+extern crate alloc;
+use alloc::boxed::Box;
 
 //#[no_mangle]
 //keep the function name so we can call it from assembler
@@ -25,6 +33,8 @@ pub extern fn _start() {
 	led_yellow.off();
 	led_red.off();
 	led_green.off();
+
+	//let a = Box::new(2u8);
 
 	driver::serial::print();
 	let lock = utils::spinlock::Spinlock::new(0);

@@ -1,0 +1,2 @@
+[target.armv4t-none-eabi.dependencies]
+alloc = {} #make xargo cross-compile alloc crate
