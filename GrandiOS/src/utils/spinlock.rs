@@ -46,7 +46,7 @@ impl<'a, T> SpinlockGuard<'a, T>{
 }
 
 impl<T> Spinlock<T>{
-	pub fn new(t: T) -> Self {
+	pub const fn new(t: T) -> Self {
 		Spinlock{
 			val: UnsafeCell::new(0),
 			data: UnsafeCell::new(t),

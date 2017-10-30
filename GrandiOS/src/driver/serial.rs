@@ -1,9 +1,9 @@
 use utils::spinlock;
 use core::ptr::{write_volatile, read_volatile};
 use core::fmt;
-use core::fmt::Write;
+pub use core::fmt::Write;
 
-pub const DUMM_BASE_ADRESS : u32 = 0xFFFFF200;
+const DUMM_BASE_ADRESS : u32 = 0xFFFFF200;
 
 //lots of consts for all the register bits
 const CR_RSTRX: u32 = 1 << 2;
@@ -45,14 +45,15 @@ struct DebugUnitMemoryMap{
 	exid:u32,	//chip id extension register
 }
 
-struct DebugUnit{
+pub struct DebugUnit{
 	dumm: *mut DebugUnitMemoryMap,
 }
 
+unsafe impl Send for DebugUnit { }
 
 impl DebugUnit {
 	//Marked unsafe because self.on is only safe assuming the base_adress and pin are correct
-	pub unsafe fn new(base_adress: u32) -> Self{
+	pub const unsafe fn new(base_adress: u32) -> Self{
 		DebugUnit{
 			dumm: base_adress as *mut DebugUnitMemoryMap,
 		}
@@ -95,13 +96,29 @@ impl fmt::Write for DebugUnit{
 	}
 }
 
-pub fn print(){
-	//do something!
-	let test = "Hello world!";
-	let mut debug_unit = unsafe { DebugUnit::new(DUMM_BASE_ADRESS) } ;
-	debug_unit.transmitter_enable();
-	//debug_unit.transmitter_write_character(65u8);
-	debug_unit.write_str(test).unwrap();
-	write!(debug_unit, "{}", test);
-	write!(debug_unit, "\n{number:>width$}\n", number=1, width=6);
+pub static DEBUG_UNIT : spinlock::Spinlock<DebugUnit> = spinlock::Spinlock::new(unsafe { DebugUnit::new(DUMM_BASE_ADRESS) });
+
+#[allow(unused_macros)]
+macro_rules! print {
+	( $x:expr ) => {{
+		let mut debug_unit = DEBUG_UNIT.lock();
+		write!(*debug_unit, $x).unwrap();
+	}};
+	( $x:expr, $( $y:expr ),* ) => {{
+		let mut debug_unit = DEBUG_UNIT.lock();
+		write!(*debug_unit, $x, $($y),*).unwrap();
+	}};
+}
+#[allow(unused_macros)]
+macro_rules! println {
+	( $x:expr ) => {{
+		let mut debug_unit = DEBUG_UNIT.lock();
+		write!(*debug_unit, $x).unwrap();
+		write!(*debug_unit, "\n").unwrap();
+	}};
+	( $x:expr, $( $y:expr ),* ) => {{
+		let mut debug_unit = DEBUG_UNIT.lock();
+		write!(*debug_unit, $x, $($y),*).unwrap();
+		write!(*debug_unit, "\n").unwrap();
+	}};
 }

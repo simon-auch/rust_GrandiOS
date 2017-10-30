@@ -2,6 +2,8 @@
 #![feature(lang_items)]
 #![feature(asm)]
 #![feature(naked_functions)]
+#![feature(const_fn)]
+#![feature(const_unsafe_cell_new)]
 //disable some warnings
 #![allow(unused_variables)]
 #![allow(unused_imports)]
@@ -9,10 +11,16 @@
 mod utils{
 	pub mod spinlock;
 }
+#[macro_use]
 mod driver{
+	#[macro_use]
 	pub mod serial;
 	pub mod led;
+	
+	pub use serial::*;
+	pub use led::*;
 }
+use driver::*;
 
 //#[no_mangle]
 //keep the function name so we can call it from assembler
@@ -27,8 +35,9 @@ pub extern fn _start() {
 	led_yellow.off();
 	led_red.off();
 	led_green.off();
+	
+	println!("hi");
 
-	driver::serial::print();
 	let lock = utils::spinlock::Spinlock::new(0u32);
 	{
 		//lock is hold until data goes out of scope
