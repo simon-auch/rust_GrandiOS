@@ -1,8 +1,10 @@
 #![no_std]
 #![feature(lang_items)]
-#![no_main]
 #![feature(asm)]
 #![feature(naked_functions)]
+//disable some warnings
+#![allow(unused_variables)]
+#![allow(unused_imports)]
 //Include other parts of the kernal
 mod utils{
 	pub mod spinlock;
@@ -27,10 +29,12 @@ pub extern fn _start() {
 	led_green.off();
 
 	driver::serial::print();
-	let lock = utils::spinlock::Spinlock::new(0);
+	let lock = utils::spinlock::Spinlock::new(0u32);
 	{
 		//lock is hold until data goes out of scope
 		let mut data = lock.lock();
+		*data += 1;
+		
 		led_yellow.on();
 		let mut data2 = lock.try_lock();
 		match data2{
@@ -52,4 +56,4 @@ pub extern fn _start() {
 extern fn eh_personality() {}
 #[lang = "panic_fmt"]
 #[no_mangle]
-fn panic_fmt() -> ! { loop {} }
+pub fn panic_fmt() -> ! { loop {} }
