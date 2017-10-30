@@ -68,6 +68,9 @@ pub extern fn _start() {
 	loop { }
 }
 
+// We need this to remove a linking error for the allocator
+#[no_mangle]
+pub unsafe fn __aeabi_unwind_cpp_pr0() { loop {} }
 
 // These functions and traits are used by the compiler, but not
 // for a bare-bones hello world. These are normally
