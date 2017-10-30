@@ -1,9 +1,7 @@
 use utils::spinlock;
 use core::ptr::{write_volatile, read_volatile};
-
-struct Writer{
-	
-}
+use core::fmt;
+use core::fmt::Write;
 
 pub const DUMM_BASE_ADRESS : u32 = 0xFFFFF200;
 
@@ -74,22 +72,36 @@ impl DebugUnit {
 		write_volatile(&mut (*(self.dumm)).cr, CR_RSTTX);
 		}
 	}
-	fn transmitter_write_character(&mut self, c: u8) {
+}
+
+impl fmt::Write for DebugUnit{
+	fn write_char(&mut self, c: char) -> fmt::Result {
 		unsafe{
 		//make sure the last character has been written or moved to the shift register
 		while (read_volatile(&mut (*(self.dumm)).sr) & (SR_TXRDY)) == 0 {}
 		//write new character
-		write_volatile(&mut (*(self.dumm)).thr, c);
+		write_volatile(&mut (*(self.dumm)).thr, c as u8);
 		}
+		Ok(())
+	}
+	fn write_str(&mut self, s: &str) -> fmt::Result {
+		for c in s.chars(){
+			self.write_char(c).unwrap();
+		}
+		Ok(())
+	}
+	fn write_fmt(&mut self, args: fmt::Arguments) -> fmt::Result {
+		fmt::write(self, args)
 	}
 }
+
 pub fn print(){
 	//do something!
 	let test = "Hello world!";
 	let mut debug_unit = unsafe { DebugUnit::new(DUMM_BASE_ADRESS) } ;
 	debug_unit.transmitter_enable();
 	//debug_unit.transmitter_write_character(65u8);
-	for c in test.chars(){
-		debug_unit.transmitter_write_character(c as u8);
-	}
+	debug_unit.write_str(test).unwrap();
+	write!(debug_unit, "{}", test);
+	write!(debug_unit, "\n{number:>width$}\n", number=1, width=6);
 }
