@@ -9,6 +9,7 @@
 #![allow(unused_imports)]
 //alloc needs lots of features
 #![feature(alloc, global_allocator, allocator_api, heap_api)]
+#![feature(compiler_builtins_lib)] 
 //Include other parts of the kernal
 
 mod utils{
@@ -28,7 +29,9 @@ use driver::*;
 
 #[global_allocator]
 static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new();
+#[macro_use]
 extern crate alloc;
+extern crate compiler_builtins;
 use alloc::boxed::Box;
 
 //#[no_mangle]
@@ -48,7 +51,9 @@ pub extern fn _start() {
 	println!("hi");
     // This produces a qemu warning currently
 	let a = Box::new("Hallo");
+	let _ = Box::new("Welt");
     println!("{}", a);
+    println!("{:p}", &a);
 
 	let lock = utils::spinlock::Spinlock::new(0u32);
 	{
@@ -69,10 +74,6 @@ pub extern fn _start() {
 	loop { }
 }
 
-// We need this to remove a linking error for the allocator
-#[no_mangle]
-pub unsafe fn __aeabi_unwind_cpp_pr0() { loop {} }
-
 // These functions and traits are used by the compiler, but not
 // for a bare-bones hello world. These are normally
 // provided by libstd.
@@ -81,3 +82,7 @@ extern fn eh_personality() {}
 #[lang = "panic_fmt"]
 #[no_mangle]
 pub fn panic_fmt() -> ! { loop {} }
+
+// We need this to remove a linking error for the allocator
+#[no_mangle]
+pub unsafe fn __aeabi_unwind_cpp_pr0() { loop {} }

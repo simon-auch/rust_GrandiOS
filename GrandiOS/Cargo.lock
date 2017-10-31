@@ -1,4 +1,14 @@
 [[package]]
 name = "GrandiOS"
 version = "0.1.0"
+dependencies = [
+ "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
+]
 
+[[package]]
+name = "compiler_builtins"
+version = "0.1.0"
+source = "git+https://github.com/rust-lang-nursery/compiler-builtins#2d414afec5e9bd41cc3a507b745ab6925cd29413"
+
+[metadata]
+"checksum compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)" = "<none>"
