@@ -27,7 +27,7 @@ mod driver{
 use driver::*;
 
 #[global_allocator]
-static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator;
+static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new();
 extern crate alloc;
 use alloc::boxed::Box;
 
@@ -46,7 +46,8 @@ pub extern fn _start() {
 	led_green.off();
 	
 	println!("hi");
-	let a = Box::new(2u8);
+    // This produces a qemu warning currently
+	let a = Box::new("Hallo");
     println!("{}", a);
 
 	let lock = utils::spinlock::Spinlock::new(0u32);
