@@ -53,15 +53,18 @@ unsafe impl<'a> Alloc for &'a Allocator {
             self.prepare(self.end-self.page);
             head.data = self.end-self.page;
         }
-        let mut result = 0; // Where to store the requested layout
+        let pages = layout.size()/self.page+(if layout.size()%self.page==0 {0} else {1});
         let mut address = head.data;
-        while result == 0 {
+        let mut first = 0;
+        let mut count = 0;
+        loop {
             let mut current = read_volatile::<PageRef>(address as *mut PageRef);
             if current.free {
-                current.free = false;
-                result = current.page;
-                write_volatile(address as *mut PageRef, current);
-                break;
+                if count == 0 { first = address; }
+                count += 1;
+                if count == pages { break; }
+            } else {
+                count = 0;
             }
             // Extend linked list into a new page
             if current.next == 0 {
@@ -72,9 +75,15 @@ unsafe impl<'a> Alloc for &'a Allocator {
             }
             address = current.next;
         }
-        //TODO: make allocation of more than one page possible
-        //let pages = layout.size()/self.page;
-        Ok(result as *mut u8)
+        address = first;
+        for i in 0..pages {
+            let mut current = read_volatile::<PageRef>(address as *mut PageRef);
+            current.free = false;
+            write_volatile(address as *mut PageRef, current);
+            address = current.next;
+        }
+        let current = read_volatile::<PageRef>(first as *mut PageRef);
+        Ok(current.page as *mut u8)
     }
     unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
     }

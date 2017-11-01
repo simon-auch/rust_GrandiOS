@@ -51,9 +51,9 @@ pub extern fn _start() {
 	println!("hi");
     // This produces a qemu warning currently
 	let a = Box::new("Hallo");
-	let _ = Box::new("Welt");
-    println!("{}", a);
-    println!("{:p}", &a);
+	let b = Box::new("Welt!");
+    println!("{} at {:p}", a, a);
+    println!("{} at {:p}", b, b);
 
 	let lock = utils::spinlock::Spinlock::new(0u32);
 	{
