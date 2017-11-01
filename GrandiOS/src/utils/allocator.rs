@@ -7,8 +7,7 @@ use core::ptr::write_volatile;
 use utils::spinlock;
 
 pub struct Allocator {
-    end: usize,
-    size: usize,
+    start: usize,
     page: usize
 }
 
@@ -27,8 +26,8 @@ struct MemHead {
 static MEM_HEAD: spinlock::Spinlock<MemHead> = spinlock::Spinlock::new(MemHead{data: 0});
 
 impl Allocator {
-	pub const fn new() -> Self {
-        Allocator { end: 0x23ffffff, size: 1<<20, page: 1<<10 }
+	pub const fn new(base: usize, pagesize: usize) -> Self {
+        Allocator { start: base, page: pagesize }
     }
     pub unsafe fn prepare(&self, base: usize) {
         // Let's init our linked list for the pages
@@ -36,7 +35,7 @@ impl Allocator {
         let refsperpage = self.page/size_of::<PageRef>();
         for i in 0..refsperpage {
             let tempref = PageRef{
-                page: base-self.page*i, free: i != 0, // We use that one
+                page: base+self.page*i, free: i != 0, // We use that one
                 next: if i == refsperpage-1 { 0 } else {
                     base+(i+1)*size_of::<PageRef>()
                 }
@@ -50,8 +49,8 @@ unsafe impl<'a> Alloc for &'a Allocator {
     unsafe fn alloc(&mut self, layout: Layout) -> Result<*mut u8, AllocErr> {
 		let mut head = MEM_HEAD.lock();
         if head.data == 0 {
-            self.prepare(self.end-self.page);
-            head.data = self.end-self.page;
+            self.prepare(self.start);
+            head.data = self.start;
         }
         let pages = layout.size()/self.page+(if layout.size()%self.page==0 {0} else {1});
         let mut address = head.data;
@@ -86,5 +85,19 @@ unsafe impl<'a> Alloc for &'a Allocator {
         Ok(current.page as *mut u8)
     }
     unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
+		let mut head = MEM_HEAD.lock();
+        let pages = layout.size()/self.page+(if layout.size()%self.page==0 {0} else {1});
+        let mut address = head.data;
+        let mut current = read_volatile::<PageRef>(address as *mut PageRef);
+        while current.page != ptr as usize {
+            address = current.next;
+            current = read_volatile::<PageRef>(address as *mut PageRef);
+        }
+        for i in 0..pages {
+            let mut current = read_volatile::<PageRef>(address as *mut PageRef);
+            current.free = true;
+            write_volatile(address as *mut PageRef, current);
+            address = current.next;
+        }
     }
 }
