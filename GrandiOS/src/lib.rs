@@ -15,6 +15,7 @@
 mod utils{
 	pub mod spinlock;
 	pub mod allocator;
+    pub mod thread;
 }
 #[macro_use]
 mod driver{
@@ -73,6 +74,11 @@ pub extern fn _start() {
 				led_green.on();},
 		}
 	}
+    let mut t1 = utils::thread::TCB::new(1,"Erster TCB");
+    let mut t2 = utils::thread::TCB::new(2,"Zweiter TCB");
+    t2.update_state();
+    println!("[{}] -- {}: {}", t1.id, t1.get_state(), t1.name);
+    println!("[{}] -- {}: {}", t2.id, t2.get_state(), t2.name);
 	loop { }
 }
 

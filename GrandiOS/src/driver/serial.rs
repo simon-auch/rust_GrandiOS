@@ -37,7 +37,7 @@ struct DebugUnitMemoryMap{
 	sr:  u32,	//status register
 	rhr: u8,	//receive holding register
 	reserved_0: [u8; 3],
-	thr: u8,	//holding register
+	thr: u8,	//transmit holding register
 	reserved_1: [u8; 3],
 	brgr:u32,	//baud rate generator
 	reserved_2: [u32; 3],
