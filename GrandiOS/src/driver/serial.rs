@@ -2,7 +2,6 @@ use utils::spinlock;
 use core::ptr::{write_volatile, read_volatile};
 use core::fmt;
 pub use core::fmt::Write;
-extern crate alloc;
 use alloc::vec;
 
 const DUMM_BASE_ADRESS : u32 = 0xFFFFF200;
