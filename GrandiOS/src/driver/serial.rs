@@ -94,6 +94,16 @@ impl DebugUnit {
         read_volatile(&mut (*(self.dumm)).rhr)
         }
     }
+    pub fn readstrln(&mut self) -> &str {
+        unsafe{
+        let ln = "";
+        while (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {}
+        let c = read_volatile(&mut (*(self.dumm)).rhr);
+        let ln = ln + c as char;
+        if c == 0x13 { break; }
+        }
+        ln
+    }
 }
 
 impl fmt::Write for DebugUnit{
@@ -124,6 +134,12 @@ macro_rules! read {
     () => {{
         let mut debug_unit = DEBUG_UNIT.lock();
         debug_unit.read()
+    }};
+}
+macro_rules! readstrln {
+    () => {{
+        let mut debug_unit = DEBUG_UNIT.lock();
+        debug_unit.readstrln()
     }};
 }
 #[allow(unused_macros)]
