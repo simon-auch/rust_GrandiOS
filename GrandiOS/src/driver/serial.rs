@@ -73,6 +73,21 @@ impl DebugUnit {
 		write_volatile(&mut (*(self.dumm)).cr, CR_RSTTX);
 		}
 	}
+	fn receiver_enable(&mut self) {
+		unsafe{
+		write_volatile(&mut (*(self.dumm)).cr, CR_RXEN);
+		}
+	}
+	fn receiver_disable(&mut self) {
+		unsafe{
+		write_volatile(&mut (*(self.dumm)).cr, CR_RXDIS);
+		}
+	}
+	fn receiver_reset(&mut self) {
+		unsafe{
+		write_volatile(&mut (*(self.dumm)).cr, CR_RSTRX);
+		}
+	}
     pub fn read(&mut self) -> u8 {
         unsafe{
         while (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {}
