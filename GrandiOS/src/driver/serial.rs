@@ -97,17 +97,17 @@ impl DebugUnit {
         }
     }
     pub fn readln(&mut self) -> vec::Vec<u8> {
+        // Aktuell kein Support für \r\n line endings.
         unsafe{
-            let mut ln = vec!();
-            loop {
-                while (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {}
-                let c = read_volatile(&mut (*(self.dumm)).rhr);
-                ln.push(c);
-                if (c as char) == '\r' || (c as char) == '\n' {
-                    break;
-                }
+        let mut ln = vec!();
+        loop {
+            let c = self.read();
+            ln.push(c);
+            if (c as char) == '\r' || (c as char) == '\n' {
+                break;
             }
-            ln
+        }
+        ln
         }
     }
 }
@@ -142,6 +142,7 @@ macro_rules! read {
         debug_unit.read()
     }};
 }
+#[allow(unused_macros)]
 macro_rules! readln {
     () => {{
         let mut debug_unit = DEBUG_UNIT.lock();
