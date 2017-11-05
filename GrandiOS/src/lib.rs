@@ -9,7 +9,7 @@
 #![allow(unused_imports)]
 //alloc needs lots of features
 #![feature(alloc, global_allocator, allocator_api, heap_api)]
-#![feature(compiler_builtins_lib)] 
+#![feature(compiler_builtins_lib)]
 //Include other parts of the kernal
 
 mod utils{
@@ -22,7 +22,7 @@ mod driver{
 	#[macro_use]
 	pub mod serial;
 	pub mod led;
-	
+
 	pub use serial::*;
 	pub use led::*;
 }
@@ -58,13 +58,21 @@ pub extern fn _start() {
     let a = Box::new("Test");
     println!("{} at {:p}", a, a);
 
+    println!("Gib mir ein Zeichen!");
+    let c = read!();
+    println!("Habe byte {} gelesen. (= '{}')", c, c as char);
+    println!("Gib mir noch ein Zeichen!");
+    let c = read!();
+    println!("Habe byte {} gelesen. (= '{}')", c, c as char);
+    println!("Gib mir meeeeehr!");
+
 	let lock = utils::spinlock::Spinlock::new(0u32);
 	{
 		//lock is hold until data goes out of scope
 		let mut data = lock.lock();
 		*data += 1;
-		
-		led_yellow.on();
+
+        led_yellow.on();
 		let mut data2 = lock.try_lock();
 		match data2{
 			Some(guard) => {

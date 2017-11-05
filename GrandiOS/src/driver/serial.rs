@@ -73,6 +73,12 @@ impl DebugUnit {
 		write_volatile(&mut (*(self.dumm)).cr, CR_RSTTX);
 		}
 	}
+    pub fn read(&mut self) -> u8 {
+        unsafe{
+        while (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {}
+        read_volatile(&mut (*(self.dumm)).rhr)
+        }
+    }
 }
 
 impl fmt::Write for DebugUnit{
@@ -98,6 +104,13 @@ impl fmt::Write for DebugUnit{
 
 pub static DEBUG_UNIT : spinlock::Spinlock<DebugUnit> = spinlock::Spinlock::new(unsafe { DebugUnit::new(DUMM_BASE_ADRESS) });
 
+#[allow(unused_macros)]
+macro_rules! read {
+    () => {{
+        let mut debug_unit = DEBUG_UNIT.lock();
+        debug_unit.read()
+    }};
+}
 #[allow(unused_macros)]
 macro_rules! print {
 	( $x:expr ) => {{
