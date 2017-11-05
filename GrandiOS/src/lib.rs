@@ -52,19 +52,26 @@ pub extern fn _start() {
     {
         let a = Box::new("Hallo");
         let b = Box::new("Welt!");
-        println!("{} at {:p}", a, a);
+        println!("{} at {:p} {:?}", a, a, a);
         println!("{} at {:p}", b, b);
     }
     let a = Box::new("Test");
     println!("{} at {:p}", a, a);
 
-    println!("Gib mir ein Zeichen!");
-    let c = read!();
-    println!("Habe byte {} gelesen. (= '{}')", c, c as char);
-    println!("Gib mir noch ein Zeichen!");
-    let c = read!();
-    println!("Habe byte {} gelesen. (= '{}')", c, c as char);
-    println!("Gib mir meeeeehr!");
+    { // Eingabe..
+        println!("Gib mir ein Zeichen!");
+        let c = read!();
+        println!("Habe byte {} gelesen. (= '{}')", c, c as char);
+        println!("Gib mir noch ein Zeichen!");
+        let c = read!();
+        println!("Habe byte {} gelesen. (= '{}')", c, c as char);
+        println!("Gib mir meeeeehr!");
+        let ln = readln!();
+        match alloc::str::from_utf8(&ln[..]) {
+            Ok(line) => println!("Meeeeehr ist {} Zeichen lang, inhalt:\n{}", line.len()-1, line),
+            Err(err) => println!("Es ist ein Fehler aufgetreten: {}", err)
+        }
+    }
 
 	let lock = utils::spinlock::Spinlock::new(0u32);
 	{

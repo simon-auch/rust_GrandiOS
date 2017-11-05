@@ -2,6 +2,8 @@ use utils::spinlock;
 use core::ptr::{write_volatile, read_volatile};
 use core::fmt;
 pub use core::fmt::Write;
+extern crate alloc;
+use alloc::vec;
 
 const DUMM_BASE_ADRESS : u32 = 0xFFFFF200;
 
@@ -94,15 +96,19 @@ impl DebugUnit {
         read_volatile(&mut (*(self.dumm)).rhr)
         }
     }
-    pub fn readstrln(&mut self) -> &str {
+    pub fn readln(&mut self) -> vec::Vec<u8> {
         unsafe{
-        let ln = "";
-        while (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {}
-        let c = read_volatile(&mut (*(self.dumm)).rhr);
-        let ln = ln + c as char;
-        if c == 0x13 { break; }
+            let mut ln = vec!();
+            loop {
+                while (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {}
+                let c = read_volatile(&mut (*(self.dumm)).rhr);
+                ln.push(c);
+                if (c as char) == '\r' || (c as char) == '\n' {
+                    break;
+                }
+            }
+            ln
         }
-        ln
     }
 }
 
@@ -136,10 +142,10 @@ macro_rules! read {
         debug_unit.read()
     }};
 }
-macro_rules! readstrln {
+macro_rules! readln {
     () => {{
         let mut debug_unit = DEBUG_UNIT.lock();
-        debug_unit.readstrln()
+        debug_unit.readln()
     }};
 }
 #[allow(unused_macros)]
