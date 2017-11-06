@@ -132,43 +132,65 @@ impl fmt::Write for DebugUnit{
 	}
 }
 
-pub static DEBUG_UNIT : spinlock::Spinlock<DebugUnit> = spinlock::Spinlock::new(unsafe { DebugUnit::new(DUMM_BASE_ADRESS) });
+//We need a wrapper for for DebugUnit to lock it when calling the write and read functions
+pub struct DebugUnitWrapper{
+    lock: spinlock::Spinlock<DebugUnit>,
+}
+
+impl DebugUnitWrapper{
+    pub fn read(& self) -> u8 {
+        let mut debug_unit = self.lock.lock();
+        debug_unit.read()
+    }
+    pub fn readln(& self) -> vec::Vec<u8> {
+        let mut debug_unit = self.lock.lock();
+        debug_unit.readln()
+    }
+	pub fn write_char(& self, c: char) -> fmt::Result {
+		let mut debug_unit = self.lock.lock();
+		debug_unit.write_char(c)
+	}
+	pub fn write_str(& self, s: &str) -> fmt::Result {
+		let mut debug_unit = self.lock.lock();
+		(*debug_unit).write_str(s)
+	}
+	pub fn write_fmt(& self, args: fmt::Arguments) -> fmt::Result {
+		let mut debug_unit = self.lock.lock();
+		debug_unit.write_fmt(args)
+	}
+}
+
+pub static DEBUG_UNIT : DebugUnitWrapper = DebugUnitWrapper{lock: spinlock::Spinlock::new(unsafe { DebugUnit::new(DUMM_BASE_ADRESS) })};
 
 #[allow(unused_macros)]
 macro_rules! read {
     () => {{
-        let mut debug_unit = DEBUG_UNIT.lock();
-        debug_unit.read()
+        DEBUG_UNIT.read()
     }};
 }
 #[allow(unused_macros)]
 macro_rules! readln {
     () => {{
-        let mut debug_unit = DEBUG_UNIT.lock();
-        debug_unit.readln()
+        DEBUG_UNIT.readln()
     }};
 }
 #[allow(unused_macros)]
 macro_rules! print {
 	( $x:expr ) => {{
-		let mut debug_unit = DEBUG_UNIT.lock();
-		write!(*debug_unit, $x).unwrap();
+		write!(DEBUG_UNIT, $x).unwrap();
 	}};
 	( $x:expr, $( $y:expr ),* ) => {{
-		let mut debug_unit = DEBUG_UNIT.lock();
-		write!(*debug_unit, $x, $($y),*).unwrap();
+		write!(DEBUG_UNIT, $x, $($y),*).unwrap();
 	}};
 }
 #[allow(unused_macros)]
 macro_rules! println {
 	( $x:expr ) => {{
-		let mut debug_unit = DEBUG_UNIT.lock();
-		write!(*debug_unit, $x).unwrap();
-		write!(*debug_unit, "\n").unwrap();
+		write!(DEBUG_UNIT, $x).unwrap();
+		write!(DEBUG_UNIT, "\n").unwrap();
 	}};
 	( $x:expr, $( $y:expr ),* ) => {{
-		let mut debug_unit = DEBUG_UNIT.lock();
-		write!(*debug_unit, $x, $($y),*).unwrap();
-		write!(*debug_unit, "\n").unwrap();
+		write!(DEBUG_UNIT, $x, $($y),*).unwrap();
+		write!(DEBUG_UNIT, "\n").unwrap();
 	}};
 }
