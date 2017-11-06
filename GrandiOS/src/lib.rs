@@ -89,15 +89,13 @@ pub extern fn _start() {
 				led_green.on();},
 		}
 	}
-
     {// TCBs
         let mut t1 = utils::thread::TCB::new(1,"Erster TCB");
         let mut t2 = utils::thread::TCB::new(2,"Zweiter TCB");
         t1.get_state();
-        let updated_state_t1 = t1.update_state();
-        let updated_state_t2 = t2.update_state();
-        println!("[{}] -- {:?}: {}", t1.id, updated_state_t1, t1.name);
-        println!("[{}] -- {:?}: {}", t2.id, updated_state_t2, t2.name);
+        
+        println!("[{1}] -- {0:?}: {2}", t1.update_state(), t1.id, t1.name);
+        println!("[{1}] -- {0:?}: {2}", t2.update_state(), t2.id, t2.name);
         t2.save_registers();
         t1.load_registers();
     }
