@@ -1,0 +1,24 @@
+\input{preamble}
+\begin{document}
+\todo[inline]{title}
+
+\section*{Aufgabe 1}
+(Paper: Towards Real \(\mu\)-Kernels (1996))
+\todo[inline]{2.Paper}
+
+\todo[inline]{Aufgabe ist bzgl makro nicht monolithisch \(\rightarrow\) einordnen usw.}
+\(\mu\)-Kernel im Bezug zu monolithischen
+
+\begin{itemize}
+  \item nur IPC, MMU, Scheduler Teil des Kernels
+  \item Interrupts werden ausserhalb des Kernels behandelt
+  \item[+] nur Kernel kann sicherheitskritische Operationen eines Prozessors nutzen, software in user mode nicht
+  \item[+] Treiberausfälle etc. sind \emph{nur} Softwarefehler
+  \item[+] modularer/flexibel/leicht erweiterbar da nicht Kernel für neue Geräte angepasst/erweitert werden muss
+  \item[+] Kernel besser wartbar, da kleiner
+  \item[+] Treiber etc. nur Zugriff auf zugewiesenen Speicherbereichen
+  \item[-] ineffizienter / mehr overhead bei IPCs, Addressraum wechsel etc.
+  \item[-] Je nach Hardwarezugriff können nun (leicht austauschbare) Treiber (im user mode) das System korrumpieren
+\end{itemize}
+
+\end{document}
