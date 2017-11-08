@@ -7,6 +7,9 @@
 //disable some warnings
 #![allow(unused_variables)]
 #![allow(unused_imports)]
+#![allow(unused_unsafe)]
+#![allow(unused_mut)]
+#![allow(dead_code)]
 //alloc needs lots of features
 #![feature(alloc, global_allocator, allocator_api, heap_api)]
 #![feature(compiler_builtins_lib)]
