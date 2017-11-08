@@ -41,8 +41,16 @@ Implementieren Sie eine \texttt{print}-Funktion zum ausgeben von Daten über die
 
 \textbf{Lösung:}
 
-Siehe Code.
+Anleitung zum erstellen eines mit qemu benutzbaren kernels:
+\begin{enumerate}
+	\item Zunächst wird mit dem Script \texttt{GrandiOS/setup\_env.sh} die Toolchain von Rust vorbereitet. Unter umständen sind benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
+	\item Durch starten von \texttt{GrandiOS/kernel\_build.sh} kann nun der Kernel \texttt{GrandiOS/kernel} erzeugt werden.
+	\item Starten von qemu mit dem Kernel: \texttt{qemu-bsprak -piotelnet -kernel GrandiOS\/kernel}
+	\item Starten einer telnet Verbindung zu qemu: \texttt{telnet localhost 44444}
+\end{enumerate}
+Das vorbereiten der Toolchain mittels \texttt{GrandiOS/setup\_env.sh} ist nur einmal notwendig.
 
+Für den unwahrscheinlichen Fall, dass aus irgend einem Grund das bauen des Kernels fehlschlägt, ist unter \texttt{GrandiOS/kernel.backup} noch ein von uns gebauter Kernel vorhanden.
 
 \end{description}
 \end{document}
