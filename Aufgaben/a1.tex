@@ -1,24 +1,48 @@
 \input{preamble}
 \begin{document}
-\todo[inline]{title}
+\HEADER{1}{Betriebssysteme}{WiSe 2017}{Basse, Christian, Simon}{9 November 2017, 10 Uhr}
+\begin{description}
+\AUFGABE{Architekturen}{5 Punkte}
 
-\section*{Aufgabe 1}
-(Paper: Towards Real \(\mu\)-Kernels (1996))
-\todo[inline]{2.Paper}
+Vorhandene Betriebssystementwürfe können grob in zwei Klassen eingeteilt werden:
+\begin{itemize}
+	\item die Makrokernarchitektur,
+	\item die Mikrokernarchitektur.
+\end{itemize}
+Disktuieren Sie beide Architekturansätze unter Zuhilfenahme mindestens folgender quellen:
+\footnotesize{\begin{itemize}
+	\item J. Liedtke, Toward real $\mu$-kernels, Communications of the ACM, 39(9):70--77, September 1996, \\http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.40.4950\&rep=rep1\&type=pdf
+	\item C. Maeda, B.N. Bershad, Networking performance for microkernels, Proceedings of Third Workshop on Workstation Operating Systems, 13:154 – 159, April 1992 \\http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.9733\&rep=rep1\&type=pdf 
+\end{itemize}}
 
+\textbf{Lösung:}\\
 \todo[inline]{Aufgabe ist bzgl makro nicht monolithisch \(\rightarrow\) einordnen usw.}
-\(\mu\)-Kernel im Bezug zu monolithischen
+\(\mu\)-Kernel im Bezug zu monolithischen Kernel
 
 \begin{itemize}
   \item nur IPC, MMU, Scheduler Teil des Kernels
   \item Interrupts werden ausserhalb des Kernels behandelt
+  \item Protokolle (z.B. UDP) werden ausserhalb des Kernels implementiert
+  \item Implementationen von Protokellen, etc. von monolithischen Kerneln können unter umständen nicht ohne gravierende geschwindigkeits Verluste \emph{direkt} übernommen werden
   \item[+] nur Kernel kann sicherheitskritische Operationen eines Prozessors nutzen, software in user mode nicht
   \item[+] Treiberausfälle etc. sind \emph{nur} Softwarefehler
   \item[+] modularer/flexibel/leicht erweiterbar da nicht Kernel für neue Geräte angepasst/erweitert werden muss
   \item[+] Kernel besser wartbar, da kleiner
   \item[+] Treiber etc. nur Zugriff auf zugewiesenen Speicherbereichen
   \item[-] ineffizienter / mehr overhead bei IPCs, Addressraum wechsel etc.
+  \item[-] Höhere Latenz zum bearbeiten von Daten, da (mindestens) ein Kontextwechsel nach dem Auslösen eines Interrupts stattfinden muss
   \item[-] Je nach Hardwarezugriff können nun (leicht austauschbare) Treiber (im user mode) das System korrumpieren
 \end{itemize}
 
+
+\AUFGABE{Steuerung von Geräten}{15 Punkte}
+
+Implementieren Sie eine \texttt{print}-Funktion zum ausgeben von Daten über die serielle Schnittstelle (Debug-Unit, DBGU).
+
+\textbf{Lösung:}
+
+Siehe Code.
+
+
+\end{description}
 \end{document}

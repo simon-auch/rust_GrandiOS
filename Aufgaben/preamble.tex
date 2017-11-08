@@ -1,6 +1,54 @@
-\documentclass[a4paper,12pt]{article}
+\documentclass[a4paper,twoside,12pt]{article}
+%\usepackage [reqno] {amsmath}
 \usepackage[utf8]{inputenc}
+\usepackage[]{algorithm2e}
+\usepackage{listingsutf8}
 \usepackage{amsfonts,amstext}
-\usepackage{amsmath}
+\usepackage{amsmath,amssymb}
 \usepackage{german}
+\usepackage{fullpage}
+\usepackage[normalem]{ulem}
 \usepackage{todonotes}
+
+\newcommand{\ZETTELNUMMER}[1]{#1}
+\newcommand{\ABGABEDATUM}[1]{#1}
+
+\newcounter{AUFGNR}
+\setcounter{AUFGNR}{1}
+\newcommand{\AUFGABE}[2]{\vspace{0.3cm}\item[Aufgabe~\arabic{AUFGNR}]\stepcounter{AUFGNR} #1\hfill\emph{#2}}
+
+
+\newcommand{\floor}[1]{\left\lfloor{#1}\right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil{#1}\right\rceil}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\E}{\mathbf{E}}
+\renewcommand{\Pr}{\mathbf{Pr}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\half}[1]{\frac{#1}{2}}
+\newcommand{\enquote}[1]{``#1''}
+
+\renewcommand{\labelenumi}{(\alph{enumi})}
+\renewcommand{\labelenumii}{(\roman{enumii})}
+
+\newcommand{\HEADER}[5]{
+	\pagestyle{empty}
+	\hrule\medskip
+	\rule{0ex}{0ex}\\[-1ex]
+	\ZETTELNUMMER{#1}. Aufgabenblatt mit Lösung zur Vorlesung
+
+	\smallskip
+	\noindent
+	\large
+	\textbf{#2}\hfill #3 \\[0.5ex]
+	\normalsize
+	#4
+
+	\medskip\hrule
+
+	\smallskip
+	\noindent
+	\textbf{Abgabe} \ABGABEDATUM{#5}
+
+	\vskip 0.5cm
+}
