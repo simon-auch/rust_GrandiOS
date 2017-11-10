@@ -138,6 +138,21 @@ pub struct DebugUnitWrapper{
 }
 
 impl DebugUnitWrapper{
+    pub fn enable(& self){
+        let mut debug_unit = self.lock.lock();
+        debug_unit.transmitter_enable();
+	debug_unit.receiver_enable();
+    }
+    pub fn disable(& self){
+        let mut debug_unit = self.lock.lock();
+        debug_unit.transmitter_disable();
+        debug_unit.receiver_disable();
+    }
+    pub fn reset(& self){
+        let mut debug_unit = self.lock.lock();
+        debug_unit.transmitter_reset();
+	debug_unit.receiver_reset();
+    }
     pub fn read(& self) -> u8 {
         let mut debug_unit = self.lock.lock();
         debug_unit.read()
@@ -146,8 +161,8 @@ impl DebugUnitWrapper{
         let mut debug_unit = self.lock.lock();
         debug_unit.readln()
     }
-	pub fn write_char(& self, c: char) -> fmt::Result {
-		let mut debug_unit = self.lock.lock();
+    pub fn write_char(& self, c: char) -> fmt::Result {
+        let mut debug_unit = self.lock.lock();
 		debug_unit.write_char(c)
 	}
 	pub fn write_str(& self, s: &str) -> fmt::Result {
