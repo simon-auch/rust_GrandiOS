@@ -5,11 +5,11 @@
 #![feature(const_fn)]
 #![feature(const_unsafe_cell_new)]
 //disable some warnings
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_unsafe)]
-#![allow(unused_mut)]
-#![allow(dead_code)]
+//#![allow(unused_variables)]
+//#![allow(unused_imports)]
+//#![allow(unused_unsafe)]
+//#![allow(unused_mut)]
+//#![allow(dead_code)]
 //alloc needs lots of features
 #![feature(alloc, global_allocator, allocator_api, heap_api)]
 #![feature(compiler_builtins_lib)]
@@ -32,7 +32,7 @@ mod utils{
 use driver::*;
 
 #[global_allocator]
-static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x23000000, 1<<10);
+static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new( 0x22000000, 1<<10);
 #[macro_use]
 extern crate alloc;
 extern crate compiler_builtins;
@@ -45,13 +45,39 @@ use alloc::boxed::Box;
 #[no_mangle]
 #[naked]
 pub extern fn _start() {
+	//Initialise the LED's
 	let mut led_yellow = unsafe { driver::led::PIO::new(driver::led::PIO_LED_YELLOW) };
 	let mut led_red    = unsafe { driver::led::PIO::new(driver::led::PIO_LED_RED)    };
 	let mut led_green  = unsafe { driver::led::PIO::new(driver::led::PIO_LED_GREEN)  };
 	led_yellow.off();
 	led_red.off();
 	led_green.off();
-
+	//Initialise the DebugUnit
+	DEBUG_UNIT.reset();
+	DEBUG_UNIT.enable();
+	println!(include_str!("logo.txt"));
+	for i in 1..999{
+                print!("{}{}{}", 27 as char, 91 as char, 66 as char);
+		print!("{}{}{}", 27 as char, 91 as char, 67 as char);
+	}
+	print!("{}[6n", 27 as char);
+	//println!("The cursor is at {}")
+        let mut h: u32 = 0;
+        let mut w: u32 = 0;
+	let mut c = read!(); //Escape
+        c = read!(); //[
+        c = read!();
+	while c != 59 {
+                h = h*10 + (c as u32) - 48;
+                c = read!();
+	}
+        c = read!();
+        while c != 82 {
+                w = w*10 + (c as u32) - 48;
+                c = read!();
+        }
+        println!("\r");
+	println!("{}x{}",w,h);
     {
         let a = Box::new("Hallo");
         let b = Box::new("Welt!");
