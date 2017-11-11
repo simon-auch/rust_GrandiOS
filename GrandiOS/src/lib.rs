@@ -20,6 +20,7 @@ mod driver{
 	#[macro_use]
 	pub mod serial;
 	pub mod led;
+    pub mod logo;
 
 	pub use serial::*;
 	pub use led::*;
@@ -55,28 +56,8 @@ pub extern fn _start() {
 	//Initialise the DebugUnit
 	DEBUG_UNIT.reset();
 	DEBUG_UNIT.enable();
-	println!(include_str!("logo.txt"));
-	for i in 1..999{
-                print!("{}{}{}", 27 as char, 91 as char, 66 as char);
-		print!("{}{}{}", 27 as char, 91 as char, 67 as char);
-	}
-	print!("{}[6n", 27 as char);
-	//println!("The cursor is at {}")
-        let mut h: u32 = 0;
-        let mut w: u32 = 0;
-	let mut c = read!(); //Escape
-        c = read!(); //[
-        c = read!();
-	while c != 59 {
-                h = h*10 + (c as u32) - 48;
-                c = read!();
-	}
-        c = read!();
-        while c != 82 {
-                w = w*10 + (c as u32) - 48;
-                c = read!();
-        }
-        println!("\r");
+    logo::draw();
+    let (w, h) = logo::resize();
 	println!("{}x{}",w,h);
     {
         let a = Box::new("Hallo");
