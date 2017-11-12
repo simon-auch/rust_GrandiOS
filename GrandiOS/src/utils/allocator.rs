@@ -85,7 +85,7 @@ unsafe impl<'a> Alloc for &'a Allocator {
         Ok(current.page as *mut u8)
     }
     unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
-		let mut head = MEM_HEAD.lock();
+		let head = MEM_HEAD.lock();
         let pages = layout.size()/self.page+(if layout.size()%self.page==0 {0} else {1});
         let mut address = head.data;
         let mut current = read_volatile::<PageRef>(address as *mut PageRef);

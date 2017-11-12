@@ -38,6 +38,9 @@ static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new( 0
 extern crate alloc;
 extern crate compiler_builtins;
 use alloc::boxed::Box;
+use alloc::vec::Vec;
+use alloc::string::String;
+extern crate rlibc;
 
 //#[no_mangle]
 //keep the function name so we can call it from assembler
@@ -57,60 +60,64 @@ pub extern fn _start() {
 	DEBUG_UNIT.reset();
 	DEBUG_UNIT.enable();
     logo::draw();
-    let (w, h) = logo::resize();
-	println!("{}x{}",w,h);
-    {
-        let a = Box::new("Hallo");
-        let b = Box::new("Welt!");
-        println!("{} at {:p} {:?}", a, a, a);
-        println!("{} at {:p}", b, b);
-    }
-    let a = Box::new("Test");
-    println!("{} at {:p}", a, a);
+    loop {
+        let input = String::from_utf8(echo_readln!("> ")).expect("Found invalid UTF-8");
+        let mut arguments: Vec<&str> = input.split(' ').collect();
+        let command = arguments.remove(0);
+        match command {
+            "logo" => logo::draw(),
+            "test" => if arguments.len() == 0 { println!("Test what?"); } else {
+                match arguments[0].as_ref() {
+                    "size" => {
+                        let (w, h) = logo::resize();
+                        println!("{}x{}",w,h);
+                    },
+                    "alloc" => {
+                        {
+                            let a = Box::new("Hallo");
+                            let b = Box::new("Welt!");
+                            println!("{} at {:p}", a, a);
+                            println!("{} at {:p}", b, b);
+                        }
+                        let a = Box::new("Test");
+                        println!("{} at {:p}", a, a);
+                    },
+                    "lock" => {
+                        let lock = utils::spinlock::Spinlock::new(0u32);
+                        {
+                            //lock is hold until data goes out of scope
+                            let mut data = lock.lock();
+                            *data += 1;
 
-    { // Eingabe..
-        println!("Gib mir ein Zeichen!");
-        let c = read!();
-        println!("Habe byte {} gelesen. (= '{}')", c, c as char);
-        println!("Gib mir noch ein Zeichen!");
-        let c = read!();
-        println!("Habe byte {} gelesen. (= '{}')", c, c as char);
-        println!("Gib mir meeeeehr!");
-        let ln = readln!();
-        match alloc::str::from_utf8(&ln[..]) {
-            Ok(line) => println!("Meeeeehr ist {} Zeichen lang, inhalt:\n{}", line.len()-1, line),
-            Err(err) => println!("Es ist ein Fehler aufgetreten: {}", err)
-        }
+                            led_yellow.on();
+                            let mut data2 = lock.try_lock();
+                            match data2{
+                                Some(guard) => {
+                                    //we got the lock, but it should have been locked already..............
+                                    led_red.on();},
+                                None => {
+                                    led_green.on();},
+                            }
+                        }
+                    },
+                    "tcb" => {
+                        {// TCBs
+                            let mut t1 = utils::thread::TCB::new(1,"Erster TCB");
+                            let mut t2 = utils::thread::TCB::new(2,"Zweiter TCB");
+                            t1.get_state();
+                            
+                            println!("[{1}] -- {0:?}: {2}", t1.update_state(), t1.id, t1.name);
+                            println!("[{1}] -- {0:?}: {2}", t2.update_state(), t2.id, t2.name);
+                            t2.save_registers();
+                            t1.load_registers();
+                        }
+                    },
+                    _ => println!("I don't know that.")
+                };
+            },
+            _ => println!("Unknown command: {}", command)
+        };
     }
-
-	let lock = utils::spinlock::Spinlock::new(0u32);
-	{
-		//lock is hold until data goes out of scope
-		let mut data = lock.lock();
-		*data += 1;
-
-        led_yellow.on();
-		let mut data2 = lock.try_lock();
-		match data2{
-			Some(guard) => {
-				//we got the lock, but it should have been locked already..............
-				led_red.on();},
-			None => {
-				led_green.on();},
-		}
-	}
-    {// TCBs
-        let mut t1 = utils::thread::TCB::new(1,"Erster TCB");
-        let mut t2 = utils::thread::TCB::new(2,"Zweiter TCB");
-        t1.get_state();
-        
-        println!("[{1}] -- {0:?}: {2}", t1.update_state(), t1.id, t1.name);
-        println!("[{1}] -- {0:?}: {2}", t2.update_state(), t2.id, t2.name);
-        t2.save_registers();
-        t1.load_registers();
-    }
-    println!("Sind durch mit unserem Zeug..");
-	loop { }
 }
 
 // These functions and traits are used by the compiler, but not

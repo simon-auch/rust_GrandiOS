@@ -53,83 +53,86 @@ pub struct DebugUnit{
 unsafe impl Send for DebugUnit { }
 
 impl DebugUnit {
-	//Marked unsafe because self.on is only safe assuming the base_adress and pin are correct
-	pub const unsafe fn new(base_adress: u32) -> Self{
-		DebugUnit{
-			dumm: base_adress as *mut DebugUnitMemoryMap,
-		}
-	}
-	fn transmitter_enable(&mut self) {
-		unsafe{
-		write_volatile(&mut (*(self.dumm)).cr, CR_TXEN);
-		}
-	}
-	fn transmitter_disable(&mut self) {
-		unsafe{
-		write_volatile(&mut (*(self.dumm)).cr, CR_TXDIS);
-		}
-	}
-	fn transmitter_reset(&mut self) {
-		unsafe{
-		write_volatile(&mut (*(self.dumm)).cr, CR_RSTTX);
-		}
-	}
-	fn receiver_enable(&mut self) {
-		unsafe{
-		write_volatile(&mut (*(self.dumm)).cr, CR_RXEN);
-		}
-	}
-	fn receiver_disable(&mut self) {
-		unsafe{
-		write_volatile(&mut (*(self.dumm)).cr, CR_RXDIS);
-		}
-	}
-	fn receiver_reset(&mut self) {
-		unsafe{
-		write_volatile(&mut (*(self.dumm)).cr, CR_RSTRX);
-		}
-	}
-    pub fn read(&mut self) -> u8 {
-        unsafe{
-        while (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {}
-        read_volatile(&mut (*(self.dumm)).rhr)
+    //Marked unsafe because self.on is only safe assuming the base_adress and pin are correct
+    pub const unsafe fn new(base_adress: u32) -> Self{
+        DebugUnit{
+            dumm: base_adress as *mut DebugUnitMemoryMap,
         }
     }
-    pub fn readln(&mut self) -> vec::Vec<u8> {
+    fn transmitter_enable(&mut self) {
+        unsafe{
+		    write_volatile(&mut (*(self.dumm)).cr, CR_TXEN);
+        }
+    }
+    fn transmitter_disable(&mut self) {
+        unsafe{
+            write_volatile(&mut (*(self.dumm)).cr, CR_TXDIS);
+        }
+    }
+    fn transmitter_reset(&mut self) {
+        unsafe{
+            write_volatile(&mut (*(self.dumm)).cr, CR_RSTTX);
+        }
+    }
+    fn receiver_enable(&mut self) {
+        unsafe{
+            write_volatile(&mut (*(self.dumm)).cr, CR_RXEN);
+        }
+    }
+    fn receiver_disable(&mut self) {
+        unsafe{
+            write_volatile(&mut (*(self.dumm)).cr, CR_RXDIS);
+        }
+    }
+    fn receiver_reset(&mut self) {
+        unsafe{
+		    write_volatile(&mut (*(self.dumm)).cr, CR_RSTRX);
+        }
+    }
+    pub fn read(&mut self, echo: bool) -> u8 {
+        unsafe{
+            while (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {}
+            let c = read_volatile(&mut (*(self.dumm)).rhr);
+            if echo { self.write_char(c as char).unwrap(); }
+            c
+        }
+    }
+    pub fn readln(&mut self, echo: bool) -> vec::Vec<u8> {
         // Aktuell kein Support für \r\n line endings.
         unsafe{
-        let mut ln = vec!();
-        loop {
-            let c = self.read();
-            ln.push(c);
-            if (c as char) == '\r' || (c as char) == '\n' {
-                break;
+            let mut ln = vec!();
+            loop {
+                let c = self.read(echo);
+                if (c as char) == '\r' || (c as char) == '\n' {
+                    self.write_char('\n').unwrap();
+                    break;
+                }
+                ln.push(c);
             }
-        }
-        ln
+            ln
         }
     }
 }
 
 impl fmt::Write for DebugUnit{
-	fn write_char(&mut self, c: char) -> fmt::Result {
-		unsafe{
-		//make sure the last character has been written or moved to the shift register
-		while (read_volatile(&mut (*(self.dumm)).sr) & (SR_TXRDY)) == 0 {}
-		//write new character
-		write_volatile(&mut (*(self.dumm)).thr, c as u8);
-		}
-		Ok(())
-	}
-	fn write_str(&mut self, s: &str) -> fmt::Result {
-		for c in s.chars(){
-			self.write_char(c).unwrap();
-		}
-		Ok(())
-	}
-	fn write_fmt(&mut self, args: fmt::Arguments) -> fmt::Result {
-		fmt::write(self, args)
-	}
+    fn write_char(&mut self, c: char) -> fmt::Result {
+        unsafe{
+            //make sure the last character has been written or moved to the shift register
+            while (read_volatile(&mut (*(self.dumm)).sr) & (SR_TXRDY)) == 0 {}
+            //write new character
+            write_volatile(&mut (*(self.dumm)).thr, c as u8);
+        }
+        Ok(())
+    }
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        for c in s.chars(){
+            self.write_char(c).unwrap();
+        }
+        Ok(())
+    }
+    fn write_fmt(&mut self, args: fmt::Arguments) -> fmt::Result {
+        fmt::write(self, args)
+    }
 }
 
 //We need a wrapper for for DebugUnit to lock it when calling the write and read functions
@@ -141,7 +144,7 @@ impl DebugUnitWrapper{
     pub fn enable(& self){
         let mut debug_unit = self.lock.lock();
         debug_unit.transmitter_enable();
-	debug_unit.receiver_enable();
+        debug_unit.receiver_enable();
     }
     pub fn disable(& self){
         let mut debug_unit = self.lock.lock();
@@ -151,15 +154,15 @@ impl DebugUnitWrapper{
     pub fn reset(& self){
         let mut debug_unit = self.lock.lock();
         debug_unit.transmitter_reset();
-	debug_unit.receiver_reset();
+        debug_unit.receiver_reset();
     }
-    pub fn read(& self) -> u8 {
+    pub fn read(& self, echo: bool) -> u8 {
         let mut debug_unit = self.lock.lock();
-        debug_unit.read()
+        debug_unit.read(echo)
     }
-    pub fn readln(& self) -> vec::Vec<u8> {
+    pub fn readln(& self, echo: bool) -> vec::Vec<u8> {
         let mut debug_unit = self.lock.lock();
-        debug_unit.readln()
+        debug_unit.readln(echo)
     }
     pub fn write_char(& self, c: char) -> fmt::Result {
         let mut debug_unit = self.lock.lock();
@@ -180,13 +183,41 @@ pub static DEBUG_UNIT : DebugUnitWrapper = DebugUnitWrapper{lock: spinlock::Spin
 #[allow(unused_macros)]
 macro_rules! read {
     () => {{
-        DEBUG_UNIT.read()
+        DEBUG_UNIT.read(false)
+    }};
+    ( $x:expr ) => {{
+        print!($x);
+        DEBUG_UNIT.read(false)
     }};
 }
 #[allow(unused_macros)]
 macro_rules! readln {
     () => {{
-        DEBUG_UNIT.readln()
+        DEBUG_UNIT.readln(false)
+    }};
+    ( $x:expr ) => {{
+        print!($x);
+        DEBUG_UNIT.readln(false)
+    }};
+}
+#[allow(unused_macros)]
+macro_rules! echo_read {
+    () => {{
+        DEBUG_UNIT.read(true)
+    }};
+    ( $x: expr ) => {{
+        print!($x);
+        DEBUG_UNIT.read(true)
+    }};
+}
+#[allow(unused_macros)]
+macro_rules! echo_readln {
+    () => {{
+        DEBUG_UNIT.readln(true)
+    }};
+    ( $x:expr ) => {{
+        print!($x);
+        DEBUG_UNIT.readln(true)
     }};
 }
 #[allow(unused_macros)]
