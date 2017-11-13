@@ -20,9 +20,13 @@ mod driver{
 	#[macro_use]
 	pub mod serial;
 	pub mod led;
+	pub mod memory_controller;
+	pub mod interrupts;
 
 	pub use serial::*;
 	pub use led::*;
+	pub use memory_controller::*;
+	pub use interrupts::*;
 }
 mod utils{
 	pub mod spinlock;
@@ -67,7 +71,17 @@ pub extern fn _start() {
 	//Initialise the DebugUnit
 	DEBUG_UNIT.reset();
 	DEBUG_UNIT.enable();
-    logo::draw();
+    //logo::draw();
+    //make interupt table writable
+    let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
+    mc.remap();
+    //enable interrupts
+    let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
+    ic.enable();
+    for i in 0..32{
+		ic.set_handler(i, &(default_handler_2 as fn()));
+	}
+	DEBUG_UNIT.interrupt_set_rxrdy(true);
     loop {
         let input = String::from_utf8(echo_readln!("> ")).expect("Found invalid UTF-8");
         let mut arguments: Vec<&str> = input.split(' ').collect();
@@ -84,6 +98,35 @@ pub extern fn _start() {
             println!("Unknown command!");
         }
     }
+}
+
+#[no_mangle]
+#[naked]
+extern fn testing(){
+	unsafe {
+		asm!(
+			"LDR PC,[PC, # -0xF20]" :
+			:/*outputs*/
+			:/*inputs*/
+			:/*clobbers*/
+			/*options*/
+		);
+	}
+}
+
+#[allow(dead_code)]
+#[link_section = ".rodata.interrupts"]
+static INTERRUPTS: [extern "C" fn(); 7] = [default_handler; 7];
+#[no_mangle]
+#[naked]
+extern "C" fn default_handler() {
+    let mut DEBUG_UNIT_b = unsafe { DebugUnit::new(0xFFFFF200) };
+    write!(DEBUG_UNIT_b, "hi");
+}
+#[naked]
+fn default_handler_2(){
+	let mut DEBUG_UNIT_b = unsafe { DebugUnit::new(0xFFFFF200) };
+    write!(DEBUG_UNIT_b, "hi 2\n");
 }
 
 // These functions and traits are used by the compiler, but not

@@ -4,7 +4,7 @@ DUMP_SIMON="arm-linux-gnueabihf-objdump"
 DUMP_FU="/home/mi/linnert/arm/bin/arm-none-eabi-objdump"
 DUMP_ARCH="/usr/arm-none-eabi/bin/objdump"
 
-DUM=$DUMP_FU
+DUMP=$DUMP_FU
 which $DUMP_SIMON >/dev/null 2>&1
 if [ $? -eq 0 ]; then
   DUMP=$DUMP_SIMON

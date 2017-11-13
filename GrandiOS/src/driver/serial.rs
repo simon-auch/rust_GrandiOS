@@ -28,6 +28,19 @@ const SR_RXBUFF:  u32 = 1 << 12;
 const SR_COMMTX:  u32 = 1 << 30;
 const SR_COMMRX:  u32 = 1 << 31;
 
+const IR_RXRDY:   u32 = 1 << 0;
+const IR_TXRDY:   u32 = 1 << 1;
+const IR_ENDRX:   u32 = 1 << 3;
+const IR_ENDTX:   u32 = 1 << 4;
+const IR_OVRE:    u32 = 1 << 5;
+const IR_FRAME:   u32 = 1 << 6;
+const IR_PARE:    u32 = 1 << 7;
+const IR_TXEMPTY: u32 = 1 << 9;
+const IR_TXBUFE:  u32 = 1 << 11;
+const IR_RXBUFF:  u32 = 1 << 12;
+const IR_COMMTX:  u32 = 1 << 30;
+const IR_COMMRX:  u32 = 1 << 31;
+
 #[repr(C)]
 struct DebugUnitMemoryMap{
 	cr:  u32,	//control register
@@ -89,6 +102,17 @@ impl DebugUnit {
 		    write_volatile(&mut (*(self.dumm)).cr, CR_RSTRX);
         }
     }
+    fn interrupt_set_rxrdy(&mut self, status: bool) {
+		if status{
+			unsafe{
+				write_volatile(&mut (*(self.dumm)).ier, IR_RXRDY);
+			}
+		} else {
+			unsafe{
+				write_volatile(&mut (*(self.dumm)).idr, IR_RXRDY);
+			}
+		}
+	}
     pub fn read(&mut self, echo: bool) -> u8 {
         unsafe{
             while (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {}
@@ -156,6 +180,10 @@ impl DebugUnitWrapper{
         debug_unit.transmitter_reset();
         debug_unit.receiver_reset();
     }
+    pub fn interrupt_set_rxrdy(& self, status: bool) {
+		let mut debug_unit = self.lock.lock();
+		debug_unit.interrupt_set_rxrdy(status);
+	}
     pub fn read(& self, echo: bool) -> u8 {
         let mut debug_unit = self.lock.lock();
         debug_unit.read(echo)
