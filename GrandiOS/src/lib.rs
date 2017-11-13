@@ -66,6 +66,11 @@ pub extern fn _start() {
         let command = arguments.remove(0);
         match command {
             "logo" => logo::draw(),
+            "cat" => if arguments.len() == 0 {
+                println!("{}", read!() as char);
+            } else {
+                println!("{}", read!());
+            },
             "test" => if arguments.len() == 0 { println!("Test what?"); } else {
                 match arguments[0].as_ref() {
                     "size" => {

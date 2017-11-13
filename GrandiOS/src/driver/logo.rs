@@ -29,12 +29,14 @@ pub fn draw() {
             dy >= 0
         } {}
 
+        /*
         while dx < xm {
             dx += 1;
             for &(x, y) in [(xm+dx, ym), (xm-dx, ym)].iter() {
                 draw_logo_at(0, x, y, &d);
             }
         }
+        */
     }
     draw_name(w);
     print!("{}[{};1H", 27 as char, h-1);
