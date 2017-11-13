@@ -7,8 +7,9 @@ pub fn exec(args: Vec<&str>) {
         if args.len() == 0 {
             print!("{}", c as char);
         } else {
-            print!("{}", c);
+            print!("{} ", c);
         }
         c = read!();
     }
+    println!("");
 }

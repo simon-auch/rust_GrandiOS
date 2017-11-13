@@ -4,6 +4,7 @@
 #![feature(naked_functions)]
 #![feature(const_fn)]
 #![feature(const_unsafe_cell_new)]
+#![feature(range_contains)]
 //disable some warnings
 #![allow(unused_variables)]
 #![allow(unused_imports)]
@@ -28,6 +29,7 @@ mod utils{
 	pub mod spinlock;
 	pub mod allocator;
     pub mod thread;
+    pub mod shell;
 }
 mod commands{
     pub mod logo;
@@ -35,16 +37,12 @@ mod commands{
     pub mod test;
 }
 use driver::*;
-use commands::*;
 
 #[global_allocator]
 static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new( 0x22000000, 1<<10);
 #[macro_use]
 extern crate alloc;
 extern crate compiler_builtins;
-use alloc::boxed::Box;
-use alloc::vec::Vec;
-use alloc::string::String;
 extern crate rlibc;
 
 //#[no_mangle]
@@ -54,9 +52,6 @@ extern crate rlibc;
 #[no_mangle]
 #[naked]
 pub extern fn _start() {
-    let commands = vec![("logo", logo::exec as fn(Vec<&str>)),
-                        ("test", test::exec as fn(Vec<&str>)),
-                        ("cat", cat::exec as fn(Vec<&str>))];
 	//Initialise the LED's
 	let mut led_yellow = unsafe { driver::led::PIO::new(driver::led::PIO_LED_YELLOW) };
 	let mut led_red    = unsafe { driver::led::PIO::new(driver::led::PIO_LED_RED)    };
@@ -67,23 +62,8 @@ pub extern fn _start() {
 	//Initialise the DebugUnit
 	DEBUG_UNIT.reset();
 	DEBUG_UNIT.enable();
-    logo::draw();
-    loop {
-        let input = String::from_utf8(echo_readln!("> ")).expect("Found invalid UTF-8");
-        let mut arguments: Vec<&str> = input.split(' ').collect();
-        let command = arguments.remove(0);
-        let mut found = false;
-        for &(c, m) in commands.iter() {
-            if command == c {
-                found = true;
-                m(arguments);
-                break;
-            }
-        }
-        if !found {
-            println!("Unknown command!");
-        }
-    }
+    //commands::logo::draw();
+    utils::shell::run();
 }
 
 // These functions and traits are used by the compiler, but not
