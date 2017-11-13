@@ -1,6 +1,9 @@
 use driver::serial::*;
-use core::f32;
 use alloc::vec::Vec;
+
+pub fn exec(args: Vec<&str>) {
+    draw();
+}
 
 pub fn draw() {
     clear();
@@ -57,7 +60,12 @@ fn draw_logo_at(offset: i32, x: i32, y: i32, d: &Vec<&str>) {
     if y < 0 || x < 0 { return; }
     if y as usize >= d.len() { return; }
     if x as usize >= d[y as usize].as_bytes().len() { return; }
-    draw_at((x+offset) as u32, y as u32+1, d[y as usize].as_bytes()[x as usize] as char);
+    let c = d[y as usize].as_bytes()[x as usize] as char;
+    if c == ' ' { return; }
+    for i in 0..1000 {
+        unsafe { asm!("nop" :::: "volatile"); }
+    }
+    draw_at((x+offset) as u32, y as u32+1, c);
 }
 
 pub fn draw_at(x: u32, y: u32, c: char) {
@@ -75,9 +83,9 @@ pub fn resize() -> (u32, u32) {
     //we expect a response in the form <Esc>[h;wR
     let mut h: u32 = 0;
     let mut w: u32 = 0;
-	let mut c = read!(); //Escape
-    c = read!(); //[
-    c = read!();
+    let _ = read!(); //Escape
+    let _ = read!(); //[
+	let mut c = read!();
 	while c != 59 { //read to ;
         h = h*10 + (c as u32) - 48;
         c = read!();
