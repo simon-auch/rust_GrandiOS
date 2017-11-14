@@ -106,7 +106,7 @@ impl DebugUnit {
 		if status{
 			unsafe{
 				write_volatile(&mut (*(self.dumm)).ier, IR_RXRDY);
-			}
+                        }
 		} else {
 			unsafe{
 				write_volatile(&mut (*(self.dumm)).idr, IR_RXRDY);
@@ -181,9 +181,9 @@ impl DebugUnitWrapper{
         debug_unit.receiver_reset();
     }
     pub fn interrupt_set_rxrdy(& self, status: bool) {
-		let mut debug_unit = self.lock.lock();
-		debug_unit.interrupt_set_rxrdy(status);
-	}
+        let mut debug_unit = self.lock.lock();
+        debug_unit.interrupt_set_rxrdy(status);
+    }
     pub fn read(& self, echo: bool) -> u8 {
         let mut debug_unit = self.lock.lock();
         debug_unit.read(echo)
