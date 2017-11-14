@@ -37,14 +37,32 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
                 let mut data = lock.lock();
                 *data += 1;
 
-                led_yellow.on();
-                let mut data2 = lock.try_lock();
-                match data2{
-                    Some(guard) => {
-                        //we got the lock, but it should have been locked already..............
-                        led_red.on();},
-                    None => {
-                        led_green.on();},
+                    led_yellow.on();
+                    let mut data2 = lock.try_lock();
+                    match data2{
+                        Some(guard) => {
+                            //we got the lock, but it should have been locked already..............
+                            led_red.on();},
+                        None => {
+                            led_green.on();},
+                    }
+                }
+            },
+            "tcb" => {
+                {
+                    //TCB again
+                    // Take a fn-pointer, make it a rawpointer
+                    let idle_thread_function_ptr: *mut _ = idle_thread as *mut _;
+                    // Box it
+                    let idle = Box::new(idle_thread_function_ptr);
+                    // Shove it into the TCB
+                    let mut tcb = TCB::new("Test TCB",idle);
+                    println!("[{1}] -- {0:?}: {2}", tcb.update_state(), tcb.id, tcb.name);
+                    //println!("pc...? {:p}",tcb.program_counter);
+                    //tcb.save_registers();
+                    //println!("pc...? {:p}",tcb.program_counter);
+                    tcb.load_registers();
+                    //println!("pc...? {:p}",tcb.program_counter);
                 }
             }
         },

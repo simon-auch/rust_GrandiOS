@@ -95,8 +95,9 @@ pub extern fn _start() {
     */
     println!("Memory location of default handler: {:p}", &(default_handler_2 as fn()));
     println!("What is written to the aic; {:x}", ((&(default_handler_2 as fn())) as *const _) as u32);
-    loop{}
+
     utils::shell::run();
+    loop{}
 }
 
 #[no_mangle]
