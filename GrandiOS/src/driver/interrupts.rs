@@ -6,6 +6,9 @@ pub const IT_BASE_ADDRESS : u32 = 0x0;
 pub const AIC_BASE_ADDRESS : u32 = 0xFFFFF000;
 
 //lots of consts for all the register bits
+const ICR_FIQ: u32 = 1<<0;
+const ICR_SYS: u32 = 1<<1;
+const ICR_PID: [u32; 30] = [1<<2, 1<<3, 1<<4, 1<<5, 1<<6, 1<<7, 1<<8, 1<<9, 1<<10, 1<<11, 1<<12, 1<<13, 1<<14, 1<<15, 1<<16, 1<<17, 1<<18, 1<<19, 1<<20, 1<<21, 1<<22, 1<<23, 1<<24, 1<<25, 1<<26, 1<<27, 1<<28, 1<<29, 1<<30, 1<<31]; 
 
 #[repr(C)]
 struct InterruptTableMemoryMap{
@@ -58,27 +61,52 @@ impl InterruptController {
         return ic;
     }
     fn init(&mut self){
-		let ldr = 0xe51fff20;
+		let ldr = 0xe51fff20; //ldr pc,[pc,#-0xF20]
 		unsafe{
 			write_volatile(&mut (*(self.itmm)).irq, ldr);
 		}
 	}
     pub fn enable(&mut self){
 		unsafe{
-		    write_volatile(&mut (*(self.aicmm)).iecr, 0xFFFFFFFF);
+		    write_volatile(&mut (*(self.aicmm)).iecr, ICR_SYS);
         }
 	}
 	pub fn disable(&mut self){
 		unsafe{
-		    write_volatile(&mut (*(self.aicmm)).idcr, 0xFFFFFFFF);
+		    write_volatile(&mut (*(self.aicmm)).idcr, ICR_SYS);
         }
 	}
 	pub fn set_handler(&mut self, interrupt_line: usize, f: &'static fn()){
-		if interrupt_line > 31 {
-			panic!();
-		}
+		assert!(interrupt_line < 32, "interrupt line must be between 0 and 31");
 		unsafe{
 		    write_volatile(&mut (*(self.aicmm)).svr[interrupt_line], (f as *const _) as u32);
         }
 	}
+    pub fn set_priority(&mut self, interrupt_line: usize, priority: u32){
+        assert!(interrupt_line < 32, "interrupt line must be between 0 and 31");
+        assert!(priority < 8, "priority must be between 0 and 7");
+        let mut reg : u32 = unsafe{ read_volatile(&mut (*(self.aicmm)).smr[interrupt_line])};
+        //clear old priority
+        reg &= (0xFFFFFFFF ^ 0b111);
+        reg |= priority;
+        unsafe{
+            write_volatile(&mut (*(self.aicmm)).smr[interrupt_line], reg);
+        }
+    }
+    pub fn set_sourcetype(&mut self, interrupt_line: usize, sourcetype: u32){
+        assert!(interrupt_line < 32, "interrupt line must be between 0 and 31");
+        assert!(sourcetype < 4, "priority must be between 0 and 3");
+        let mut reg : u32 = unsafe{ read_volatile(&mut (*(self.aicmm)).smr[interrupt_line])};
+        //clear old sourcetype
+        reg &= (0xFFFFFFFF ^ (0b11 << 5));
+        reg |= sourcetype << 5;
+        unsafe{
+            write_volatile(&mut (*(self.aicmm)).smr[interrupt_line], reg);
+        }
+    }
+    pub fn end_interrupt(&mut self){
+        unsafe{
+            write_volatile(&mut (*(self.aicmm)).eoicr, 0);
+        }
+    }
 }

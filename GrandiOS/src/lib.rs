@@ -75,12 +75,25 @@ pub extern fn _start() {
     /*
     //enable interrupts
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
+    ic.set_handler(1, &(default_handler_2 as fn())); //interrupt line 1 is SYS: Debug unit, clocks, etc
+    ic.set_priority(1, 4);
+    ic.set_sourcetype(1, 2);//positive edge triggered
     ic.enable();
-    for i in 0..32{
-		ic.set_handler(i, &(default_handler_2 as fn()));
-	}
-	DEBUG_UNIT.interrupt_set_rxrdy(true);
+    DEBUG_UNIT.interrupt_set_rxrdy(true);
     */
+    /* //Fasst der richtige code zum anschalten der interrupts (IRQ + FIQ), von dem Register CPSR müssen jeweils bit 7 und 6 auf 0 gesetzt werden, damit die interrupts aufgerufen werden.
+    unsafe{
+        asm!(
+            "MSR CPSR_c, 0b0000000":
+            :
+            :
+            :
+        )
+    }
+    */
+    println!("Memory location of default handler: {:p}", &(default_handler_2 as fn()));
+    println!("What is written to the aic; {:x}", ((&(default_handler_2 as fn())) as *const _) as u32);
+    loop{}
     utils::shell::run();
 }
 
@@ -98,19 +111,11 @@ extern fn testing(){
 	}
 }
 
-#[allow(dead_code)]
-#[link_section = ".rodata.interrupts"]
-static INTERRUPTS: [extern "C" fn(); 7] = [default_handler; 7];
-#[no_mangle]
-#[naked]
-extern "C" fn default_handler() {
-    let mut DEBUG_UNIT_b = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(DEBUG_UNIT_b, "hi");
-}
-#[naked]
+
 fn default_handler_2(){
-	let mut DEBUG_UNIT_b = unsafe { DebugUnit::new(0xFFFFF200) };
+    let mut DEBUG_UNIT_b = unsafe { DebugUnit::new(0xFFFFF200) };
     write!(DEBUG_UNIT_b, "hi 2\n");
+    loop{}
 }
 
 // These functions and traits are used by the compiler, but not
