@@ -1,9 +1,13 @@
 use driver::serial::*;
 use utils::parser::Argument;
+use utils::shell::*;
+use core::result::Result;
+use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 
-pub fn exec(args: Vec<Argument>) {
+pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     draw();
+    Ok(vec![])
 }
 
 pub fn draw() {
@@ -80,22 +84,7 @@ pub fn clear() {
 pub fn resize() -> (u32, u32) {
     print!("{}7", 27 as char);
     print!("{}[999:999H", 27 as char);
-	print!("{}[6n", 27 as char);
-    //we expect a response in the form <Esc>[h;wR
-    let mut h: u32 = 0;
-    let mut w: u32 = 0;
-    let _ = read!(); //Escape
-    let _ = read!(); //[
-	let mut c = read!();
-	while c != 59 { //read to ;
-        h = h*10 + (c as u32) - 48;
-        c = read!();
-	}
-    c = read!();
-    while c != 82 { //read to R
-        w = w*10 + (c as u32) - 48;
-        c = read!();
-    }
+    let res = get_position();
     print!("{}8", 27 as char);
-    (w, h)
+    res
 }

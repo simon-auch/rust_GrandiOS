@@ -1,6 +1,7 @@
 use driver::serial::*;
 use utils::parser::Argument;
 use utils::shell::*;
+use core::result::Result;
 use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use core::ptr::{write_volatile, read_volatile};
@@ -20,27 +21,37 @@ pub fn move_col(pos: usize, dest: usize) {
 
 fn print_line(i: usize) {
     let line = unsafe { read_volatile(i as *mut [u8; 16]) };
-    println!("{:08x}   {:02x}{:02x} {:02x}{:02x}  {:02x}{:02x} {:02x}{:02x}  {:02x}{:02x} {:02x}{:02x}  {:02x}{:02x} {:02x}{:02x}   {}",
+    print!("{:08x}   {:02x}{:02x} {:02x}{:02x}  {:02x}{:02x} {:02x}{:02x}  {:02x}{:02x} {:02x}{:02x}  {:02x}{:02x} {:02x}{:02x}   ",
              i, line[0], line[1], line[2], line[3], line[4], line[5], line[6],
              line[7], line[8], line[9], line[10], line[11], line[12], line[13],
-             line[14], line[15], get_string(line.clone()));
+             line[14], line[15]);
+    for i in 0..(line.len()) {
+        print!("{}", if line[i] < 32 || line[i] >= 127 {
+            48 } else { line[i] } as char);
+    }
+    println!("");
 }
 
-pub fn exec(args: Vec<Argument>) {
-    if args.len() < 2 {
-        println!("Address of start and end needed!");
-        return;
+pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    if args.len() < 1 {
+        return Err("Start address and an optional length needed!".to_string());
     }
-    let start = args[0].get_int().expect("Start is not a number");
-    let end = args[1].get_int().expect("End is not a number");
-    if end <= start {
-        println!("Invalid range!");
+    if !args[0].is_int() {
+        return Err("Invalid argument for start address".to_string());
+    }
+    if args.len() > 1 && !args[1].is_int() {
+        return Err("Invalid argument for length".to_string());
     }
     let width = 16;
+    let start = args[0].get_int().unwrap();
+    let length = if args.len() > 1 { args[1].get_int().unwrap() } else { width*8 };
+    if length <= 0 {
+        return Err("Invalid length!".to_string());
+    }
     let mut pos = 0;
     let mut linepos = 0;
     let mut line: [u8; 16] = [0; 16];
-    let lines = (end-start)/width+(if (end-start)%width==0 { 0 } else { 1 });
+    let lines = length/width+(if length%width==0 { 0 } else { 1 });
     for i in 0..lines { print_line(start+i*width); }
     print!("{}{}[11C{}[{}A", '\r', 27 as char, 27 as char, lines);
     let mut escape = false;
@@ -107,14 +118,6 @@ pub fn exec(args: Vec<Argument>) {
         }
         c = read!();
     }
-    print!("{}", "\n".repeat(lines-linepos));
-}
-
-fn get_string(mut line: [u8; 16]) -> String {
-    for i in 0..(line.len()) {
-        if line[i] < 32 || line[i] >= 127 {
-            line[i] = 46;
-        }
-    }
-    String::from_utf8_lossy(&line).into_owned()
+    print!("{}", "\n".repeat(lines-linepos-1));
+    Ok(vec![])
 }

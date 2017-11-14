@@ -1,12 +1,36 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use alloc::string::String;
+use alloc::string::{String,ToString};
+use alloc::slice::SliceConcatExt;
 
 pub enum Argument {
-    Int(usize), Str(String), List(Box<Argument>)
+    Int(usize), Str(String), List(Vec<Argument>)
+}
+
+impl ToString for Argument {
+    fn to_string(&self) -> String {
+        match self {
+            &Argument::Int(i) => format!("{}",i).to_string(),
+            &Argument::Str(ref s) => s.clone(),
+            _ => "".to_string()
+            //&Argument::List(l) => ["[",l.iter().map(|a|a.to_string()).collect().join(","),"]"].concat().to_string()
+        }
+    }
 }
 
 impl Argument {
+    pub fn is_str(&self) -> bool {
+        match self {
+            &Argument::Str(_) => true,
+            _ => false
+        }
+    }
+    pub fn is_int(&self) -> bool {
+        match self {
+            &Argument::Int(_) => true,
+            _ => false
+        }
+    }
     pub fn get_str(&self) -> Option<String> {
         match self {
             &Argument::Str(ref s) => Some(s.clone()),

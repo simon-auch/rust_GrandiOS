@@ -1,6 +1,7 @@
 use driver::serial::*;
 use utils::parser::*;
 use commands::*;
+use core::result::Result;
 use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
@@ -38,10 +39,12 @@ impl ToString for EscapeSequence {
 }
 
 pub fn run() {
-    let commands = vec![("logo", logo::exec as fn(Vec<Argument>)),
-                        ("test", test::exec as fn(Vec<Argument>)),
-                        ("edit", edit::exec as fn(Vec<Argument>)),
-                        ("cat", cat::exec as fn(Vec<Argument>))];
+    let commands = vec![
+        ("logo", logo::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        ("test", test::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        ("edit", edit::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        ("cowsay", cowsay::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        ("cat", cat::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)];
     let mut history = VecDeque::new();
     loop {
         let raw_input = read_command("> ", &mut history, &commands);
@@ -54,7 +57,15 @@ pub fn run() {
             if command == c {
                 found = true;
                 history.push_back(raw_input);
-                m(args);
+                match m(args) {
+                    Err(msg) => print!("Error: {}", msg),
+                    Ok(res) => {
+                        for a in res {
+                            print!("\n{}", a.to_string());
+                        }
+                    }
+                }
+                println!("");
                 break;
             }
         }
@@ -91,7 +102,7 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usiz
     print!("{}8", 27 as char);
 }
 
-pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, commands: &Vec<(&str, fn(Vec<Argument>))>) -> LinkedList<u8> {
+pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, commands: &Vec<(&str, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> LinkedList<u8> {
     print!("{}", prompt);
     let mut ln = LinkedList::new();
     let mut pos = 0;
@@ -191,6 +202,26 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
             }
         }
     }
+}
+
+pub fn get_position() -> (u32, u32) {
+	print!("{}[6n", 27 as char);
+    //we expect a response in the form <Esc>[h;wR
+    let mut h: u32 = 0;
+    let mut w: u32 = 0;
+    let _ = read!(); //Escape
+    let _ = read!(); //[
+	let mut c = read!();
+	while c != 59 { //read to ;
+        h = h*10 + (c as u32) - 48;
+        c = read!();
+	}
+    c = read!();
+    while c != 82 { //read to R
+        w = w*10 + (c as u32) - 48;
+        c = read!();
+    }
+    (w, h)
 }
 
 pub fn parse_escape(s: Vec<u8>) -> EscapeSequence {

@@ -5,6 +5,7 @@
 #![feature(const_fn)]
 #![feature(const_unsafe_cell_new)]
 #![feature(range_contains)]
+#![feature(slice_concat_ext)]
 //disable some warnings
 #![allow(unused_variables)]
 #![allow(unused_imports)]
@@ -41,6 +42,7 @@ mod commands{
     pub mod cat;
     pub mod test;
     pub mod edit;
+    pub mod cowsay;
 }
 use driver::*;
 
