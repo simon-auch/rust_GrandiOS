@@ -1,25 +1,27 @@
 use driver::serial::*;
+use utils::parser::Argument;
+use core::result::Result;
 use alloc::vec::Vec;
 use alloc::boxed::Box;
+use alloc::string::{String,ToString};
 use commands::logo;
 use driver::led::*;
 use driver::interrupts::*;
 use utils::spinlock::*;
 use utils::thread::*;
 
-pub fn exec(args: Vec<&str>) {
-    if args.len() == 0 {
-        println!("Test what?");
-    } else {
-        match args[0].as_ref() {
-            "size" => {test_size();},
-            "alloc" => {test_alloc();},
-            "lock" => {test_lock();},
-            "tcb" => {test_tcb();},
-            "interrupts" => {test_interrupts();},
-            _ => println!("I don't know that.")
-        }
+pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    if args.len() == 0 { return Err("Test what?".to_string()); }
+    if !args[0].is_str() { return Err("String expected".to_string()); }
+    match args[0].get_str().unwrap().as_str() {
+        "size" => {test_size();},
+        "alloc" => {test_alloc();},
+        "lock" => {test_lock()},
+        "tcb_1" => {test_tcb_1();},
+        "tcb_2" => {test_tcb_2();},
+        _ => return Err("I don't know that.".to_string())
     }
+    Ok(vec![])
 }
 
 fn test_size(){
@@ -60,7 +62,9 @@ fn test_lock(){
     }
 }
 
-fn test_tcb(){
+fn test_tcb_1(){
+    println!("Baut nicht mehr, war im commit so drin, signatur von TCB::new hat sich wohl geändert");
+    /*
     // TCBs
     let mut t1 = TCB::new(1,"Erster TCB");
     let mut t2 = TCB::new(2,"Zweiter TCB");
@@ -70,6 +74,23 @@ fn test_tcb(){
     println!("[{1}] -- {0:?}: {2}", t2.update_state(), t2.id, t2.name);
     t2.save_registers();
     t1.load_registers();
+    */
+}
+
+fn test_tcb_2(){
+    //TCB again
+    // Take a fn-pointer, make it a rawpointer
+    let idle_thread_function_ptr: *mut _ = idle_thread as *mut _;
+    // Box it
+    let idle = Box::new(idle_thread_function_ptr);
+    // Shove it into the TCB
+    let mut tcb = TCB::new("Test TCB",idle);
+    println!("[{1}] -- {0:?}: {2}", tcb.update_state(), tcb.id, tcb.name);
+    //println!("pc...? {:p}",tcb.program_counter);
+    //tcb.save_registers();
+    //println!("pc...? {:p}",tcb.program_counter);
+    tcb.load_registers();
+    //println!("pc...? {:p}",tcb.program_counter);
 }
 
 

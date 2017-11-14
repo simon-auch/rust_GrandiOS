@@ -5,6 +5,7 @@
 #![feature(const_fn)]
 #![feature(const_unsafe_cell_new)]
 #![feature(range_contains)]
+#![feature(slice_concat_ext)]
 //disable some warnings
 #![allow(unused_variables)]
 #![allow(unused_imports)]
@@ -33,12 +34,15 @@ mod utils{
 	pub mod spinlock;
 	pub mod allocator;
     pub mod thread;
+    pub mod parser;
     pub mod shell;
 }
 mod commands{
     pub mod logo;
     pub mod cat;
     pub mod test;
+    pub mod edit;
+    pub mod cowsay;
 }
 use driver::*;
 
@@ -65,6 +69,7 @@ pub extern fn _start() {
     let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
     mc.remap();
     utils::shell::run();
+    loop{}
 }
 
 

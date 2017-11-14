@@ -1,7 +1,10 @@
 use driver::serial::*;
+use utils::parser::Argument;
+use core::result::Result;
+use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 
-pub fn exec(args: Vec<&str>) {
+pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     let mut c = read!();
     while c != 4 { //4 = ^d = end of transmission
         if args.len() == 0 {
@@ -11,5 +14,5 @@ pub fn exec(args: Vec<&str>) {
         }
         c = read!();
     }
-    println!("");
+    Ok(vec![])
 }

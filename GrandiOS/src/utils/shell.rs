@@ -1,12 +1,14 @@
 use driver::serial::*;
+use utils::parser::*;
 use commands::*;
+use core::result::Result;
 use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
 
 #[derive(Clone)]
-enum EscapeSequence {
+pub enum EscapeSequence {
     Unknown,
     Left,
     Right,
@@ -37,21 +39,33 @@ impl ToString for EscapeSequence {
 }
 
 pub fn run() {
-    let commands = vec![("logo", logo::exec as fn(Vec<&str>)),
-                        ("test", test::exec as fn(Vec<&str>)),
-                        ("cat", cat::exec as fn(Vec<&str>))];
+    let commands = vec![
+        ("logo", logo::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        ("test", test::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        ("edit", edit::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        ("cowsay", cowsay::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        ("cat", cat::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)];
     let mut history = VecDeque::new();
     loop {
         let raw_input = read_command("> ", &mut history, &commands);
         let input = String::from_utf8(raw_input.clone().into_iter().collect()).unwrap();
         let mut arguments: Vec<&str> = input.split(' ').collect();
         let command = arguments.remove(0);
+        let args = parse(arguments);
         let mut found = false;
         for &(c, m) in commands.iter() {
             if command == c {
                 found = true;
                 history.push_back(raw_input);
-                m(arguments);
+                match m(args) {
+                    Err(msg) => print!("Error: {}", msg),
+                    Ok(res) => {
+                        for a in res {
+                            print!("\n{}", a.to_string());
+                        }
+                    }
+                }
+                println!("");
                 break;
             }
         }
@@ -61,7 +75,7 @@ pub fn run() {
     }
 }
 
-fn move_to(pos: usize, dest: usize) {
+pub fn move_to(pos: usize, dest: usize) {
     if dest < pos {
         print!("{}[{}{}", 27 as char, pos-dest, EscapeSequence::Left.to_string());
     } else {
@@ -88,7 +102,7 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usiz
     print!("{}8", 27 as char);
 }
 
-pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, commands: &Vec<(&str, fn(Vec<&str>))>) -> LinkedList<u8> {
+pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, commands: &Vec<(&str, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> LinkedList<u8> {
     print!("{}", prompt);
     let mut ln = LinkedList::new();
     let mut pos = 0;
@@ -164,10 +178,12 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
                             }
                         },
                         EscapeSequence::Up => {
-                            clear_prompt(prompt, ln.len());
-                            histpos -= if histpos == 0 { 0 } else { 1 };
-                            ln = history[histpos].clone();
-                            print_command(&ln);
+                            if histpos > 0 {
+                                clear_prompt(prompt, ln.len());
+                                histpos -= 1;
+                                ln = history[histpos].clone();
+                                print_command(&ln);
+                            }
                         },
                         EscapeSequence::Down => {
                             clear_prompt(prompt, ln.len());
@@ -188,7 +204,27 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
     }
 }
 
-fn parse_escape(s: Vec<u8>) -> EscapeSequence {
+pub fn get_position() -> (u32, u32) {
+	print!("{}[6n", 27 as char);
+    //we expect a response in the form <Esc>[h;wR
+    let mut h: u32 = 0;
+    let mut w: u32 = 0;
+    let _ = read!(); //Escape
+    let _ = read!(); //[
+	let mut c = read!();
+	while c != 59 { //read to ;
+        h = h*10 + (c as u32) - 48;
+        c = read!();
+	}
+    c = read!();
+    while c != 82 { //read to R
+        w = w*10 + (c as u32) - 48;
+        c = read!();
+    }
+    (w, h)
+}
+
+pub fn parse_escape(s: Vec<u8>) -> EscapeSequence {
     let needle = String::from_utf8(s).unwrap();
     for haystick in [EscapeSequence::Left, EscapeSequence::Right, EscapeSequence::Up, EscapeSequence::Down, EscapeSequence::Delete, EscapeSequence::Home, EscapeSequence::End, EscapeSequence::PgUp, EscapeSequence::PgDn].iter() {
         if haystick.to_string() == needle { return haystick.clone(); }
