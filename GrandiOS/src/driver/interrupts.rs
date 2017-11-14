@@ -76,10 +76,10 @@ impl InterruptController {
 		    write_volatile(&mut (*(self.aicmm)).idcr, ICR_SYS);
         }
 	}
-	pub fn set_handler(&mut self, interrupt_line: usize, f: &'static fn()){
+	pub fn set_handler(&mut self, interrupt_line: usize, f: extern fn()){
 		assert!(interrupt_line < 32, "interrupt line must be between 0 and 31");
 		unsafe{
-		    write_volatile(&mut (*(self.aicmm)).svr[interrupt_line], (f as *const _) as u32);
+		    write_volatile(&mut (*(self.aicmm)).svr[interrupt_line], f as u32);
         }
 	}
     pub fn set_priority(&mut self, interrupt_line: usize, priority: u32){

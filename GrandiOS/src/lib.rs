@@ -56,63 +56,17 @@ extern crate rlibc;
 #[no_mangle]
 #[naked]
 pub extern fn _start() {
-	//Initialise the LED's
-	let mut led_yellow = unsafe { driver::led::PIO::new(driver::led::PIO_LED_YELLOW) };
-	let mut led_red    = unsafe { driver::led::PIO::new(driver::led::PIO_LED_RED)    };
-	let mut led_green  = unsafe { driver::led::PIO::new(driver::led::PIO_LED_GREEN)  };
-	led_yellow.off();
-	led_red.off();
-	led_green.off();
-	//Initialise the DebugUnit
-	DEBUG_UNIT.reset();
-	DEBUG_UNIT.enable();
+    //TODO: Initialise the stack pointers for all modes (system, abort, irq, fiq, etc)
+    //Initialise the DebugUnit
+    DEBUG_UNIT.reset();
+    DEBUG_UNIT.enable();
     //commands::logo::draw();
     //make interupt table writable
     let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
     mc.remap();
-    //enable interrupts
-    let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
-    ic.set_handler(1, &(default_handler_2 as fn())); //interrupt line 1 is SYS: Debug unit, clocks, etc
-    ic.set_priority(1, 4);
-    ic.set_sourcetype(1, 2);//positive edge triggered
-    ic.enable();
-    DEBUG_UNIT.interrupt_set_rxrdy(true);
-    /* //Fasst der richtige code zum anschalten der interrupts (IRQ + FIQ), von dem Register CPSR müssen jeweils bit 7 und 6 auf 0 gesetzt werden, damit die interrupts aufgerufen werden.
-    unsafe{
-        asm!(
-            "MSR CPSR_c, 0b0000000":
-            :
-            :
-            :
-        )
-    }
-    */
-    println!("Memory location of default handler: {:p}", &(default_handler_2 as fn()));
-    println!("What is written to the aic; {:x}", ((&(default_handler_2 as fn())) as *const _) as u32);
-    loop{}
     utils::shell::run();
 }
 
-#[no_mangle]
-#[naked]
-extern fn testing(){
-	unsafe {
-		asm!(
-			"LDR PC,[PC, # -0xF20]" :
-			:/*outputs*/
-			:/*inputs*/
-			:/*clobbers*/
-			/*options*/
-		);
-	}
-}
-
-
-fn default_handler_2(){
-    let mut DEBUG_UNIT_b = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(DEBUG_UNIT_b, "hi 2\n");
-    loop{}
-}
 
 // These functions and traits are used by the compiler, but not
 // for a bare-bones hello world. These are normally
