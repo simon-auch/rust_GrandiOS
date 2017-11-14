@@ -49,15 +49,20 @@ pub fn exec(args: Vec<Argument>) {
                 }
             },
             "tcb" => {
-                {// TCBs
-                    let mut t1 = TCB::new(1,"Erster TCB");
-                    let mut t2 = TCB::new(2,"Zweiter TCB");
-                    t1.get_state();
-                    
-                    println!("[{1}] -- {0:?}: {2}", t1.update_state(), t1.id, t1.name);
-                    println!("[{1}] -- {0:?}: {2}", t2.update_state(), t2.id, t2.name);
-                    t2.save_registers();
-                    t1.load_registers();
+                {
+                    //TCB again
+                    // Take a fn-pointer, make it a rawpointer
+                    let idle_thread_function_ptr: *mut _ = idle_thread as *mut _;
+                    // Box it
+                    let idle = Box::new(idle_thread_function_ptr);
+                    // Shove it into the TCB
+                    let mut tcb = TCB::new("Test TCB",idle);
+                    println!("[{1}] -- {0:?}: {2}", tcb.update_state(), tcb.id, tcb.name);
+                    //println!("pc...? {:p}",tcb.program_counter);
+                    //tcb.save_registers();
+                    //println!("pc...? {:p}",tcb.program_counter);
+                    tcb.load_registers();
+                    //println!("pc...? {:p}",tcb.program_counter);
                 }
             },
             _ => println!("I don't know that.")
