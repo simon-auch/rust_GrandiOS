@@ -1,7 +1,8 @@
 use driver::serial::*;
+use utils::parser::Argument;
 use alloc::vec::Vec;
 
-pub fn exec(args: Vec<&str>) {
+pub fn exec(args: Vec<Argument>) {
     draw();
 }
 

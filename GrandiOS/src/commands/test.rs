@@ -1,16 +1,18 @@
 use driver::serial::*;
+use utils::parser::Argument;
 use alloc::vec::Vec;
 use alloc::boxed::Box;
+use alloc::string::String;
 use commands::logo;
 use driver::led::*;
 use utils::spinlock::*;
 use utils::thread::*;
 
-pub fn exec(args: Vec<&str>) {
+pub fn exec(args: Vec<Argument>) {
     if args.len() == 0 {
         println!("Test what?");
     } else {
-        match args[0].as_ref() {
+        match args[0].get_str().expect("String expected").as_str() {
             "size" => {
                 let (w, h) = logo::resize();
                 println!("{}x{}",w,h);

@@ -33,12 +33,14 @@ mod utils{
 	pub mod spinlock;
 	pub mod allocator;
     pub mod thread;
+    pub mod parser;
     pub mod shell;
 }
 mod commands{
     pub mod logo;
     pub mod cat;
     pub mod test;
+    pub mod edit;
 }
 use driver::*;
 
@@ -70,6 +72,7 @@ pub extern fn _start() {
     //make interupt table writable
     let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
     mc.remap();
+    /*
     //enable interrupts
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     ic.enable();
@@ -77,6 +80,7 @@ pub extern fn _start() {
 		ic.set_handler(i, &(default_handler_2 as fn()));
 	}
 	DEBUG_UNIT.interrupt_set_rxrdy(true);
+    */
     utils::shell::run();
 }
 
