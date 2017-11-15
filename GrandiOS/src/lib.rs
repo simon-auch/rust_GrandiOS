@@ -60,14 +60,41 @@ extern crate rlibc;
 #[no_mangle]
 #[naked]
 pub extern fn _start() {
+    //make interupt table writable
+    let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
+    mc.remap();
     //TODO: Initialise the stack pointers for all modes (system, abort, irq, fiq, etc)
+    unsafe{asm!("
+        mrs     r0, CPSR		//auslaesen vom status register
+        bic     r0, r0, #0x1F	//set all mode bits to zero
+        orr     r1, r0, #0x11	//ARM_MODE_FIQ
+        msr     CPSR, r1
+        mov     sp, #0x400	//set stack pointer for fiq mode
+        orr     r1, r0, #0x12	//ARM_MODE_IRQ
+        msr     CPSR, r1
+        mov     sp, #0x800	//set stack pointer for irq mode
+        orr     r1, r0, #0x13	//ARM_MODE_ABORT
+        msr     CPSR, r1
+        mov     sp, #0x1000	//set stack pointer for abort mode
+        orr     r1, r0, #0x17	//ARM_MODE_supervisor
+        msr     CPSR, r1
+        mov     sp, #0x1400	//set stack pointer for supervisor mode
+        orr     r1, r0, #0x1B	//ARM_MODE_UNDEFINED
+        msr     CPSR, r1
+        mov     sp, #0x1800	//set stack pointer for undefined mode
+        orr     r1, r0, #0x1F	//ARM_MODE_SYS
+        msr     CPSR, r1
+        mov     sp, #0x4000	//set stack pointer for system/user mode
+        "
+        :
+        :
+        :
+        :
+    )}
     //Initialise the DebugUnit
     DEBUG_UNIT.reset();
     DEBUG_UNIT.enable();
     //commands::logo::draw();
-    //make interupt table writable
-    let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
-    mc.remap();
     utils::shell::run();
     loop{}
 }

@@ -19,6 +19,7 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         "lock" => {test_lock()},
         "tcb_1" => {test_tcb_1();},
         "tcb_2" => {test_tcb_2();},
+        "interrupts" => {test_interrupts();},
         _ => return Err("I don't know that.".to_string())
     }
     Ok(vec![])
@@ -105,8 +106,13 @@ fn test_interrupts(){
     //Fasst der richtige code zum anschalten der interrupts (IRQ + FIQ), von dem Register CPSR müssen jeweils bit 7 und 6 auf 0 gesetzt werden, damit die interrupts aufgerufen werden.
     //TODO: das noch fixen, quelle für beispiel siehe irq_handler
     unsafe{
-        asm!(
-            "MSR CPSR_c, 0b0000000":
+        asm!("
+            push {r0}
+            mrs  r0, CPSR
+            bic  r0, r0, #0b11000000	//enable irq, fiq
+            msr  CPSR, r0
+            pop {r0}"
+            :
             :
             :
             :
@@ -141,14 +147,14 @@ extern fn irq_handler(){
     unsafe{asm!("
         pop     {r1-r3, r4-r11, r12, r14}
         mrs     r0, CPSR
-        bic     r0, r0, #0x1F //ARM_MODE_SYS
+        bic     r0, r0, #0x1F //clear mode bits
         orr     r0, r0, #0x92 //I_BIT | ARM_MODE_IRQ
         msr     CPSR, r0
         ldr     r0, = 0xFFFFF000 //AIC_BASE
         str     r0, [r0, #0x0130] //AIC_EOICR
         pop     {r0, r14}
         msr     SPSR, r14
-        pop     {pc} //In dem pdf steht hier {pc}^, das ist aber nicht erlaubt.."
+        ldmfd  sp!, {pc}^ //In dem pdf steht hier {pc}^, das ist aber nicht erlaubt.."
         :
         :
         :
