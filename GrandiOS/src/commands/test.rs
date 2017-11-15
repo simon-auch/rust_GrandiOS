@@ -13,17 +13,31 @@ use utils::thread::*;
 pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() == 0 { return Err("Test what?".to_string()); }
     if !args[0].is_str() { return Err("String expected".to_string()); }
-    match args[0].get_str().unwrap().as_str() {
-        "size" => {test_size();},
-        "alloc" => {test_alloc();},
-        "lock" => {test_lock()},
-        "tcb_1" => {test_tcb_1();},
-        "tcb_2" => {test_tcb_2();},
-        "interrupts" => {test_interrupts();},
-        _ => return Err("I don't know that.".to_string())
+    let tests = vec![
+        ("size", test_size as fn()),
+        ("alloc", test_alloc as fn()),
+        ("lock", test_lock as fn()),
+        ("tcb_1", test_tcb_1 as fn()),
+        ("tcb_2", test_tcb_2 as fn()),
+        ("interrupts_aic", test_interrupts_aic as fn()),
+        ("interrupts_undefined_instruction", test_interrupts_undefined_instruction as fn()),
+        ("interrupts_software_interrupt", test_interrupts_software_interrupt as fn()),
+        ("interrupts_prefetch_abort", test_interrupts_prefetch_abort as fn()),
+        ("interrupts_data_abort", test_interrupts_data_abort as fn()),
+        ("undefined_instruction", test_undefined_instruction as fn()),
+        ("software_interrupt", test_software_interrupt as fn()),
+        ("prefetch_abort", test_prefetch_abort as fn()),
+        ("data_abort", test_data_abort as fn())];
+    let test_wanted = args[0].get_str().unwrap();
+    for (test_str, test_f) in tests{
+        if test_str == test_wanted {
+            test_f();
+            return(Ok(vec![]));
+        }
     }
-    Ok(vec![])
+    Err("I don't know that.".to_string())
 }
+
 
 fn test_size(){
     let (w, h) = logo::resize();
@@ -95,10 +109,10 @@ fn test_tcb_2(){
 }
 
 
-fn test_interrupts(){
+fn test_interrupts_aic(){
     //enable interrupts
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
-    ic.set_handler(1, irq_handler); //interrupt line 1 is SYS: Debug unit, clocks, etc
+    ic.set_handler(1, handler_irq); //interrupt line 1 is SYS: Debug unit, clocks, etc
     ic.set_priority(1, 0);
     ic.set_sourcetype(1, 3);//positive edge triggered
     ic.enable();
@@ -107,7 +121,7 @@ fn test_interrupts(){
 }
 
 #[naked]
-extern fn irq_handler(){
+extern fn handler_irq(){
     //IRQ_ENTRY from AT91_interrupts.pdf
     //Note: ldmfd/stmfd sp! is equivalent to pop/push and according to the docs the better way
     //TODO die stack pointer für den irq modus und den system/user modus muss zuerst noch gesetzt werden (beim system start)
@@ -147,3 +161,42 @@ extern fn irq_handler(){
         :
     )}
 }
+
+fn test_interrupts_undefined_instruction(){
+    //get interrupt controller, initialises some instruction inside the vector table too
+    let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
+    //set the handler for the undefined instruction interrupt
+    ic.set_handler_undefined_instruction(handler_undefined_instruction);
+}
+#[naked]
+extern fn handler_undefined_instruction(){
+    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+    write!(debug_unit, "handler_undefined_instruction");
+    loop{}
+}
+
+fn test_interrupts_software_interrupt(){
+    println!("TODO: implement me!");
+}
+fn test_interrupts_prefetch_abort(){
+    println!("TODO: implement test_interrupts_prefetch_abort()");
+}
+fn test_interrupts_data_abort(){
+    println!("TODO: implement me!");
+}
+
+fn test_undefined_instruction(){
+    println!("TODO: implement me!");
+}
+fn test_software_interrupt(){
+    println!("TODO: implement me!");
+}
+
+fn test_prefetch_abort(){
+    println!("TODO: implement me!");
+}
+
+fn test_data_abort(){
+    println!("TODO: implement me!");
+}
+
