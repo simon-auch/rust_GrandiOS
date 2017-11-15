@@ -29,6 +29,12 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         ("prefetch_abort", test_prefetch_abort as fn()),
         ("data_abort", test_data_abort as fn())];
     let test_wanted = args[0].get_str().unwrap();
+    if test_wanted == "help" {
+        println!("Available tests:");
+        for &(test_str, _) in &tests{
+            print!("{} ", test_str);
+        }
+    }
     for (test_str, test_f) in tests{
         if test_str == test_wanted {
             test_f();
