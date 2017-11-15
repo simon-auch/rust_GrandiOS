@@ -170,21 +170,51 @@ fn test_interrupts_undefined_instruction(){
 }
 #[naked]
 extern fn handler_undefined_instruction(){
+    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
     write!(debug_unit, "handler_undefined_instruction");
     loop{}
 }
 
 fn test_interrupts_software_interrupt(){
-    println!("TODO: implement me!");
+    //get interrupt controller, initialises some instruction inside the vector table too
+    let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
+    //set the handler for the software interrupt
+    ic.set_handler_software_interrupt(handler_software_interrupt);
+}
+#[naked]
+extern fn handler_software_interrupt(){
+    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück  
+    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+    write!(debug_unit, "handler_software_interrupt");
+    loop{}
 }
 fn test_interrupts_prefetch_abort(){
-    println!("TODO: implement test_interrupts_prefetch_abort()");
+    //get interrupt controller, initialises some instruction inside the vector table too
+    let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
+    //set the handler for the prefetch abort interrupt
+    ic.set_handler_prefetch_abort(handler_prefetch_abort);
+}
+#[naked]
+extern fn handler_prefetch_abort(){
+    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück  
+    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+    write!(debug_unit, "handler_prefetch_abort");
+    loop{}
 }
 fn test_interrupts_data_abort(){
-    println!("TODO: implement me!");
+    //get interrupt controller, initialises some instruction inside the vector table too
+    let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
+    //set the handler for the data abort interrupt
+    ic.set_handler_data_abort(handler_data_abort);
 }
-
+#[naked]
+extern fn handler_data_abort(){
+    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück  
+    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+    write!(debug_unit, "handler_data_abort");
+    loop{}
+}
 fn test_undefined_instruction(){
     println!("TODO: implement me!");
 }
