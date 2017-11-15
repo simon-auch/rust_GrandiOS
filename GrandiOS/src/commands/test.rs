@@ -103,21 +103,6 @@ fn test_interrupts(){
     ic.set_sourcetype(1, 3);//positive edge triggered
     ic.enable();
     DEBUG_UNIT.interrupt_set_rxrdy(true);
-    //Fasst der richtige code zum anschalten der interrupts (IRQ + FIQ), von dem Register CPSR müssen jeweils bit 7 und 6 auf 0 gesetzt werden, damit die interrupts aufgerufen werden.
-    //TODO: das noch fixen, quelle für beispiel siehe irq_handler
-    unsafe{
-        asm!("
-            push {r0}
-            mrs  r0, CPSR
-            bic  r0, r0, #0b11000000	//enable irq, fiq
-            msr  CPSR, r0
-            pop {r0}"
-            :
-            :
-            :
-            :
-        )
-    }
     loop{}
 }
 
@@ -141,6 +126,7 @@ extern fn irq_handler(){
         :
         :
     )}
+    //TODO: find out what threw the interrupt.
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
     debug_unit.read(true); //read in echo mode
     //IRQ_EXIT from AT91_interrupts.pdf

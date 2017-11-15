@@ -91,6 +91,22 @@ pub extern fn _start() {
         :
         :
     )}
+    //Code anschalten der interrupts (IRQ + FIQ), von dem Register CPSR müssen jeweils bit 7 und 6 auf 0 gesetzt werden, damit die interrupts aufgerufen werden.
+    //Zusätzlich müssen die Interrupts noch im advanced interrupt controller angeschaltet werden.
+    unsafe{
+        asm!("
+            push {r0}
+            mrs  r0, CPSR
+            bic  r0, r0, #0b11000000	//enable irq, fiq
+            msr  CPSR, r0
+            pop {r0}"
+            :
+            :
+            :
+            :
+        )
+    }
+
     //Initialise the DebugUnit
     DEBUG_UNIT.reset();
     DEBUG_UNIT.enable();
