@@ -60,6 +60,19 @@ extern crate rlibc;
 #[no_mangle]
 #[naked]
 pub extern fn _start() {
+    //initialisiert register, stack pointer und remaped speicher
+    init();
+    //Initialise the DebugUnit
+    DEBUG_UNIT.reset();
+    DEBUG_UNIT.enable();
+    //commands::logo::draw();
+    utils::shell::run();
+    loop{}
+}
+
+#[inline(always)]
+#[naked]
+fn init(){
     //make interupt table writable
     let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
     mc.remap();
@@ -106,15 +119,7 @@ pub extern fn _start() {
             :
         )
     }
-
-    //Initialise the DebugUnit
-    DEBUG_UNIT.reset();
-    DEBUG_UNIT.enable();
-    //commands::logo::draw();
-    utils::shell::run();
-    loop{}
 }
-
 
 // These functions and traits are used by the compiler, but not
 // for a bare-bones hello world. These are normally
