@@ -183,6 +183,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
                                 histpos -= 1;
                                 ln = history[histpos].clone();
                                 print_command(&ln);
+                                stringpos = ln.len();
                             }
                         },
                         EscapeSequence::Down => {
@@ -190,9 +191,11 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
                             histpos += if histpos == history.len() { 0 } else { 1 };
                             if histpos == history.len() {
                                 ln = LinkedList::new();
+                                stringpos = 0;
                             } else {
                                 ln = history[histpos].clone();
                                 print_command(&ln);
+                                stringpos = ln.len();
                             }
                         },
                         _ => {}
