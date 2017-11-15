@@ -11,41 +11,47 @@ const ICR_SYS: u32 = 1<<1;
 const ICR_PID: [u32; 30] = [1<<2, 1<<3, 1<<4, 1<<5, 1<<6, 1<<7, 1<<8, 1<<9, 1<<10, 1<<11, 1<<12, 1<<13, 1<<14, 1<<15, 1<<16, 1<<17, 1<<18, 1<<19, 1<<20, 1<<21, 1<<22, 1<<23, 1<<24, 1<<25, 1<<26, 1<<27, 1<<28, 1<<29, 1<<30, 1<<31]; 
 
 #[repr(C)]
-struct InterruptTableMemoryMap{
-	reset: u32,
-	undefined_instruction: u32,
-	software_interrupt: u32,
-	prefetch_abort: u32,
-	data_abort: u32,
-	reserved_0: u32, //see: http://osnet.cs.nchu.edu.tw/powpoint/Embedded94_1/Chapter%207%20ARM%20Exceptions.pdf
-	irq: u32,
-	fiq: u32,
+    struct InterruptTableMemoryMap{
+    reset: u32,
+    undefined_instruction: u32,
+    software_interrupt: u32,
+    prefetch_abort: u32,
+    data_abort: u32,
+    reserved_0: u32, //see: http://osnet.cs.nchu.edu.tw/powpoint/Embedded94_1/Chapter%207%20ARM%20Exceptions.pdf
+    irq: u32,
+    fiq: u32,
+    //Die addressen an die die jeweiligen interrupts springen sollen
+    //irq und fiq werden mit dem advanced interrupt controller behandelt
+    addr_undefined_instruction: u32,
+    addr_software_interrupt: u32,
+    addr_prefetch_abort: u32,
+    addr_data_abort: u32,
 }
 
 #[repr(C)]
 struct AdvancedInterruptControllerMemoryMap{
-	smr: [u32; 32],		//source mode register 0-31
-	svr: [u32; 32],		//source vector register 0-31
-	ivr: u32,			//interrupt vector register
-	fivr: u32,			//fast interrupt vector reigster
-	isr: u32,			//interrupt status register
-	ipr: u32,			//interrupt pending register
-	imr: u32,			//interrupt mask register
-	cisr: u32,			//core interrupt status register
-	reserved_0: [u32; 2],
-	iecr: u32,			//interrupt enable command register
-	idcr: u32,			//interrupt disable command register
-	iccr: u32,			//interrupt clear command register
-	iscr: u32,			//interrupt set command register
-	eoicr: u32,			//end of interrupt command register
-	sivr: u32,			//spurious interrupt vector register
-	dcr: u32,			//debug control register
-	reserved_1: [u32; 1],
+    smr: [u32; 32],		//source mode register 0-31
+    svr: [u32; 32],		//source vector register 0-31
+    ivr: u32,			//interrupt vector register
+    fivr: u32,			//fast interrupt vector reigster
+    isr: u32,			//interrupt status register
+    ipr: u32,			//interrupt pending register
+    imr: u32,			//interrupt mask register
+    cisr: u32,			//core interrupt status register
+    reserved_0: [u32; 2],
+    iecr: u32,			//interrupt enable command register
+    idcr: u32,			//interrupt disable command register
+    iccr: u32,			//interrupt clear command register
+    iscr: u32,			//interrupt set command register
+    eoicr: u32,			//end of interrupt command register
+    sivr: u32,			//spurious interrupt vector register
+    dcr: u32,			//debug control register
+    reserved_1: [u32; 1],
 }
 
 pub struct InterruptController{
-	itmm: *mut InterruptTableMemoryMap,
-	aicmm: *mut AdvancedInterruptControllerMemoryMap,
+    itmm: *mut InterruptTableMemoryMap,
+    aicmm: *mut AdvancedInterruptControllerMemoryMap,
 }
 
 unsafe impl Send for InterruptController { }
@@ -54,34 +60,61 @@ impl InterruptController {
     //Marked unsafe because is only safe assuming the base_adress is correct
     pub unsafe fn new(it_base_address: u32, aic_base_address: u32) -> Self{
         let mut ic = InterruptController{
-			itmm: it_base_address as *mut InterruptTableMemoryMap,
+            itmm: it_base_address as *mut InterruptTableMemoryMap,
             aicmm: aic_base_address as *mut AdvancedInterruptControllerMemoryMap,
         };
         ic.init();
         return ic;
     }
     fn init(&mut self){
-		let ldr = 0xe51fff20; //ldr pc,[pc,#-0xF20]
-		unsafe{
-			write_volatile(&mut (*(self.itmm)).irq, ldr);
-		}
-	}
+        let ldr_irq = 0xE51FFF20; //ldr pc,[pc,#-0xF20] ; reads the register from aic that contains the address
+        let ldr_fiq = 0x0; //TODO
+        let ldr_off = 0xE59FF018; //ldr pc, [pc, #0x18] ; reads the register stored behind the interrupt table
+        unsafe{
+            write_volatile(&mut (*(self.itmm)).irq, ldr_irq);
+            write_volatile(&mut (*(self.itmm)).fiq, ldr_fiq);
+            write_volatile(&mut (*(self.itmm)).undefined_instruction, ldr_off);
+            write_volatile(&mut (*(self.itmm)).software_interrupt, ldr_off);
+            write_volatile(&mut (*(self.itmm)).prefetch_abort, ldr_off);
+            write_volatile(&mut (*(self.itmm)).data_abort, ldr_off);
+        }
+    }
     pub fn enable(&mut self){
-		unsafe{
-		    write_volatile(&mut (*(self.aicmm)).iecr, ICR_SYS);
+        unsafe{
+            write_volatile(&mut (*(self.aicmm)).iecr, ICR_SYS);
         }
-	}
-	pub fn disable(&mut self){
-		unsafe{
-		    write_volatile(&mut (*(self.aicmm)).idcr, ICR_SYS);
+    }
+    pub fn disable(&mut self){
+        unsafe{
+            write_volatile(&mut (*(self.aicmm)).idcr, ICR_SYS);
         }
-	}
-	pub fn set_handler(&mut self, interrupt_line: usize, f: extern fn()){
-		assert!(interrupt_line < 32, "interrupt line must be between 0 and 31");
-		unsafe{
-		    write_volatile(&mut (*(self.aicmm)).svr[interrupt_line], f as u32);
+    }
+    pub fn set_handler(&mut self, interrupt_line: usize, f: extern fn()){
+        assert!(interrupt_line < 32, "interrupt line must be between 0 and 31");
+        unsafe{
+            write_volatile(&mut (*(self.aicmm)).svr[interrupt_line], f as u32);
         }
-	}
+    }
+    pub fn set_handler_undefined_instruction(&mut self, f: extern fn()){
+        unsafe{
+            write_volatile(&mut (*(self.itmm)).addr_undefined_instruction, f as u32);
+        }
+    }
+    pub fn set_handler_software_interrupt(&mut self, f: extern fn()){
+        unsafe{
+            write_volatile(&mut (*(self.itmm)).addr_software_interrupt, f as u32);
+        }
+    }
+    pub fn set_handler_prefetch_abort(&mut self, f: extern fn()){
+        unsafe{
+            write_volatile(&mut (*(self.itmm)).addr_prefetch_abort, f as u32);
+        }
+    }
+    pub fn set_handler_data_abort(&mut self, f: extern fn()){
+        unsafe{
+            write_volatile(&mut (*(self.itmm)).addr_data_abort, f as u32);
+        }
+    }
     pub fn set_priority(&mut self, interrupt_line: usize, priority: u32){
         assert!(interrupt_line < 32, "interrupt line must be between 0 and 31");
         assert!(priority < 8, "priority must be between 0 and 7");
