@@ -60,8 +60,8 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     while c != 4 { //4 = ^d = end of transmission
         if !escape && ((48..58).contains(c) || (65..71).contains(c) || (97..103).contains(c)) {
             let mut v: u8 = c - 48;
-            if v > 9 { v = v - 39; }
-            if v < 0 { v = v + 32; }
+            if v > 9 { v = v - 7; }
+            if v > 9 { v = v - 32; }
             let b: u8 = unsafe { read_volatile((start+linepos*width+pos/2) as *mut u8) };
             if pos % 2 == 0 {
                 v = v<<4 + (b & 0x0f);

@@ -12,7 +12,7 @@ use utils::thread::*;
 
 pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() == 0 { return Err("Test what?".to_string()); }
-    if !args[0].is_str() { return Err("String expected".to_string()); }
+    if !args[0].is_method() { return Err("String expected".to_string()); }
     let tests = vec![
         ("size", test_size as fn()),
         ("alloc", test_alloc as fn()),
@@ -28,7 +28,7 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         ("software_interrupt", test_software_interrupt as fn()),
         ("prefetch_abort", test_prefetch_abort as fn()),
         ("data_abort", test_data_abort as fn())];
-    let test_wanted = args[0].get_str().unwrap();
+    let test_wanted = args[0].get_method_name().unwrap();
     if test_wanted == "help" {
         println!("Available tests:");
         for &(test_str, _) in &tests{
@@ -38,7 +38,7 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     for (test_str, test_f) in tests{
         if test_str == test_wanted {
             test_f();
-            return(Ok(vec![]));
+            return Ok(vec![]);
         }
     }
     Err("I don't know that.".to_string())

@@ -40,21 +40,25 @@ impl ToString for EscapeSequence {
 
 pub fn run() {
     let commands = vec![
-        ("logo", logo::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        ("test", test::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        ("edit", edit::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        ("cowsay", cowsay::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        ("cat", cat::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)];
+        (Argument::Method("logo".to_string()), logo::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        (Argument::Method("test".to_string()), test::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        (Argument::Method("edit".to_string()), edit::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        (Argument::Method("cowsay".to_string()), cowsay::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        (Argument::Method("cat".to_string()), cat::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)];
     let mut history = VecDeque::new();
     loop {
         let raw_input = read_command("> ", &mut history, &commands);
-        let input = String::from_utf8(raw_input.clone().into_iter().collect()).unwrap();
-        let mut arguments: Vec<&str> = input.split(' ').collect();
-        let command = arguments.remove(0);
-        let args = parse(arguments);
+        let mut args: Vec<Argument>;
+        match parse(&raw_input, false) {
+            Err((s,p)) => { println!("Syntax error on {}\n{}", p, s); continue; },
+            Ok(v) => { args = v; }
+        }
+        //let input = String::from_utf8(raw_input.clone().into_iter().collect()).unwrap();
+        //let mut arguments: Vec<&str> = input.split(' ').collect();
+        let command = args.remove(0);
         let mut found = false;
-        for &(c, m) in commands.iter() {
-            if command == c {
+        for &(ref c, m) in commands.iter() {
+            if command == *c {
                 found = true;
                 history.push_back(raw_input);
                 match m(args) {
@@ -70,7 +74,7 @@ pub fn run() {
             }
         }
         if !found {
-            println!("Unknown command: {}",command);
+            println!("Unknown command: {}", command.to_string());
         }
     }
 }
@@ -102,7 +106,7 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usiz
     print!("{}8", 27 as char);
 }
 
-pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, commands: &Vec<(&str, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> LinkedList<u8> {
+pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, commands: &Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> LinkedList<u8> {
     print!("{}", prompt);
     let mut ln = LinkedList::new();
     let mut pos = 0;
@@ -115,13 +119,14 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
         match c {
             10 | 13 => { //newline
                 println!("");
+                ln.push_back(32); //make life easier for the parser
                 return ln;
             },
             12 => { // ^L
             },
             9 => { //tab
                 if !(ln.contains(&32)) { //we did not have a space yet
-                    for &(c, m) in commands.iter() {
+                    for &(ref c, m) in commands.iter() {
                         //if c starts with ln, do stuff
                     }
                 }
@@ -183,7 +188,6 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
                                 histpos -= 1;
                                 ln = history[histpos].clone();
                                 print_command(&ln);
-                                stringpos = ln.len();
                             }
                         },
                         EscapeSequence::Down => {
@@ -191,11 +195,9 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
                             histpos += if histpos == history.len() { 0 } else { 1 };
                             if histpos == history.len() {
                                 ln = LinkedList::new();
-                                stringpos = 0;
                             } else {
                                 ln = history[histpos].clone();
                                 print_command(&ln);
-                                stringpos = ln.len();
                             }
                         },
                         _ => {}
