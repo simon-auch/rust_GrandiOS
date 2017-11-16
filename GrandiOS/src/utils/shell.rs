@@ -44,39 +44,64 @@ pub fn run() {
         (Argument::Method("test".to_string()), test::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
         (Argument::Method("edit".to_string()), edit::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
         (Argument::Method("cowsay".to_string()), cowsay::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Method("cat".to_string()), cat::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)];
+        (Argument::Method("cat".to_string()), cat::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        (Argument::Operator("+".to_string()), math::plus as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+    ];
     let mut history = VecDeque::new();
     loop {
-        let raw_input = read_command("> ", &mut history, &commands);
-        let mut args: Vec<Argument>;
-        match parse(&raw_input, false) {
+        let mut raw_input = read_command("> ", &mut history, &commands);
+        history.push_back(raw_input.clone());
+        match parse(&mut raw_input, 0) {
             Err((s,p)) => { println!("Syntax error on {}\n{}", p, s); continue; },
-            Ok(v) => { args = v; }
+            Ok(mut v) => { apply(&mut v[0], true, &commands); }
         }
-        //let input = String::from_utf8(raw_input.clone().into_iter().collect()).unwrap();
-        //let mut arguments: Vec<&str> = input.split(' ').collect();
-        let command = args.remove(0);
-        let mut found = false;
-        for &(ref c, m) in commands.iter() {
-            if command == *c {
-                found = true;
-                history.push_back(raw_input);
-                match m(args) {
-                    Err(msg) => print!("Error: {}", msg),
-                    Ok(res) => {
+    }
+}
+
+fn apply(app: &mut Argument, outer: bool, commands: &Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> Option<Argument> {
+    if !app.is_application() {
+        println!("Unexpected call of apply without Application");
+        return None;
+    }
+    let mut args = app.get_application();
+    for i in 0..(args.len()) {
+        while args[i].is_application() {
+            match apply(&mut args[i], false, commands) {
+                Some(s) => { args[i] = s; } , None => { return None; }
+            };
+        }
+    }
+    let command = if args.len() > 1 && args[1].is_operator() {
+        args.remove(1)
+    } else {
+         args.remove(0)
+    };
+    let mut found = false;
+    for &(ref c, m) in commands.iter() {
+        if command == *c {
+            found = true;
+            match m(args) {
+                Err(msg) => print!("Error: {}", msg),
+                Ok(res) => {
+                    if outer {
                         for a in res {
                             print!("\n{}", a.to_string());
                         }
+                    } else {
+                        if res.len() == 1 { return Some(res[0].clone()); }
+                        return Some(Argument::Application(res));
                     }
                 }
-                println!("");
-                break;
             }
-        }
-        if !found {
-            println!("Unknown command: {}", command.to_string());
+            if outer { println!(""); }
+            break;
         }
     }
+    if !found {
+        println!("Unknown command: {}", command.to_string());
+        return None;
+    }
+    Some(Argument::Nothing)
 }
 
 pub fn move_to(pos: usize, dest: usize) {

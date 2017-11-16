@@ -43,6 +43,7 @@ mod commands{
     pub mod test;
     pub mod edit;
     pub mod cowsay;
+    pub mod math;
 }
 use driver::*;
 

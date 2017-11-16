@@ -5,10 +5,10 @@ use alloc::linked_list::LinkedList;
 use alloc::string::{String,ToString};
 use alloc::slice::SliceConcatExt;
 
-#[derive(PartialEq)]
+#[derive(PartialEq,Debug,Clone)]
 pub enum Argument {
-    Int(usize), Str(String), List(Vec<Argument>),
-    Operator(String, u8), Method(String), Application(Vec<Argument>),
+    Nothing, Int(usize), Str(String), List(Vec<Argument>),
+    Operator(String), Method(String), Application(Vec<Argument>),
 }
 
 impl ToString for Argument {
@@ -17,7 +17,7 @@ impl ToString for Argument {
             &Argument::Int(i) => format!("{}",i).to_string(),
             &Argument::Str(ref s) => format!("\"{}\"", s).clone(),
             &Argument::Method(ref s) => s.clone(),
-            _ => "".to_string()
+            _ => format!("{:?}", self).to_string()
             //&Argument::List(l) => ["[",l.iter().map(|a|a.to_string()).collect().join(","),"]"].concat().to_string()
         }
     }
@@ -42,6 +42,18 @@ impl Argument {
             _ => false
         }
     }
+    pub fn is_operator(&self) -> bool {
+        match self {
+            &Argument::Operator(_) => true,
+            _ => false
+        }
+    }
+    pub fn is_application(&self) -> bool {
+        match self {
+            &Argument::Application(_) => true,
+            _ => false
+        }
+    }
     pub fn get_str(&self) -> Option<String> {
         match self {
             &Argument::Str(ref s) => Some(s.clone()),
@@ -60,12 +72,18 @@ impl Argument {
             _ => None
         }
     }
+    pub fn get_application(&self) -> Vec<Argument> {
+        match self {
+            &Argument::Application(ref s) => s.clone(),
+            _ => vec![]
+        }
+    }
 }
 
-pub fn parse(s: &LinkedList<u8>, sub: bool) -> Result<Vec<Argument>,(String, usize)> {
+pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<Vec<Argument>,(String, usize)> {
     let mut res = vec![];
     let mut akk = vec![];
-    let mut pos = 0;
+    let mut pos = start;
     let mut i = 0;
     let mut sign = 1;
     let mut base = 10;
@@ -75,31 +93,38 @@ pub fn parse(s: &LinkedList<u8>, sub: bool) -> Result<Vec<Argument>,(String, usi
      * 20 - string
      * 30 - function
      * 40 - operator
+     * 50 - subexpression
      */
     let mut mode = 0;
     let mut oldmode = 0;
     let mut base = 10;
-    for c in s {
+    while !s.is_empty() {
+        let c = s.pop_front().unwrap();
         pos += 1;
-        if mode == 30 && !((65..91).contains(*c) || (97..123).contains(*c)) {
+        if mode != 20 && c == 40 { // (
+            mode = 50;
+        }
+        if mode != 20 && c == 41 { // )
+        }
+        if mode == 30 && !((65..91).contains(c) || (97..123).contains(c)) {
             mode = 0;
         }
-        if mode == 40 && !((33..38).contains(*c) || (42..48).contains(*c) || (58..65).contains(*c)) {
+        if mode == 40 && !((33..38).contains(c) || (42..48).contains(c) || (58..65).contains(c)) {
             mode = 0;
         }
-        if mode == 10 && !((48..58).contains(*c) || *c == 120 || *c == 98 || *c == 111) {
+        if mode == 10 && !((48..58).contains(c) || c == 120 || c == 98 || c == 111) {
             mode = 0;
         }
-        if mode == 0 && ((48..58).contains(*c) || *c == 45) { //number ahead
+        if mode == 0 && ((48..58).contains(c) || c == 45) { //number ahead
             mode = 10;
         }
-        if mode == 0 && ((65..91).contains(*c) || (97..123).contains(*c)) { //letter -> function
+        if mode == 0 && ((65..91).contains(c) || (97..123).contains(c)) { //letter -> function
             mode = 30;
         }
-        if mode == 0 && ((33..38).contains(*c) || (42..48).contains(*c) || (58..65).contains(*c)) { //operator
+        if mode == 0 && ((33..38).contains(c) || (42..48).contains(c) || (58..65).contains(c)) { //operator
             mode = 40;
         }
-        if mode != 20 && *c == 34 { //string
+        if mode != 20 && c == 34 { //string
             mode = 20;
             continue;
         }
@@ -115,13 +140,7 @@ pub fn parse(s: &LinkedList<u8>, sub: bool) -> Result<Vec<Argument>,(String, usi
                     akk = vec![];
                 },
                 40 => {
-                    let r = String::from_utf8(akk).unwrap();
-                    let p = match r.as_str() {
-                        "*" | "/" => 1,
-                        "+" | "-" => 2,
-                        _ => 3
-                    };
-                    res.push(Argument::Operator(r, p));
+                    res.push(Argument::Operator(String::from_utf8(akk).unwrap()));
                     akk = vec![];
                 },
                 _ => {}
@@ -129,15 +148,15 @@ pub fn parse(s: &LinkedList<u8>, sub: bool) -> Result<Vec<Argument>,(String, usi
         }
         match mode {
             10 => {
-                if  *c == 120 || *c == 98 || *c == 111 { //we found x/b/o
+                if  c == 120 || c == 98 || c == 111 { //we found x/b/o
                     if i != 0 {
                         return Err(("Cannot switch bases".to_string(), pos));
                     }
-                    base = match *c {
+                    base = match c {
                         120 => 16, 98 => 2, 111 => 8, _ => 0
                     };
                 } else {
-                    let mut v = *c as usize;
+                    let mut v = c as usize;
                     match v {
                         48...57 | 65...90 | 97...122 => {
                             v -= 48;
@@ -152,20 +171,26 @@ pub fn parse(s: &LinkedList<u8>, sub: bool) -> Result<Vec<Argument>,(String, usi
                 }
             },
             20 => {
-                if *c == 34 {
+                if c == 34 {
                     res.push(Argument::Str(String::from_utf8(akk).unwrap()));
                     akk = vec![];
                     mode = 0;
                 } else {
-                    akk.push(*c);
+                    akk.push(c);
                 }
             },
             30 | 40 => {
-                akk.push(*c);
+                akk.push(c);
             },
             _ => {}
         }
+        if mode == 50 {
+            match parse(s, pos) {
+                Err(x) => { return Err(x); },
+                Ok(mut e) => { res.append(&mut e); }
+            }
+        }
         oldmode = mode;
     }
-    Ok(res)
+    Ok(vec![Argument::Application(res)])
 }
