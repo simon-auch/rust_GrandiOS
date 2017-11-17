@@ -234,7 +234,13 @@ fn test_undefined_instruction(){
     )}
 }
 fn test_software_interrupt(){
-    println!("TODO: implement me!");
+    unsafe{asm!("
+        swi 0x80"
+        :
+        :
+        :
+        :
+    )}
 }
 
 fn test_prefetch_abort(){
