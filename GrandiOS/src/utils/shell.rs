@@ -51,6 +51,7 @@ pub fn run() {
         (Argument::Operator("/".to_string()), math::div as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
     ];
     let mut history = VecDeque::new();
+    println!("type help for command list");
     loop {
         let mut raw_input = read_command("> ", &mut history, &commands);
         history.push_back(raw_input.clone());
@@ -74,11 +75,24 @@ fn apply(app: &mut Argument, outer: bool, commands: &Vec<(Argument, fn(Vec<Argum
             };
         }
     }
-    let command = if args.len() > 1 && args[1].is_operator() {
+    let mut command = if args.len() > 1 && args[1].is_operator() {
         args.remove(1)
     } else {
          args.remove(0)
     };
+    if command == Argument::Method("help".to_string()) {
+        if args.is_empty() {
+            for &(ref c, m) in commands.iter() {
+                if c.is_method() {
+                    println!("{}", c.to_string());
+                }
+            }
+            return None;
+        } else {
+            command = args[0].clone();
+            args[0] = Argument::Method("help".to_string());
+        }
+    }
     let mut found = false;
     for &(ref c, m) in commands.iter() {
         if command == *c {
