@@ -214,7 +214,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
                                 ln = history[histpos].clone();
                                 ln.pop_back();
                                 print_command(&ln);
-                                pos = ln.len();
+                                stringpos = ln.len();
                             }
                         },
                         EscapeSequence::Down => {
@@ -227,7 +227,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
                                 ln.pop_back();
                                 print_command(&ln);
                             }
-                            pos = ln.len();
+                            stringpos = ln.len();
                         },
                         _ => {}
                     }
