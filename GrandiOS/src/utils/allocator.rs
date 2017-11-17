@@ -1,3 +1,4 @@
+use driver::serial::*;
 use alloc::heap::{Alloc, Layout, AllocErr};
 use alloc::boxed::Box;
 use core::mem::size_of;
@@ -8,14 +9,14 @@ use utils::spinlock;
 
 pub struct Allocator {
     start: usize,
-    page: usize
+    end: usize
 }
 
 #[repr(C)]
 #[derive(Clone,Copy)]
 struct PageRef {
-    page: usize,
-    free: bool,
+    start: usize,
+    size: usize,
     next: usize
 }
 
@@ -26,22 +27,16 @@ struct MemHead {
 static MEM_HEAD: spinlock::Spinlock<MemHead> = spinlock::Spinlock::new(MemHead{data: 0});
 
 impl Allocator {
-	pub const fn new(base: usize, pagesize: usize) -> Self {
-        Allocator { start: base, page: pagesize }
+	pub const fn new(base: usize, end: usize) -> Self {
+        Allocator { start: base, end: end }
     }
-    pub unsafe fn prepare(&self, base: usize) {
-        // Let's init our linked list for the pages
-        // We want to use as much of our given page as possible
-        let refsperpage = self.page/size_of::<PageRef>();
-        for i in 0..refsperpage {
-            let tempref = PageRef{
-                page: base+self.page*i, free: i != 0, // We use that one
-                next: if i == refsperpage-1 { 0 } else {
-                    base+(i+1)*size_of::<PageRef>()
-                }
-            };
-            write_volatile((base+i*size_of::<PageRef>()) as *mut PageRef, tempref);
-        }
+    pub unsafe fn new_empty(&self, base: usize, next: usize) {
+        let s = base+size_of::<PageRef>();
+        let tempref = PageRef{
+            start: s, next: next,
+            size: if next == 0 { self.end } else { next }-s 
+        };
+        write_volatile(base as *mut PageRef, tempref);
     }
 }
 
@@ -49,54 +44,62 @@ unsafe impl<'a> Alloc for &'a Allocator {
     unsafe fn alloc(&mut self, layout: Layout) -> Result<*mut u8, AllocErr> {
 		let mut head = MEM_HEAD.lock();
         if head.data == 0 {
-            self.prepare(self.start);
+            self.new_empty(self.start, 0);
             head.data = self.start;
         }
-        let pages = layout.size()/self.page+(if layout.size()%self.page==0 {0} else {1});
         let mut address = head.data;
-        let mut first = 0;
-        let mut count = 0;
         loop {
             let mut current = read_volatile::<PageRef>(address as *mut PageRef);
-            if current.free {
-                if count == 0 { first = address; }
-                count += 1;
-                if count == pages { break; }
-            } else {
-                count = 0;
-            }
-            // Extend linked list into a new page
-            if current.next == 0 {
-                let base = current.page-self.page;
-                self.prepare(base);
+            if current.size >= layout.size()+size_of::<PageRef>() {
+                let base = current.start+layout.size();
+                current.size = 0;
+                self.new_empty(base, current.next);
                 current.next = base;
                 write_volatile(address as *mut PageRef, current);
+                return Ok(current.start as *mut u8);
+            }
+            if current.next == 0 {
+                return Err(AllocErr::Exhausted {request: layout});
             }
             address = current.next;
         }
-        address = first;
-        for i in 0..pages {
-            let mut current = read_volatile::<PageRef>(address as *mut PageRef);
-            current.free = false;
-            write_volatile(address as *mut PageRef, current);
-            address = current.next;
-        }
-        let current = read_volatile::<PageRef>(first as *mut PageRef);
-        Ok(current.page as *mut u8)
     }
     unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
 		let head = MEM_HEAD.lock();
-        let pages = layout.size()/self.page+(if layout.size()%self.page==0 {0} else {1});
         let mut address = head.data;
-        let mut current = read_volatile::<PageRef>(address as *mut PageRef);
-        while current.page != ptr as usize {
-            address = current.next;
-            current = read_volatile::<PageRef>(address as *mut PageRef);
-        }
-        for i in 0..pages {
+        let mut aprev = 0;
+        /*
+        println!("Want to free {:p}", ptr);
+        print!("We have ");
+        loop {
+            if address == 0 { break; }
             let mut current = read_volatile::<PageRef>(address as *mut PageRef);
-            current.free = true;
-            write_volatile(address as *mut PageRef, current);
+            print!("{:x} ", current.start);
+            address = current.next;
+        }
+        println!("");
+        address = head.data;
+        */
+        loop {
+            if address == 0 { loop {} }
+            let mut current = read_volatile::<PageRef>(address as *mut PageRef);
+            if current.start == ptr as usize {
+                current.size = layout.size();
+                let mut prev = read_volatile::<PageRef>(aprev as *mut PageRef);
+                let next = read_volatile::<PageRef>(current.next as *mut PageRef);
+                if next.size != 0 { //merge
+                    current.size += next.size+size_of::<PageRef>();
+                    current.next = next.next;
+                }
+                if aprev != 0 && prev.size != 0 { //merge
+                    prev.size += current.size+size_of::<PageRef>();
+                    prev.next = current.next;
+                    write_volatile(aprev as *mut PageRef, prev);
+                }
+                write_volatile(address as *mut PageRef, current);
+                return;
+            }
+            aprev = address;
             address = current.next;
         }
     }

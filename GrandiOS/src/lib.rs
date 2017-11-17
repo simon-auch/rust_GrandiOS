@@ -48,7 +48,7 @@ mod commands{
 use driver::*;
 
 #[global_allocator]
-static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new( 0x22000000, 1<<10);
+static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x22000000, 0x23ffffff);
 #[macro_use]
 extern crate alloc;
 extern crate compiler_builtins;
@@ -68,7 +68,6 @@ pub extern fn _start() {
     DEBUG_UNIT.enable();
     //commands::logo::draw();
     utils::shell::run();
-    loop{}
 }
 
 #[inline(always)]

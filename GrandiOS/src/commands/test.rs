@@ -50,7 +50,7 @@ fn test_size(){
     println!("{}x{}",w,h);
 }
 
-fn test_alloc(){
+pub fn test_alloc(){
     {
         let a = Box::new("Hallo");
         let b = Box::new("Welt!");

@@ -84,9 +84,10 @@ fn apply(app: &mut Argument, outer: bool, commands: &Vec<(Argument, fn(Vec<Argum
         if args.is_empty() {
             for &(ref c, m) in commands.iter() {
                 if c.is_method() {
-                    println!("{}", c.to_string());
+                    print!("{} ", c.to_string());
                 }
             }
+            println!("");
             return None;
         } else {
             command = args[0].clone();
