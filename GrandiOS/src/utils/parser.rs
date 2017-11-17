@@ -98,13 +98,14 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<Vec<Argument>,(Stri
     let mut mode = 0;
     let mut oldmode = 0;
     let mut base = 10;
-    while !s.is_empty() {
+    while !s.is_empty() && mode != 55 {
         let c = s.pop_front().unwrap();
         pos += 1;
         if mode != 20 && c == 40 { // (
             mode = 50;
         }
         if mode != 20 && c == 41 { // )
+            mode = 55;
         }
         if mode == 30 && !((65..91).contains(c) || (97..123).contains(c)) {
             mode = 0;
@@ -189,8 +190,12 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<Vec<Argument>,(Stri
                 Err(x) => { return Err(x); },
                 Ok(mut e) => { res.append(&mut e); }
             }
+            mode = 0;
         }
         oldmode = mode;
+    }
+    if mode == 55 && start == 0 {
+        return Err(("Unbalanced parantheses!".to_string(), pos));
     }
     Ok(vec![Argument::Application(res)])
 }
