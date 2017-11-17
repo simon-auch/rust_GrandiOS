@@ -173,6 +173,7 @@ fn test_interrupts_undefined_instruction(){
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the undefined instruction interrupt
     ic.set_handler_undefined_instruction(handler_undefined_instruction);
+    println!("Exception handler undefined instruction: 0x{:x}", handler_undefined_instruction as u32);
 }
 #[naked]
 extern fn handler_undefined_instruction(){
@@ -187,6 +188,7 @@ fn test_interrupts_software_interrupt(){
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the software interrupt
     ic.set_handler_software_interrupt(handler_software_interrupt);
+    println!("Exception handler software interrupt: 0x{:x}", handler_software_interrupt as u32);
 }
 #[naked]
 extern fn handler_software_interrupt(){
@@ -200,6 +202,7 @@ fn test_interrupts_prefetch_abort(){
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the prefetch abort interrupt
     ic.set_handler_prefetch_abort(handler_prefetch_abort);
+    println!("Exception handler prefetch abort: 0x{:x}", handler_prefetch_abort as u32);
 }
 #[naked]
 extern fn handler_prefetch_abort(){
@@ -213,6 +216,7 @@ fn test_interrupts_data_abort(){
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the data abort interrupt
     ic.set_handler_data_abort(handler_data_abort);
+    println!("Exception handler data abort: 0x{:x}", handler_data_abort as u32);
 }
 #[naked]
 extern fn handler_data_abort(){
