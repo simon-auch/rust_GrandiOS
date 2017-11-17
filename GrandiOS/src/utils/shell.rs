@@ -75,6 +75,7 @@ fn apply(app: &mut Argument, outer: bool, commands: &Vec<(Argument, fn(Vec<Argum
             };
         }
     }
+    if args.is_empty() { return None; }
     let mut command = if args.len() > 1 && args[1].is_operator() {
         args.remove(1)
     } else {
@@ -99,7 +100,7 @@ fn apply(app: &mut Argument, outer: bool, commands: &Vec<(Argument, fn(Vec<Argum
         if command == *c {
             found = true;
             match m(args) {
-                Err(msg) => print!("Error: {}", msg),
+                Err(msg) => { println!("Error: {}", msg); return None; },
                 Ok(res) => {
                     if outer {
                         for a in res {
@@ -138,7 +139,7 @@ fn print_command(ln: &LinkedList<u8>) {
     print!("{}", ln.iter().map(|x| *x as char).collect::<String>());
 }
 
-fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usize, f: F) where F: Fn(&mut LinkedList<u8>) {
+fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usize, left: bool, f: F) where F: Fn(&mut LinkedList<u8>) {
     clear_prompt(prompt, ln.len());
     let mut others = ln.split_off(stringpos);
     f(ln);
@@ -147,7 +148,7 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usiz
     print_command(&others);
     ln.append(&mut others);
     print!("{}8", 27 as char);
-    print!("{}[{}", 27 as char, EscapeSequence::Left.to_string());
+    if left { print!("{}[{}", 27 as char, EscapeSequence::Left.to_string()); }
 }
 
 pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, commands: &Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> LinkedList<u8> {
@@ -177,7 +178,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
             },
             127 => { //backspace
                 if stringpos > 0 {
-                    print_split_command(&mut ln, prompt, stringpos, |ln: &mut LinkedList<u8>| {ln.pop_back();});
+                    print_split_command(&mut ln, prompt, stringpos, false, |ln: &mut LinkedList<u8>| {ln.pop_back();});
                     stringpos -= 1;
                 }
             },
@@ -191,7 +192,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
                     if stringpos == ln.len() {
                         ln.push_back(c);
                     } else {
-                        print_split_command(&mut ln, prompt, stringpos, |ln: &mut LinkedList<u8>| {ln.push_back(c);});
+                        print_split_command(&mut ln, prompt, stringpos, true, |ln: &mut LinkedList<u8>| {ln.push_back(c);});
                     }
                     stringpos += 1;
                 }
@@ -211,7 +212,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
                         },
                         EscapeSequence::Delete => {
                             if stringpos < ln.len() {
-                                print_split_command(&mut ln, prompt, stringpos+1, |ln: &mut LinkedList<u8>| {ln.pop_back();});
+                                print_split_command(&mut ln, prompt, stringpos+1, true, |ln: &mut LinkedList<u8>| {ln.pop_back();});
                             }
                         },
                         EscapeSequence::Left => {
