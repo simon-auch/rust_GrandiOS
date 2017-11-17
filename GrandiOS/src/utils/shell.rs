@@ -56,8 +56,8 @@ pub fn run() {
         let mut raw_input = read_command("> ", &mut history, &commands);
         history.push_back(raw_input.clone());
         match parse(&mut raw_input, 0) {
-            Err((s,p)) => { println!("Syntax error on {}\n{}", p, s); continue; },
-            Ok(mut v) => { apply(&mut v[0], true, &commands); }
+            Err((s,p)) => { println!("{}^\n{}", "-".repeat(p+1), s); continue; },
+            Ok(mut v) => { apply(&mut v.0[0], true, &commands); }
         }
     }
 }

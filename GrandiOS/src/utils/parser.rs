@@ -80,7 +80,7 @@ impl Argument {
     }
 }
 
-pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<Vec<Argument>,(String, usize)> {
+pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usize), (String, usize)> {
     let mut res = vec![];
     let mut akk = vec![];
     let mut pos = start;
@@ -183,19 +183,26 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<Vec<Argument>,(Stri
             30 | 40 => {
                 akk.push(c);
             },
+            55 => {
+                if start != 0 {
+                    return Ok((vec![Argument::Application(res)], pos));
+                } else {
+                    return Err(("Unbalanced parantheses!".to_string(), pos));
+                }
+            }
             _ => {}
         }
         if mode == 50 {
             match parse(s, pos) {
                 Err(x) => { return Err(x); },
-                Ok(mut e) => { res.append(&mut e); }
+                Ok((mut e, p)) => { res.append(&mut e); pos = p; }
             }
             mode = 0;
         }
         oldmode = mode;
     }
-    if mode == 55 && start == 0 {
+    if start != 0 {
         return Err(("Unbalanced parantheses!".to_string(), pos));
     }
-    Ok(vec![Argument::Application(res)])
+    Ok((vec![Argument::Application(res)], pos))
 }
