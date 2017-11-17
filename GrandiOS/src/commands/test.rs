@@ -222,7 +222,16 @@ extern fn handler_data_abort(){
     loop{}
 }
 fn test_undefined_instruction(){
-    println!("TODO: implement me!");
+    unsafe{asm!("
+        ldr r0, [pc, #0x8]
+        str r0, [pc]
+        addeq r0, r0, r0
+        .word 0xFFFFFFFF"
+        :
+        :
+        :"r0"
+        :
+    )}
 }
 fn test_software_interrupt(){
     println!("TODO: implement me!");

@@ -69,7 +69,7 @@ impl InterruptController {
     fn init(&mut self){
         let ldr_irq = 0xE51FFF20; //ldr pc,[pc,#-0xF20] ; reads the register from aic that contains the address
         let ldr_fiq = 0x0; //TODO
-        let ldr_off = 0xE59FF018; //ldr pc, [pc, #0x18] ; reads the register stored behind the interrupt table
+        let ldr_off = 0xE59FF014; //ldr pc, [pc, #0x14] ; reads the register stored behind the interrupt table
         unsafe{
             write_volatile(&mut (*(self.itmm)).irq, ldr_irq);
             write_volatile(&mut (*(self.itmm)).fiq, ldr_fiq);
