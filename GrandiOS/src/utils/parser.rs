@@ -107,7 +107,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<Vec<Argument>,(Stri
         if mode != 20 && c == 41 { // )
             mode = 55;
         }
-        if mode == 30 && !((65..91).contains(c) || (97..123).contains(c)) {
+        if mode == 30 && !((65..91).contains(c) || (97..123).contains(c) || c == 95) {
             mode = 0;
         }
         if mode == 40 && !((33..38).contains(c) || (42..48).contains(c) || (58..65).contains(c)) {
@@ -119,7 +119,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<Vec<Argument>,(Stri
         if mode == 0 && ((48..58).contains(c) || c == 45) { //number ahead
             mode = 10;
         }
-        if mode == 0 && ((65..91).contains(c) || (97..123).contains(c)) { //letter -> function
+        if mode == 0 && ((65..91).contains(c) || (97..123).contains(c) || c == 95) { //letter -> function
             mode = 30;
         }
         if mode == 0 && ((33..38).contains(c) || (42..48).contains(c) || (58..65).contains(c)) { //operator
