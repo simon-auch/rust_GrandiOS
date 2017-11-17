@@ -257,7 +257,7 @@ fn test_data_abort(){
         .word #0x100000" //beginn des ROM 
         :
         :
-        :
+        :"r0"
         :
     )}
     println!("TODO: implement me!");
