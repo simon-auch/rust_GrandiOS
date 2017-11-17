@@ -221,6 +221,7 @@ extern fn handler_data_abort(){
     write!(debug_unit, "handler_data_abort");
     loop{}
 }
+
 fn test_undefined_instruction(){
     unsafe{asm!("
         ldr r0, [pc, #0x8]
@@ -242,12 +243,19 @@ fn test_software_interrupt(){
         :
     )}
 }
-
 fn test_prefetch_abort(){
-    println!("TODO: implement me!");
+    println!("TODO: implement me!");//Geht ohne speicherschutz noch nicht
 }
-
 fn test_data_abort(){
+    unsafe{asm!("
+        ldr r0, [pc, 0x4]
+        str r0, [r0]
+        .word #0x100000" //beginn des ROM 
+        :
+        :
+        :
+        :
+    )}
     println!("TODO: implement me!");
 }
 
