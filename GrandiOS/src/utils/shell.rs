@@ -46,6 +46,9 @@ pub fn run() {
         (Argument::Method("cowsay".to_string()), cowsay::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
         (Argument::Method("cat".to_string()), cat::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
         (Argument::Operator("+".to_string()), math::plus as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        (Argument::Operator("-".to_string()), math::minus as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        (Argument::Operator("*".to_string()), math::times as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
+        (Argument::Operator("/".to_string()), math::div as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
     ];
     let mut history = VecDeque::new();
     loop {
@@ -129,6 +132,7 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usiz
     print_command(&others);
     ln.append(&mut others);
     print!("{}8", 27 as char);
+    print!("{}[{}", 27 as char, EscapeSequence::Left.to_string());
 }
 
 pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, commands: &Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> LinkedList<u8> {
