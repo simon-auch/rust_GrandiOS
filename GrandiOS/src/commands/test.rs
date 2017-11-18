@@ -9,6 +9,8 @@ use driver::led::*;
 use driver::interrupts::*;
 use utils::spinlock::*;
 use utils::thread::*;
+use utils::registers;
+use core::ptr::{write_volatile, read_volatile};
 
 pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() == 0 { return Err("Test what?".to_string()); }
@@ -146,10 +148,12 @@ extern fn handler_irq(){
         :
         :
     )}
-    //TODO: find out what threw the interrupt.
-    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    debug_unit.read(true); //read in echo mode
-    //IRQ_EXIT from AT91_interrupts.pdf
+    {//this block is here to make sure destructors are called if needed.
+        //TODO: find out what threw the interrupt.
+        let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+        debug_unit.read(true); //read in echo mode
+        //IRQ_EXIT from AT91_interrupts.pdf
+    }
     unsafe{asm!("
         pop     {r1-r3, r4-r11, r12, r14}
         mrs     r0, CPSR
@@ -160,7 +164,7 @@ extern fn handler_irq(){
         str     r0, [r0, #0x0130] //AIC_EOICR
         pop     {r0, r14}
         msr     SPSR, r14
-        ldmfd  sp!, {pc}^ //In dem pdf steht hier {pc}^, das ist aber nicht erlaubt.."
+        ldmfd   sp!, {pc}^"
         :
         :
         :
@@ -173,13 +177,41 @@ fn test_interrupts_undefined_instruction(){
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the undefined instruction interrupt
     ic.set_handler_undefined_instruction(handler_undefined_instruction);
+    println!("Exception handler undefined instruction: 0x{:x}", handler_undefined_instruction as u32);
 }
+
 #[naked]
 extern fn handler_undefined_instruction(){
-    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück
+    //the address of the undefined instruction is r14-0x4, therefore we want to jump to r14 to leave the problematic instruction behind.
+    unsafe{asm!("
+        push   {r14}
+        push   {r0-r12}" //save everything except the Stack pointer (useless since we are in the wrong mode)
+        :
+        :
+        :
+        :
+    )}
+    {//this block is here to make sure destructors are called if needed.
+        //load the memory location that threw the code
+        let lreg = registers::get_lr();
+        handler_undefined_instruction_helper(lreg);
+    }
+    unsafe{asm!("
+        pop    {r0-r12}
+        pop    {r14}
+        movs   pc, r14" 
+        :
+        :
+        :
+        :
+    )}
+}
+fn handler_undefined_instruction_helper(lr: u32){
+    let mut lr = lr - 0x4;
+    let instruction = unsafe { read_volatile(lr as *mut u32) };
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "handler_undefined_instruction");
-    loop{}
+    write!(debug_unit, "undefined_instruction at: 0x{:x}\n", lr);
+    write!(debug_unit, "instruction: 0x{:x}\n", instruction);
 }
 
 fn test_interrupts_software_interrupt(){
@@ -187,19 +219,51 @@ fn test_interrupts_software_interrupt(){
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the software interrupt
     ic.set_handler_software_interrupt(handler_software_interrupt);
+    println!("Exception handler software interrupt: 0x{:x}", handler_software_interrupt as u32);
 }
 #[naked]
 extern fn handler_software_interrupt(){
-    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück  
-    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "handler_software_interrupt");
-    loop{}
+    //the address of the swi instruction is r14-0x4, therefore we want to jump to r14 to leave the swi instruction behind.
+    unsafe{asm!("
+        push   {r14}
+        push   {r0-r12}" //save everything except the Stack pointer (useless since we are in the wrong mode)
+        :
+        :
+        :
+        :
+    )}
+    {//this block is here to make sure destructors are called if needed.
+        //load the memory location that threw the code
+        //Zurzeit können wir nur SWI erstellen, die nur den direkten wert als parameter haben.
+        let lreg = registers::get_lr();
+        handler_software_interrupt_helper(lreg);
+    }
+    unsafe{asm!("
+        pop    {r0-r12}
+        pop    {r14}
+        movs   pc, r14"
+        :
+        :
+        :
+        :
+    )}
 }
+fn handler_software_interrupt_helper(lr: u32){
+    let mut lr = lr - 0x4;
+    let instruction = unsafe { read_volatile(lr as *mut u32) };
+    let immed = instruction & 0xFFFFFF;
+    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+    write!(debug_unit, "software_interrupt at: 0x{:x}\n", lr);
+    write!(debug_unit, "instruction: 0x{:x}\n", instruction);
+    write!(debug_unit, "swi value: 0x{:x}\n", immed);
+}
+
 fn test_interrupts_prefetch_abort(){
     //get interrupt controller, initialises some instruction inside the vector table too
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the prefetch abort interrupt
     ic.set_handler_prefetch_abort(handler_prefetch_abort);
+    println!("Exception handler prefetch abort: 0x{:x}", handler_prefetch_abort as u32);
 }
 #[naked]
 extern fn handler_prefetch_abort(){
@@ -213,35 +277,82 @@ fn test_interrupts_data_abort(){
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the data abort interrupt
     ic.set_handler_data_abort(handler_data_abort);
+    println!("Exception handler data abort: 0x{:x}", handler_data_abort as u32);
 }
 #[naked]
 extern fn handler_data_abort(){
-    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück  
-    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "handler_data_abort");
-    loop{}
-}
-fn test_undefined_instruction(){
+    //the address of the data_abort instruction is r14-0x8, therefore we want to jump to r14-0x4 to leave the instruction behind.
     unsafe{asm!("
-        ldr r0, [pc, #0x8]
-        str r0, [pc]
-        addeq r0, r0, r0
-        .word 0xFFFFFFFF"
+        push   {r14}
+        push   {r0-r12}" //save everything except the Stack pointer (useless since we are in the wrong mode)
         :
         :
-        :"r0"
+        :
+        :
+    )}
+    {//this block is here to make sure destructors are called if needed.
+        //load the memory location that threw the code
+        let lreg = registers::get_lr();
+        handler_data_abort_helper(lreg);
+    }
+    unsafe{asm!("
+        pop    {r0-r12}
+        pop    {r14}
+        subs   pc, r14, 0x4"
+        :
+        :
+        :
         :
     )}
 }
+fn handler_data_abort_helper(lr: u32){
+    let mut lr = lr - 0x8;
+    let instruction = unsafe { read_volatile(lr as *mut u32) };
+    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+    write!(debug_unit, "data_abort at: 0x{:x}\n", lr);
+    write!(debug_unit, "instruction: 0x{:x}\n", instruction);
+}
+
+fn test_undefined_instruction(){
+    unsafe{asm!("
+        .word 0xFFFFFFFF"
+        :
+        :
+        :
+        :
+    )}
+    println!("Handler undefined_instrucion returned")
+}
 fn test_software_interrupt(){
-    println!("TODO: implement me!");
+    unsafe{asm!("
+        swi 0x80"
+        :
+        :
+        :
+        :
+    )}
+    println!("Handler software_interrupt returned");
 }
-
 fn test_prefetch_abort(){
-    println!("TODO: implement me!");
+    println!("TODO: implement me!");//Geht ohne speicherschutz noch nicht
 }
-
 fn test_data_abort(){
-    println!("TODO: implement me!");
+    let _ : u32 = unsafe { read_volatile(0x400000 as *mut u32) };
+    /*
+    //Das sollte eigentlich auch funktionieren...
+    unsafe{asm!("
+        .word 0x0 //some nops to find it faster in the binary
+        .word 0x0
+        .word 0x0
+        .word 0x0
+        mov r0, 0x4000 << 8
+        str r0, [r0]"
+        :
+        :
+        :"r0"
+        :"volatile"
+    )}
+    */
+    println!("Handler data_abort returned");
 }
 

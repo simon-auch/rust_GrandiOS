@@ -31,11 +31,12 @@ mod driver{
 	pub use interrupts::*;
 }
 mod utils{
-	pub mod spinlock;
-	pub mod allocator;
+    pub mod spinlock;
+    pub mod allocator;
     pub mod thread;
     pub mod parser;
     pub mod shell;
+    pub mod registers;
 }
 mod commands{
     pub mod logo;
@@ -76,7 +77,8 @@ fn init(){
     //make interupt table writable
     let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
     mc.remap();
-    //TODO: Initialise the stack pointers for all modes (system, abort, irq, fiq, etc)
+    //initialise the stack pointers for all modes.
+    //each stack gets around 1kbyte, except the fiq which has a bit less (vector table+ jump addresses) and the system/user stack which has 11kbyte
     unsafe{asm!("
         mrs     r0, CPSR		//auslaesen vom status register
         bic     r0, r0, #0x1F	//set all mode bits to zero
@@ -88,13 +90,13 @@ fn init(){
         mov     sp, #0x800	//set stack pointer for irq mode
         orr     r1, r0, #0x13	//ARM_MODE_ABORT
         msr     CPSR, r1
-        mov     sp, #0x1000	//set stack pointer for abort mode
+        mov     sp, #0xC00	//set stack pointer for abort mode
         orr     r1, r0, #0x17	//ARM_MODE_supervisor
         msr     CPSR, r1
-        mov     sp, #0x1400	//set stack pointer for supervisor mode
+        mov     sp, #0x1000	//set stack pointer for supervisor mode
         orr     r1, r0, #0x1B	//ARM_MODE_UNDEFINED
         msr     CPSR, r1
-        mov     sp, #0x1800	//set stack pointer for undefined mode
+        mov     sp, #0x1400	//set stack pointer for undefined mode
         orr     r1, r0, #0x1F	//ARM_MODE_SYS
         msr     CPSR, r1
         mov     sp, #0x4000	//set stack pointer for system/user mode
