@@ -10,6 +10,7 @@ use driver::interrupts::*;
 use utils::spinlock::*;
 use utils::thread::*;
 use utils::registers;
+use core::ptr::{write_volatile, read_volatile};
 
 pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() == 0 { return Err("Test what?".to_string()); }
@@ -219,11 +220,41 @@ fn test_interrupts_software_interrupt(){
 }
 #[naked]
 extern fn handler_software_interrupt(){
-    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück  
-    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "handler_software_interrupt");
-    loop{}
+    //the address of the swi instruction is r14-0x4, therefore we want to jump to r14 to leave the swi instruction behind.
+    unsafe{asm!("
+        push   {r14}
+        push   {r0-r12}" //save everything except the Stack pointer (useless since we are in the wrong mode)
+        :
+        :
+        :
+        :
+    )}
+    {//this block is here to make sure destructors are called if needed.
+        //load the memory location that threw the code
+        //Zurzeit können wir nur SWI erstellen, die nur den direkten wert als parameter haben.
+        let lreg = registers::get_lr();
+        handler_software_interrupt_helper(lreg);
+    }
+    unsafe{asm!("
+        pop    {r0-r12}
+        pop    {r14}
+        movs   pc, r14"
+        :
+        :
+        :
+        :
+    )}
 }
+fn handler_software_interrupt_helper(lr: u32){
+    let mut lr = lr - 0x4;
+    let instruction = unsafe { read_volatile(lr as *mut u32) };
+    let immed = instruction & 0xFFFFFF;
+    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+    write!(debug_unit, "software_interrupt at: 0x{:x}\n", lr);
+    write!(debug_unit, "swi instruction: 0x{:x}\n", instruction);
+    write!(debug_unit, "swi value: 0x{:x}\n", immed);
+}
+
 fn test_interrupts_prefetch_abort(){
     //get interrupt controller, initialises some instruction inside the vector table too
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
