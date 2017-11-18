@@ -192,9 +192,6 @@ extern fn handler_undefined_instruction(){
     )}
     {//this block is here to make sure destructors are called if needed.
         //load the memory location that threw the code
-        //let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-        //write!(debug_unit, "handler_undefined_instruction");
-        //handler_undefined_instruction_helper();
         let lreg = registers::get_lr();
         handler_undefined_instruction_helper(lreg);
     }
