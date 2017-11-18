@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
+use utils::spinlock;
 
 #[derive(Clone)]
 pub enum EscapeSequence {
@@ -38,8 +39,16 @@ impl ToString for EscapeSequence {
     }
 }
 
+static IT: spinlock::Spinlock<Argument> = spinlock::Spinlock::new(Argument::Nothing);
+pub fn get_it(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    let it = IT.lock();
+    args.insert(0, (*it).clone());
+    Ok(args)
+}
+
 pub fn run() {
     let commands = vec![
+        (Argument::Method("it".to_string()), get_it as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
         (Argument::Method("logo".to_string()), logo::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
         (Argument::Method("test".to_string()), test::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
         (Argument::Method("edit".to_string()), edit::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
@@ -59,7 +68,11 @@ pub fn run() {
             Err((s,p)) => { println!("{}^\n{}", "-".repeat(p+1), s); continue; },
             Ok(mut v) => { 
                 match apply(&mut v.0[0], &commands) {
-                    Some(arg) => println!("{}", arg.to_string()),
+                    Some(arg) => {
+                        let mut it = IT.lock();
+                        *it = arg.clone();
+                        println!("{}", arg.to_string());
+                    }
                     None => {}
                 }
             }
@@ -101,10 +114,8 @@ fn apply(app: &mut Argument, commands: &Vec<(Argument, fn(Vec<Argument>) -> Resu
             args[0] = Argument::Method("help".to_string());
         }
     }
-    let mut found = false;
     for &(ref c, m) in commands.iter() {
         if command == *c {
-            found = true;
             match m(args) {
                 Err(msg) => { println!("Error: {}", msg); return None; },
                 Ok(res) => {
@@ -112,14 +123,10 @@ fn apply(app: &mut Argument, commands: &Vec<(Argument, fn(Vec<Argument>) -> Resu
                     return Some(Argument::Application(res));
                 }
             }
-            break;
         }
     }
-    if !found {
-        println!("Unknown command: {}", command.to_string());
-        return None;
-    }
-    Some(Argument::Nothing)
+    println!("Unknown command: {}", command.to_string());
+    return None;
 }
 
 pub fn move_to(pos: usize, dest: usize) {
