@@ -2,6 +2,6 @@
 #[inline(always)]
 pub fn get_lr() -> u32{
     let lr: u32;
-    unsafe{asm!("mov $0, r14":"=r"(lr)::"volatile")}
+    unsafe{asm!("mov $0, r14":"=r"(lr):::"volatile")}
     lr
 }

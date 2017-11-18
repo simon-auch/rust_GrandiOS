@@ -120,7 +120,7 @@ impl InterruptController {
         assert!(priority < 8, "priority must be between 0 and 7");
         let mut reg : u32 = unsafe{ read_volatile(&mut (*(self.aicmm)).smr[interrupt_line])};
         //clear old priority
-        reg &= (0xFFFFFFFF ^ 0b111);
+        reg &= 0xFFFFFFFF ^ 0b111;
         reg |= priority;
         unsafe{
             write_volatile(&mut (*(self.aicmm)).smr[interrupt_line], reg);
@@ -131,7 +131,7 @@ impl InterruptController {
         assert!(sourcetype < 4, "priority must be between 0 and 3");
         let mut reg : u32 = unsafe{ read_volatile(&mut (*(self.aicmm)).smr[interrupt_line])};
         //clear old sourcetype
-        reg &= (0xFFFFFFFF ^ (0b11 << 5));
+        reg &= 0xFFFFFFFF ^ (0b11 << 5);
         reg |= sourcetype << 5;
         unsafe{
             write_volatile(&mut (*(self.aicmm)).smr[interrupt_line], reg);

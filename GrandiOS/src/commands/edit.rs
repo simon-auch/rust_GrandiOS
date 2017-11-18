@@ -118,6 +118,6 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         }
         c = read!();
     }
-    print!("{}", "\n".repeat(lines-linepos-1));
+    print!("{}", "\n".repeat(lines-linepos));
     Ok(vec![])
 }

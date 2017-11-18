@@ -17,6 +17,7 @@ impl ToString for Argument {
             &Argument::Int(i) => format!("{}",i).to_string(),
             &Argument::Str(ref s) => format!("\"{}\"", s).clone(),
             &Argument::Method(ref s) => s.clone(),
+            &Argument::Nothing => "".to_string(),
             _ => format!("{:?}", self).to_string()
             //&Argument::List(l) => ["[",l.iter().map(|a|a.to_string()).collect().join(","),"]"].concat().to_string()
         }
@@ -24,6 +25,12 @@ impl ToString for Argument {
 }
 
 impl Argument {
+    pub fn is_something(&self) -> bool {
+        match self {
+            &Argument::Nothing => false,
+            _ => true
+        }
+    }
     pub fn is_str(&self) -> bool {
         match self {
             &Argument::Str(_) => true,
@@ -69,6 +76,12 @@ impl Argument {
     pub fn get_method_name(&self) -> Option<String> {
         match self {
             &Argument::Method(ref s) => Some(s.clone()),
+            _ => None
+        }
+    }
+    pub fn get_operator(&self) -> Option<String> {
+        match self {
+            &Argument::Operator(ref s) => Some(s.clone()),
             _ => None
         }
     }
@@ -197,5 +210,35 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
 }
 
 fn precedence(args: Vec<Argument>) -> Argument {
-    Argument::Application(args)
+    let mut res = vec![];
+    let mut akk = vec![];
+    let prec: Vec<Box<Fn(&Argument) -> bool>> = vec![
+        Box::new(|arg| arg.is_operator()),
+        Box::new(|arg| arg.is_operator() && ["+".to_string(), "-".to_string()].contains(&arg.get_operator().unwrap())),
+        Box::new(|arg| false)
+    ];
+    // evaluate methods first
+    for arg in args {
+        if arg.is_operator() {
+            res.push(Argument::Application(akk));
+            res.push(arg);
+            akk = vec![];
+        } else {
+            akk.push(arg);
+        }
+    }
+    if !akk.is_empty() { res.push(Argument::Application(akk)); }
+    opprec(res)
+}
+
+fn opprec(args: Vec<Argument>) -> Argument {
+    if args.len() > 4 {
+        if ["+".to_string(), "-".to_string()].contains(&args[1].get_operator().unwrap()) {
+            Argument::Application(vec![args[0].clone(),args[1].clone(),opprec(args[2..].to_vec())])
+        } else {
+            Argument::Application(vec![Argument::Application(args[0..3].to_vec()),args[3].clone(),opprec(args[4..].to_vec())])
+        }
+    } else {
+        Argument::Application(args)
+    }
 }

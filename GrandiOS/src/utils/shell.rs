@@ -57,12 +57,17 @@ pub fn run() {
         history.push_back(raw_input.clone());
         match parse(&mut raw_input, 0) {
             Err((s,p)) => { println!("{}^\n{}", "-".repeat(p+1), s); continue; },
-            Ok(mut v) => { apply(&mut v.0[0], true, &commands); }
+            Ok(mut v) => { 
+                match apply(&mut v.0[0], &commands) {
+                    Some(arg) => println!("{}", arg.to_string()),
+                    None => {}
+                }
+            }
         }
     }
 }
 
-fn apply(app: &mut Argument, outer: bool, commands: &Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> Option<Argument> {
+fn apply(app: &mut Argument, commands: &Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> Option<Argument> {
     if !app.is_application() {
         println!("Unexpected call of apply without Application");
         return None;
@@ -70,11 +75,12 @@ fn apply(app: &mut Argument, outer: bool, commands: &Vec<(Argument, fn(Vec<Argum
     let mut args = app.get_application();
     for i in 0..(args.len()) {
         while args[i].is_application() {
-            match apply(&mut args[i], false, commands) {
+            match apply(&mut args[i], commands) {
                 Some(s) => { args[i] = s; } , None => { return None; }
             };
         }
     }
+    if args.len() == 1 && !args[0].is_method() { return Some(args[0].clone()); }
     if args.is_empty() { return None; }
     let mut command = if args.len() > 1 && args[1].is_operator() {
         args.remove(1)
@@ -102,17 +108,10 @@ fn apply(app: &mut Argument, outer: bool, commands: &Vec<(Argument, fn(Vec<Argum
             match m(args) {
                 Err(msg) => { println!("Error: {}", msg); return None; },
                 Ok(res) => {
-                    if outer {
-                        for a in res {
-                            print!("\n{}", a.to_string());
-                        }
-                    } else {
-                        if res.len() == 1 { return Some(res[0].clone()); }
-                        return Some(Argument::Application(res));
-                    }
+                    if res.len() == 1 { return Some(res[0].clone()); }
+                    return Some(Argument::Application(res));
                 }
             }
-            if outer { println!(""); }
             break;
         }
     }

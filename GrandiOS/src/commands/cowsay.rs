@@ -23,6 +23,6 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     print!("   \\ (oo)\\_______\r{}[{}", 27 as char, EscapeSequence::Down.to_string());
     print!("     (__)\\       )\\/\\\r{}[{}", 27 as char, EscapeSequence::Down.to_string());
     print!("         ||----w |\r{}[{}", 27 as char, EscapeSequence::Down.to_string());
-    print!("         ||     ||\r");
+    print!("         ||     ||\r\n");
     Ok(vec![])
 }

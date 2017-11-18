@@ -36,6 +36,8 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         for &(test_str, _) in &tests{
             print!("{} ", test_str);
         }
+        println!("");
+        return Ok(vec![]);
     }
     for (test_str, test_f) in tests{
         if test_str == test_wanted {
@@ -210,8 +212,8 @@ fn handler_undefined_instruction_helper(lr: u32){
     let mut lr = lr - 0x4;
     let instruction = unsafe { read_volatile(lr as *mut u32) };
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "undefined_instruction at: 0x{:x}\n", lr);
-    write!(debug_unit, "instruction: 0x{:x}\n", instruction);
+    write!(debug_unit, "undefined_instruction at: 0x{:x}\n", lr).unwrap();
+    write!(debug_unit, "instruction: 0x{:x}\n", instruction).unwrap();
 }
 
 fn test_interrupts_software_interrupt(){
@@ -253,9 +255,9 @@ fn handler_software_interrupt_helper(lr: u32){
     let instruction = unsafe { read_volatile(lr as *mut u32) };
     let immed = instruction & 0xFFFFFF;
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "software_interrupt at: 0x{:x}\n", lr);
-    write!(debug_unit, "instruction: 0x{:x}\n", instruction);
-    write!(debug_unit, "swi value: 0x{:x}\n", immed);
+    write!(debug_unit, "software_interrupt at: 0x{:x}\n", lr).unwrap();
+    write!(debug_unit, "instruction: 0x{:x}\n", instruction).unwrap();
+    write!(debug_unit, "swi value: 0x{:x}\n", immed).unwrap();
 }
 
 fn test_interrupts_prefetch_abort(){
@@ -269,7 +271,7 @@ fn test_interrupts_prefetch_abort(){
 extern fn handler_prefetch_abort(){
     //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück  
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "handler_prefetch_abort");
+    write!(debug_unit, "handler_prefetch_abort").unwrap();
     loop{}
 }
 fn test_interrupts_data_abort(){
@@ -309,8 +311,8 @@ fn handler_data_abort_helper(lr: u32){
     let mut lr = lr - 0x8;
     let instruction = unsafe { read_volatile(lr as *mut u32) };
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "data_abort at: 0x{:x}\n", lr);
-    write!(debug_unit, "instruction: 0x{:x}\n", instruction);
+    write!(debug_unit, "data_abort at: 0x{:x}\n", lr).unwrap();
+    write!(debug_unit, "instruction: 0x{:x}\n", instruction).unwrap();
 }
 
 fn test_undefined_instruction(){
