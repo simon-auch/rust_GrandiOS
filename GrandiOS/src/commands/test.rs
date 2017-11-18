@@ -207,8 +207,11 @@ extern fn handler_undefined_instruction(){
     )}
 }
 fn handler_undefined_instruction_helper(lr: u32){
+    let mut lr = lr - 0x4;
+    let instruction = unsafe { read_volatile(lr as *mut u32) };
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "undefined_instruction at: 0x{:x}\n",  lr - 0x4);
+    write!(debug_unit, "undefined_instruction at: 0x{:x}\n", lr);
+    write!(debug_unit, "instruction: 0x{:x}\n", instruction);
 }
 
 fn test_interrupts_software_interrupt(){
@@ -251,7 +254,7 @@ fn handler_software_interrupt_helper(lr: u32){
     let immed = instruction & 0xFFFFFF;
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
     write!(debug_unit, "software_interrupt at: 0x{:x}\n", lr);
-    write!(debug_unit, "swi instruction: 0x{:x}\n", instruction);
+    write!(debug_unit, "instruction: 0x{:x}\n", instruction);
     write!(debug_unit, "swi value: 0x{:x}\n", immed);
 }
 
@@ -278,10 +281,36 @@ fn test_interrupts_data_abort(){
 }
 #[naked]
 extern fn handler_data_abort(){
-    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück  
+    //the address of the data_abort instruction is r14-0x8, therefore we want to jump to r14-0x4 to leave the instruction behind.
+    unsafe{asm!("
+        push   {r14}
+        push   {r0-r12}" //save everything except the Stack pointer (useless since we are in the wrong mode)
+        :
+        :
+        :
+        :
+    )}
+    {//this block is here to make sure destructors are called if needed.
+        //load the memory location that threw the code
+        let lreg = registers::get_lr();
+        handler_data_abort_helper(lreg);
+    }
+    unsafe{asm!("
+        pop    {r0-r12}
+        pop    {r14}
+        subs   pc, r14, 0x4"
+        :
+        :
+        :
+        :
+    )}
+}
+fn handler_data_abort_helper(lr: u32){
+    let mut lr = lr - 0x8;
+    let instruction = unsafe { read_volatile(lr as *mut u32) };
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "handler_data_abort");
-    loop{}
+    write!(debug_unit, "data_abort at: 0x{:x}\n", lr);
+    write!(debug_unit, "instruction: 0x{:x}\n", instruction);
 }
 
 fn test_undefined_instruction(){
@@ -302,21 +331,28 @@ fn test_software_interrupt(){
         :
         :
     )}
+    println!("Handler software_interrupt returned");
 }
 fn test_prefetch_abort(){
     println!("TODO: implement me!");//Geht ohne speicherschutz noch nicht
 }
 fn test_data_abort(){
+    let _ : u32 = unsafe { read_volatile(0x400000 as *mut u32) };
+    /*
+    //Das sollte eigentlich auch funktionieren...
     unsafe{asm!("
-        ldr r0, [pc, #0x4] //this offset might be incorrect. could be that it needs to be #0x0
-        str r0, [r0]
-        .word #0x100000" //beginn des ROM 
+        .word 0x0 //some nops to find it faster in the binary
+        .word 0x0
+        .word 0x0
+        .word 0x0
+        mov r0, 0x4000 << 8
+        str r0, [r0]"
         :
         :
         :"r0"
-        :
+        :"volatile"
     )}
+    */
     println!("Handler data_abort returned");
 }
-
 
