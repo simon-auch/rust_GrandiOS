@@ -87,6 +87,13 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
     let mut i = 0;
     let mut sign = 1;
     let mut base = 10;
+    //conditions for mode switching in the same order as the modes
+    let cond: Vec<Box<Fn(u8) -> bool>> = vec![
+        Box::new(|c| (48..58).contains(c) || (65..71).contains(c) || (97..103).contains(c)),
+        Box::new(|c| c == 34), Box::new(|c| (65..91).contains(c) || (97..123).contains(c) || c == 95),
+        Box::new(|c| (33..38).contains(c) || (42..48).contains(c) || (58..65).contains(c)),
+
+    ];
     /* We currently have the following modes:
      * 0 - default, nothing to do
      * 10 - integer
@@ -101,34 +108,16 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
     while !s.is_empty() && mode != 55 {
         let c = s.pop_front().unwrap();
         pos += 1;
-        if mode != 20 && c == 40 { // (
-            mode = 50;
-        }
-        if mode != 20 && c == 41 { // )
-            mode = 55;
-        }
-        if mode == 30 && !((65..91).contains(c) || (97..123).contains(c) || c == 95) {
-            mode = 0;
-        }
-        if mode == 40 && !((33..38).contains(c) || (42..48).contains(c) || (58..65).contains(c)) {
-            mode = 0;
-        }
-        if mode == 10 && !((48..58).contains(c) || c == 120 || c == 98 || c == 111) {
-            mode = 0;
-        }
-        if mode == 0 && ((48..58).contains(c) || c == 45) { //number ahead
-            mode = 10;
-        }
-        if mode == 0 && ((65..91).contains(c) || (97..123).contains(c) || c == 95) { //letter -> function
-            mode = 30;
-        }
-        if mode == 0 && ((33..38).contains(c) || (42..48).contains(c) || (58..65).contains(c)) { //operator
-            mode = 40;
-        }
-        if mode != 20 && c == 34 { //string
-            mode = 20;
-            continue;
-        }
+        // ( and )
+        if mode != 20 && c == 40 { mode = 50; }
+        if mode != 20 && c == 41 { mode = 55; }
+        if mode == 30 && !cond[2](c) { mode = 0; }
+        if mode == 40 && !cond[3](c) { mode = 0; }
+        if mode == 10 && !(cond[0](c) || c == 120 || c == 98 || c == 111) {mode = 0; }
+        if mode == 0 && cond[2](c) { mode = 30; }
+        if mode == 0 && cond[3](c) { mode = 40; }
+        if mode == 0 && cond[0](c) { mode = 10; }
+        if mode != 20 && cond[1](c) { mode = 20; continue; }
         if oldmode != mode {
             match oldmode {
                 10 => {
@@ -162,7 +151,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
                         48...57 | 65...90 | 97...122 => {
                             v -= 48;
                             if base == 16 && v > 9 { v = v - 7; }
-                            if base == 16 && v > 9 { v = v - 32; }
+                            if base == 16 && v > 15 { v = v - 32; }
                             if v >= base {
                                 return Err(("Invalid digit".to_string(), pos));
                             }
@@ -185,7 +174,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
             },
             55 => {
                 if start != 0 {
-                    return Ok((vec![Argument::Application(res)], pos));
+                    return Ok((vec![precedence(res)], pos));
                 } else {
                     return Err(("Unbalanced parantheses!".to_string(), pos));
                 }
@@ -204,5 +193,9 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
     if start != 0 {
         return Err(("Unbalanced parantheses!".to_string(), pos));
     }
-    Ok((vec![Argument::Application(res)], pos))
+    Ok((vec![precedence(res)], pos))
+}
+
+fn precedence(args: Vec<Argument>) -> Argument {
+    Argument::Application(args)
 }
