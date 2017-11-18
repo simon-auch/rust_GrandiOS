@@ -9,6 +9,7 @@ use driver::led::*;
 use driver::interrupts::*;
 use utils::spinlock::*;
 use utils::thread::*;
+use utils::registers;
 
 pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() == 0 { return Err("Test what?".to_string()); }
@@ -146,10 +147,12 @@ extern fn handler_irq(){
         :
         :
     )}
-    //TODO: find out what threw the interrupt.
-    let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    debug_unit.read(true); //read in echo mode
-    //IRQ_EXIT from AT91_interrupts.pdf
+    {//this block is here to make sure destructors are called if needed.
+        //TODO: find out what threw the interrupt.
+        let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+        debug_unit.read(true); //read in echo mode
+        //IRQ_EXIT from AT91_interrupts.pdf
+    }
     unsafe{asm!("
         pop     {r1-r3, r4-r11, r12, r14}
         mrs     r0, CPSR
@@ -160,7 +163,7 @@ extern fn handler_irq(){
         str     r0, [r0, #0x0130] //AIC_EOICR
         pop     {r0, r14}
         msr     SPSR, r14
-        ldmfd  sp!, {pc}^ //In dem pdf steht hier {pc}^, das ist aber nicht erlaubt.."
+        ldmfd   sp!, {pc}^"
         :
         :
         :
@@ -175,12 +178,39 @@ fn test_interrupts_undefined_instruction(){
     ic.set_handler_undefined_instruction(handler_undefined_instruction);
     println!("Exception handler undefined instruction: 0x{:x}", handler_undefined_instruction as u32);
 }
+
 #[naked]
 extern fn handler_undefined_instruction(){
-    //TODO: keine ahnung ob das so richtig ist. sollte zumindest bis zum print kommen, kehrt aber nicht automatisch zurück
+    //the address of the undefined instruction is r14-0x4, therefore we want to jump to r14 to leave the problematic instruction behind.
+    unsafe{asm!("
+        push   {r14}
+        push   {r0-r12}" //save everything except the Stack pointer (useless since we are in the wrong mode)
+        :
+        :
+        :
+        :
+    )}
+    {//this block is here to make sure destructors are called if needed.
+        //load the memory location that threw the code
+        //let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+        //write!(debug_unit, "handler_undefined_instruction");
+        //handler_undefined_instruction_helper();
+        let lreg = registers::get_lr();
+        handler_undefined_instruction_helper(lreg);
+    }
+    unsafe{asm!("
+        pop    {r0-r12}
+        pop    {r14}
+        movs   pc, r14" 
+        :
+        :
+        :
+        :
+    )}
+}
+fn handler_undefined_instruction_helper(lr: u32){
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "handler_undefined_instruction");
-    loop{}
+    write!(debug_unit, "undefined_instruction at: 0x{:x}\n",  lr - 0x4);
 }
 
 fn test_interrupts_software_interrupt(){
@@ -228,15 +258,13 @@ extern fn handler_data_abort(){
 
 fn test_undefined_instruction(){
     unsafe{asm!("
-        ldr r0, [pc, #0x8]
-        str r0, [pc]
-        addeq r0, r0, r0
         .word 0xFFFFFFFF"
         :
         :
-        :"r0"
+        :
         :
     )}
+    println!("Handler undefined_instrucion returned")
 }
 fn test_software_interrupt(){
     unsafe{asm!("
@@ -252,7 +280,7 @@ fn test_prefetch_abort(){
 }
 fn test_data_abort(){
     unsafe{asm!("
-        ldr r0, [pc, 0x4]
+        ldr r0, [pc, #0x4] //this offset might be incorrect. could be that it needs to be #0x0
         str r0, [r0]
         .word #0x100000" //beginn des ROM 
         :
@@ -260,6 +288,7 @@ fn test_data_abort(){
         :"r0"
         :
     )}
-    println!("TODO: implement me!");
+    println!("Handler data_abort returned");
 }
+
 

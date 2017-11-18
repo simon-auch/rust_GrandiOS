@@ -31,11 +31,12 @@ mod driver{
 	pub use interrupts::*;
 }
 mod utils{
-	pub mod spinlock;
-	pub mod allocator;
+    pub mod spinlock;
+    pub mod allocator;
     pub mod thread;
     pub mod parser;
     pub mod shell;
+    pub mod registers;
 }
 mod commands{
     pub mod logo;
