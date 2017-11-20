@@ -14,7 +14,7 @@ use utils::registers;
 use core::ptr::{write_volatile, read_volatile};
 
 pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    eval_args(&mut args);
+    eval_args(&mut args, 0);
     if args.len() == 0 { return Err("Test what?".to_string()); }
     if !args[0].is_method() { return Err("String expected".to_string()); }
     let tests = vec![

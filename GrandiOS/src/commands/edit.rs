@@ -33,7 +33,7 @@ fn print_line(i: usize) {
 }
 
 pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    eval_args(&mut args);
+    eval_args(&mut args, 0);
     if args.len() < 1 {
         return Err("Start address and an optional length needed!".to_string());
     }

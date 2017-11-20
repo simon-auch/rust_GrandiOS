@@ -6,7 +6,7 @@ use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 
 pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    eval_args(&mut args);
+    eval_args(&mut args, 0);
     if args.len() == 0 { return Err("Arguments expected".to_string()); }
     print!("{}", "\n".repeat(8));
     print!("{}[7{}< ", 27 as char, EscapeSequence::Up.to_string());

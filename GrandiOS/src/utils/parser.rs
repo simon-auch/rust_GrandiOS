@@ -17,14 +17,17 @@ impl ToString for Argument {
             &Argument::Int(i) => format!("{}",i).to_string(),
             &Argument::Str(ref s) => format!("\"{}\"", s).clone(),
             &Argument::Method(ref s) | &Argument::Operator(ref s) => s.clone(),
+            &Argument::Application(ref l) => ["(".to_string(),l.iter().map(|a|a.to_string()).collect::<Vec<String>>().join(" "),")".to_string()].concat(),
             &Argument::List(ref l) => ["[".to_string(),l.iter().map(|a|a.to_string()).collect::<Vec<String>>().join(","),"]".to_string()].concat(),
             &Argument::Nothing => "".to_string(),
-            _ => format!("{:?}", self).to_string()
         }
     }
 }
 
 impl Argument {
+    pub fn is_something(&self) -> bool {
+        match self { &Argument::Nothing => false, _ => true }
+    }
     pub fn is_list(&self) -> bool {
         match self {
             &Argument::List(_) => true,
@@ -229,7 +232,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
 
 fn precedence(args: Vec<Argument>) -> Argument {
     let mut res = vec![];
-    let mut akk = vec![];
+    let mut akk: Vec<Argument> = vec![];
     let prec: Vec<Box<Fn(&Argument) -> bool>> = vec![
         Box::new(|arg| arg.is_operator()),
         Box::new(|arg| arg.is_operator() && ["+".to_string(), "-".to_string()].contains(&arg.get_operator().unwrap())),
@@ -238,18 +241,25 @@ fn precedence(args: Vec<Argument>) -> Argument {
     // evaluate methods first
     for arg in args {
         if arg.is_operator() {
-            res.push(Argument::Application(akk));
+            res.push(match akk.len() {
+                0 => Argument::Nothing,
+                1 => akk[0].clone(),
+                _ => Argument::Application(akk)
+            });
             res.push(arg);
             akk = vec![];
         } else {
             akk.push(arg);
         }
     }
-    if !akk.is_empty() { res.push(Argument::Application(akk)); }
+    if !akk.is_empty() {
+        res.push(if akk.len() == 1 { akk[0].clone() } else { Argument::Application(akk) });
+    }
     opprec(res)
 }
 
 fn opprec(args: Vec<Argument>) -> Argument {
+    if args.is_empty() { return Argument::Nothing; }
     if args.len() > 4 {
         if ["+".to_string(), "-".to_string()].contains(&args[1].get_operator().unwrap()) {
             Argument::Application(vec![args[0].clone(),args[1].clone(),opprec(args[2..].to_vec())])

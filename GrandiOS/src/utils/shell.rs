@@ -68,8 +68,8 @@ pub fn run() {
             command!(Method, "cowsay", exec, cowsay),
             command!(Method, "cat", exec, cat),
             command!(Method, "map", map, higher),
-            command!(Method, "inc", inc, math),
-            command!(Method, "dec", dec, math),
+            command!(Method, "foldl", foldl, higher),
+            command!(Operator, ".", dot, higher),
             command!(Operator, "+", plus, math),
             command!(Operator, "-", minus, math),
             command!(Operator, "*", times, math),
@@ -88,7 +88,9 @@ pub fn run() {
                     Some(arg) => {
                         let mut it = IT.lock();
                         *it = arg.clone();
-                        println!("{}", arg.to_string());
+                        if arg.is_something() {
+                            println!("{}", arg.to_string());
+                        }
                     }
                     None => {}
                 }
@@ -108,28 +110,48 @@ pub fn get_function(command: Argument) -> Option<fn(Vec<Argument>) -> Result<Vec
     None
 }
 
-pub fn eval_args(args: &mut Vec<Argument>) {
-    for i in 0..(args.len()) {
+pub fn unpack_args(args: &mut Vec<Argument>, len: usize) {
+    for i in 0..(if len > 0 && len <= args.len() { len } else { args.len() }) {
+        while args[i].is_application() && args[i].get_application().len() == 1 {
+            args[i] = args[i].get_application()[0].clone();
+        }
+    }
+}
+
+pub fn eval_args(args: &mut Vec<Argument>, len: usize) {
+    for i in 0..(if len > 0 && len <= args.len() { len } else { args.len() }) {
         while args[i].is_application() {
             match apply(&mut args[i]) {
-                Some(s) => { args[i] = s; } , None => {}
+                Some(s) => { 
+                    if args[i] == s { break; }
+                    args[i] = s;
+                } , None => { return; }
             };
         }
     }
 }
+
 pub fn apply(app: &mut Argument) -> Option<Argument> {
     if !app.is_application() {
         println!("Unexpected call of apply without Application");
         return None;
     }
     let mut args = app.get_application();
+    unpack_args(&mut args, 2);
     if args.len() == 1 && args[0].is_application() { return apply(&mut args[0]); }
     if args.len() == 1 && !args[0].is_method() { return Some(args[0].clone()); }
     if args.is_empty() { return None; }
+    if args[0].is_application() {
+        args = {
+            let mut t = args.remove(0).get_application();
+            t.append(&mut args);
+            t
+        };
+    }
     let mut command = if args.len() > 1 && args[1].is_operator() {
         args.remove(1)
     } else {
-         args.remove(0)
+        args.remove(0)
     };
     if command == Argument::Method("help".to_string()) {
         if args.is_empty() {
@@ -154,7 +176,7 @@ pub fn apply(app: &mut Argument) -> Option<Argument> {
                     Err(msg) => { println!("Error: {}", msg); return None; },
                     Ok(res) => {
                         if res.len() == 1 { return Some(res[0].clone()); }
-                        return Some(Argument::Application(res));
+                        return Some(if res.is_empty() { Argument::Nothing } else { Argument::Application(res) });
                     }
                 }
             }
