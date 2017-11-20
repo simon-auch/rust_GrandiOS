@@ -1,3 +1,4 @@
+use driver::serial::*;
 use utils::parser::Argument;
 use utils::shell;
 use core::result::Result;
@@ -11,8 +12,14 @@ pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     for e in args[1].get_list() {
         let mut cmd = if args[0].is_application() {
             let mut arg = args[0].get_application();
-            arg.push(e.clone());
-            Argument::Application(arg)
+            if arg.len() > 1 && arg[1].is_operator() {
+                let mut t = arg.clone();
+                t[0] = e.clone();
+                Argument::Application(t)
+            } else {
+                arg.push(e.clone());
+                Argument::Application(arg)
+            }
         } else {
             Argument::Application(vec![args[0].clone(), e.clone()])
         };
