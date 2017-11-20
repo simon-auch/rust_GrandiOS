@@ -97,6 +97,17 @@ pub fn run() {
     }
 }
 
+pub fn get_function(command: Argument) -> Option<fn(Vec<Argument>) -> Result<Vec<Argument>,String>> {
+    unsafe {
+        for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
+            if command == *c {
+                return Some(m);
+            }
+        }
+    }
+    None
+}
+
 pub fn apply(app: &mut Argument) -> Option<Argument> {
     if !app.is_application() {
         println!("Unexpected call of apply without Application");

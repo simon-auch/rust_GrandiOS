@@ -36,14 +36,18 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() < 1 {
         return Err("Start address and an optional length needed!".to_string());
     }
-    if !args[0].is_int() {
+    if !args[0].is_int() && !args[0].is_method() {
         return Err("Invalid argument for start address".to_string());
     }
     if args.len() > 1 && !args[1].is_int() {
         return Err("Invalid argument for length".to_string());
     }
     let width = 16;
-    let start = args[0].get_int().unwrap();
+    let start = if args[0].is_int() {
+        args[0].get_int().unwrap()
+    } else {
+        (get_function(args[0].clone()).unwrap()) as usize
+    };
     let length = if args.len() > 1 { args[1].get_int().unwrap() } else { width*8 };
     if length <= 0 {
         return Err("Invalid length!".to_string());
