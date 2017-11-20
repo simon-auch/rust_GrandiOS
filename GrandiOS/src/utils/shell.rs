@@ -2,6 +2,7 @@ use driver::serial::*;
 use utils::parser::*;
 use commands::*;
 use core::result::Result;
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
@@ -46,28 +47,44 @@ pub fn get_it(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     Ok(args)
 }
 
+macro_rules! command {
+	( $t:tt, $o:expr, $c:tt, $m:tt ) => {
+        (Argument::$t($o.to_string()), $m::$c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
+	};
+	//( $o:tt, $c:tt, $m:tt ) => { command!(Operator, $o, $c, $m) };
+	//( $c:tt, $m:tt ) => { command!(Method, $c, $m, $c) };
+	//( $m:tt ) => { command!(Method, $m, $m, exec) };
+}
+
+static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>> = None;
+
 pub fn run() {
-    let commands = vec![
-        (Argument::Method("it".to_string()), get_it as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Method("logo".to_string()), logo::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Method("test".to_string()), test::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Method("edit".to_string()), edit::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Method("cowsay".to_string()), cowsay::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Method("cat".to_string()), cat::exec as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Operator("+".to_string()), math::plus as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Operator("-".to_string()), math::minus as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Operator("*".to_string()), math::times as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-        (Argument::Operator("/".to_string()), math::div as fn(Vec<Argument>) -> Result<Vec<Argument>, String>),
-    ];
+    unsafe {
+        COMMANDS = Some(vec![
+            command!(Method, "it", get_it, self),
+            command!(Method, "logo", exec, logo),
+            command!(Method, "test", exec, test),
+            command!(Method, "edit", exec, edit),
+            command!(Method, "cowsay", exec, cowsay),
+            command!(Method, "cat", exec, cat),
+            command!(Method, "map", map, higher),
+            command!(Method, "inc", inc, math),
+            command!(Method, "dec", dec, math),
+            command!(Operator, "+", plus, math),
+            command!(Operator, "-", minus, math),
+            command!(Operator, "*", times, math),
+            command!(Operator, "/", div, math),
+        ]);
+    }
     let mut history = VecDeque::new();
     println!("type help for command list");
     loop {
-        let mut raw_input = read_command("> ", &mut history, &commands);
+        let mut raw_input = read_command("> ", &mut history);
         history.push_back(raw_input.clone());
         match parse(&mut raw_input, 0) {
             Err((s,p)) => { println!("{}^\n{}", "-".repeat(p+1), s); continue; },
             Ok(mut v) => { 
-                match apply(&mut v.0[0], &commands) {
+                match apply(&mut v.0[0]) {
                     Some(arg) => {
                         let mut it = IT.lock();
                         *it = arg.clone();
@@ -80,7 +97,7 @@ pub fn run() {
     }
 }
 
-fn apply(app: &mut Argument, commands: &Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> Option<Argument> {
+pub fn apply(app: &mut Argument) -> Option<Argument> {
     if !app.is_application() {
         println!("Unexpected call of apply without Application");
         return None;
@@ -88,7 +105,7 @@ fn apply(app: &mut Argument, commands: &Vec<(Argument, fn(Vec<Argument>) -> Resu
     let mut args = app.get_application();
     for i in 0..(args.len()) {
         while args[i].is_application() {
-            match apply(&mut args[i], commands) {
+            match apply(&mut args[i]) {
                 Some(s) => { args[i] = s; } , None => { return None; }
             };
         }
@@ -102,9 +119,11 @@ fn apply(app: &mut Argument, commands: &Vec<(Argument, fn(Vec<Argument>) -> Resu
     };
     if command == Argument::Method("help".to_string()) {
         if args.is_empty() {
-            for &(ref c, m) in commands.iter() {
-                if c.is_method() {
-                    print!("{} ", c.to_string());
+            unsafe {
+                for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
+                    if c.is_method() {
+                        print!("{} ", c.to_string());
+                    }
                 }
             }
             println!("");
@@ -114,13 +133,15 @@ fn apply(app: &mut Argument, commands: &Vec<(Argument, fn(Vec<Argument>) -> Resu
             args[0] = Argument::Method("help".to_string());
         }
     }
-    for &(ref c, m) in commands.iter() {
-        if command == *c {
-            match m(args) {
-                Err(msg) => { println!("Error: {}", msg); return None; },
-                Ok(res) => {
-                    if res.len() == 1 { return Some(res[0].clone()); }
-                    return Some(Argument::Application(res));
+    unsafe {
+        for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
+            if command == *c {
+                match m(args) {
+                    Err(msg) => { println!("Error: {}", msg); return None; },
+                    Ok(res) => {
+                        if res.len() == 1 { return Some(res[0].clone()); }
+                        return Some(Argument::Application(res));
+                    }
                 }
             }
         }
@@ -157,7 +178,7 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usiz
     if left { print!("{}[{}", 27 as char, EscapeSequence::Left.to_string()); }
 }
 
-pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, commands: &Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) -> LinkedList<u8> {
+pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
     print!("{}", prompt);
     let mut ln = LinkedList::new();
     let mut pos = 0;
@@ -177,8 +198,10 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>, comman
             },
             9 => { //tab
                 if !(ln.contains(&32)) { //we did not have a space yet
-                    for &(ref c, m) in commands.iter() {
-                        //if c starts with ln, do stuff
+                    unsafe {
+                        for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
+                            //if c starts with ln, do stuff
+                        }
                     }
                 }
             },

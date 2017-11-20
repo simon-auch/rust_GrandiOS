@@ -16,19 +16,19 @@ impl ToString for Argument {
         match self {
             &Argument::Int(i) => format!("{}",i).to_string(),
             &Argument::Str(ref s) => format!("\"{}\"", s).clone(),
-            &Argument::Method(ref s) => s.clone(),
+            &Argument::Method(ref s) | &Argument::Operator(ref s) => s.clone(),
+            &Argument::List(ref l) => ["[".to_string(),l.iter().map(|a|a.to_string()).collect::<Vec<String>>().join(","),"]".to_string()].concat(),
             &Argument::Nothing => "".to_string(),
             _ => format!("{:?}", self).to_string()
-            //&Argument::List(l) => ["[",l.iter().map(|a|a.to_string()).collect().join(","),"]"].concat().to_string()
         }
     }
 }
 
 impl Argument {
-    pub fn is_something(&self) -> bool {
+    pub fn is_list(&self) -> bool {
         match self {
-            &Argument::Nothing => false,
-            _ => true
+            &Argument::List(_) => true,
+            _ => false
         }
     }
     pub fn is_str(&self) -> bool {
@@ -59,6 +59,12 @@ impl Argument {
         match self {
             &Argument::Application(_) => true,
             _ => false
+        }
+    }
+    pub fn get_list(&self) -> Vec<Argument> {
+        match self {
+            &Argument::List(ref s) => s.clone(),
+            _ => vec![]
         }
     }
     pub fn get_str(&self) -> Option<String> {
@@ -114,6 +120,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
      * 30 - function
      * 40 - operator
      * 50 - subexpression
+     * 60 - lists
      */
     let mut mode = 0;
     let mut oldmode = 0;
@@ -124,6 +131,9 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
         // ( and )
         if mode != 20 && c == 40 { mode = 50; }
         if mode != 20 && c == 41 { mode = 55; }
+        if mode != 20 && c == 91 { mode = 60; }
+        if mode != 20 && c == 93 { mode = 65; }
+        if mode != 20 && c == 44 { mode = 61; }
         if mode == 30 && !cond[2](c) { mode = 0; }
         if mode == 40 && !cond[3](c) { mode = 0; }
         if mode == 10 && !(cond[0](c) || c == 120 || c == 98 || c == 111) {mode = 0; }
@@ -191,10 +201,18 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
                 } else {
                     return Err(("Unbalanced parantheses!".to_string(), pos));
                 }
-            }
+            },
+            61 => { mode = 0; },
+            65 => {
+                if start != 0 {
+                    return Ok((vec![Argument::List(res)], pos));
+                } else {
+                    return Err(("Unbalanced brackets!".to_string(), pos));
+                }
+            },
             _ => {}
         }
-        if mode == 50 {
+        if mode == 50 || mode == 60 {
             match parse(s, pos) {
                 Err(x) => { return Err(x); },
                 Ok((mut e, p)) => { res.append(&mut e); pos = p; }
@@ -204,7 +222,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
         oldmode = mode;
     }
     if start != 0 {
-        return Err(("Unbalanced parantheses!".to_string(), pos));
+        return Err(("Unbalanced parantheses or brackets!".to_string(), pos));
     }
     Ok((vec![precedence(res)], pos))
 }

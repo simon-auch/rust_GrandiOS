@@ -45,6 +45,7 @@ mod commands{
     pub mod edit;
     pub mod cowsay;
     pub mod math;
+    pub mod higher;
 }
 use driver::*;
 
