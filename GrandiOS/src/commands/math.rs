@@ -1,3 +1,4 @@
+use utils::shell::*;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::{String,ToString};
@@ -28,6 +29,7 @@ pub fn div(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
 }
 
 pub fn operate_monad<F>(mut args: Vec<Argument>, f: F) -> Result<Vec<Argument>, String> where F: Fn(usize) -> usize {
+    eval_args(&mut args);
     if args.len() < 1 { return Err("Too few arguments".to_string()); }
     if !args[0].is_int() { return Err("Int expected".to_string()); }
     let r = Argument::Int(f(args[0].get_int().unwrap()));
@@ -36,6 +38,7 @@ pub fn operate_monad<F>(mut args: Vec<Argument>, f: F) -> Result<Vec<Argument>, 
 }
 
 pub fn operate_diad<F>(mut args: Vec<Argument>, f: F) -> Result<Vec<Argument>, String> where F: Fn(usize, usize) -> usize {
+    eval_args(&mut args);
     if args.len() < 2 { return Err("Too few arguments".to_string()); }
     if !args[0].is_int() || !args[1].is_int() { return Err("Ints expected".to_string()); }
     let r = Argument::Int(f(args[0].get_int().unwrap(),args[1].get_int().unwrap()));

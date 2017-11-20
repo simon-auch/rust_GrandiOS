@@ -108,19 +108,22 @@ pub fn get_function(command: Argument) -> Option<fn(Vec<Argument>) -> Result<Vec
     None
 }
 
+pub fn eval_args(args: &mut Vec<Argument>) {
+    for i in 0..(args.len()) {
+        while args[i].is_application() {
+            match apply(&mut args[i]) {
+                Some(s) => { args[i] = s; } , None => {}
+            };
+        }
+    }
+}
 pub fn apply(app: &mut Argument) -> Option<Argument> {
     if !app.is_application() {
         println!("Unexpected call of apply without Application");
         return None;
     }
     let mut args = app.get_application();
-    for i in 0..(args.len()) {
-        while args[i].is_application() {
-            match apply(&mut args[i]) {
-                Some(s) => { args[i] = s; } , None => { return None; }
-            };
-        }
-    }
+    if args.len() == 1 && args[0].is_application() { return apply(&mut args[0]); }
     if args.len() == 1 && !args[0].is_method() { return Some(args[0].clone()); }
     if args.is_empty() { return None; }
     let mut command = if args.len() > 1 && args[1].is_operator() {

@@ -1,4 +1,5 @@
 use driver::serial::*;
+use utils::shell::*;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::vec::Vec;
@@ -12,7 +13,8 @@ use utils::thread::*;
 use utils::registers;
 use core::ptr::{write_volatile, read_volatile};
 
-pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    eval_args(&mut args);
     if args.len() == 0 { return Err("Test what?".to_string()); }
     if !args[0].is_method() { return Err("String expected".to_string()); }
     let tests = vec![
