@@ -123,7 +123,7 @@ fn test_tcb_2(){
 }
 
 fn test_vt_color(){
-    println!("{}Red on Black {}White on Black {}{}Red on Green {}{}White on Black", &vt::CF_RED, &vt::CF_WHITE, &vt::CF_RED, &vt::CB_GREEN, &vt::CF_WHITE, &vt::CB_BLACK);
+    println!("{}Red on Black {}White on Black {}{}Red on Green, blinking {}{}White on Black{}{}{} Standard", &vt::CF_RED, &vt::CF_WHITE, &vt::CF_RED, &vt::CB_GREEN, &vt::CF_WHITE, &vt::CB_BLACK, &vt::ATT_RESET, &vt::CF_STANDARD, &vt::CB_STANDARD);
 }
 
 fn test_interrupts_aic(){
@@ -219,7 +219,7 @@ fn handler_undefined_instruction_helper(lr: u32){
     let mut lr = lr - 0x4;
     let instruction = unsafe { read_volatile(lr as *mut u32) };
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "{}Exception{} undefined_instruction at: 0x{:x}, instruction: 0x{:x}\n", &vt::CF_RED, &vt::CF_WHITE, lr, instruction).unwrap();
+    write!(debug_unit, "{}Exception{} undefined_instruction at: 0x{:x}, instruction: 0x{:x}\n", &vt::CF_RED, &vt::CF_STANDARD, lr, instruction).unwrap();
 }
 
 fn test_interrupts_software_interrupt(){
@@ -261,7 +261,7 @@ fn handler_software_interrupt_helper(lr: u32){
     let instruction = unsafe { read_volatile(lr as *mut u32) };
     let immed = instruction & 0xFFFFFF;
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "{}Exception{} software_interrupt at: 0x{:x}, instruction: 0x{:x}, swi value: 0x{:x}\n", &vt::CF_YELLOW, &vt::CF_WHITE, lr, instruction, immed).unwrap();
+    write!(debug_unit, "{}Exception{} software_interrupt at: 0x{:x}, instruction: 0x{:x}, swi value: 0x{:x}\n", &vt::CF_YELLOW, &vt::CF_STANDARD, lr, instruction, immed).unwrap();
 }
 
 fn test_interrupts_prefetch_abort(){
@@ -315,7 +315,7 @@ fn handler_data_abort_helper(lr: u32){
     let mut lr = lr - 0x8;
     let instruction = unsafe { read_volatile(lr as *mut u32) };
     let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-    write!(debug_unit, "{}Exception{} data_abort at: 0x{:x}, instruction: 0x{:x}\n", &vt::CF_RED, &vt::CF_WHITE, lr, instruction).unwrap();
+    write!(debug_unit, "{}Exception{} data_abort at: 0x{:x}, instruction: 0x{:x}\n", &vt::CF_RED, &vt::CF_STANDARD, lr, instruction).unwrap();
 }
 
 fn test_undefined_instruction(){

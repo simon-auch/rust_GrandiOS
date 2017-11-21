@@ -9,24 +9,33 @@
 use core::fmt;
 
 //Some public constants that are often used
-pub const CF_BLACK:   Color = Color { ct: ColorType::Foreground, cc: ColorCode::Black};
-pub const CF_RED:     Color = Color { ct: ColorType::Foreground, cc: ColorCode::Red};
-pub const CF_GREEN:   Color = Color { ct: ColorType::Foreground, cc: ColorCode::Green};
-pub const CF_YELLOW:  Color = Color { ct: ColorType::Foreground, cc: ColorCode::Yellow};
-pub const CF_BLUE:    Color = Color { ct: ColorType::Foreground, cc: ColorCode::Blue};
-pub const CF_MAGENTA: Color = Color { ct: ColorType::Foreground, cc: ColorCode::Magenta};
-pub const CF_CYAN:    Color = Color { ct: ColorType::Foreground, cc: ColorCode::Cyan};
-pub const CF_WHITE:   Color = Color { ct: ColorType::Foreground, cc: ColorCode::White};
+pub const CF_BLACK:    Color = Color { ct: ColorType::Foreground, cc: ColorCode::Black};
+pub const CF_RED:      Color = Color { ct: ColorType::Foreground, cc: ColorCode::Red};
+pub const CF_GREEN:    Color = Color { ct: ColorType::Foreground, cc: ColorCode::Green};
+pub const CF_YELLOW:   Color = Color { ct: ColorType::Foreground, cc: ColorCode::Yellow};
+pub const CF_BLUE:     Color = Color { ct: ColorType::Foreground, cc: ColorCode::Blue};
+pub const CF_MAGENTA:  Color = Color { ct: ColorType::Foreground, cc: ColorCode::Magenta};
+pub const CF_CYAN:     Color = Color { ct: ColorType::Foreground, cc: ColorCode::Cyan};
+pub const CF_WHITE:    Color = Color { ct: ColorType::Foreground, cc: ColorCode::White};
+pub const CF_STANDARD: Color = Color { ct: ColorType::Foreground, cc: ColorCode::Standard};
 
-pub const CB_BLACK:   Color = Color { ct: ColorType::Background, cc: ColorCode::Black};
-pub const CB_RED:     Color = Color { ct: ColorType::Background, cc: ColorCode::Red};
-pub const CB_GREEN:   Color = Color { ct: ColorType::Background, cc: ColorCode::Green};
-pub const CB_YELLOW:  Color = Color { ct: ColorType::Background, cc: ColorCode::Yellow};
-pub const CB_BLUE:    Color = Color { ct: ColorType::Background, cc: ColorCode::Blue};
-pub const CB_MAGENTA: Color = Color { ct: ColorType::Background, cc: ColorCode::Magenta};
-pub const CB_CYAN:    Color = Color { ct: ColorType::Background, cc: ColorCode::Cyan};
-pub const CB_WHITE:   Color = Color { ct: ColorType::Background, cc: ColorCode::White};
+pub const CB_BLACK:    Color = Color { ct: ColorType::Background, cc: ColorCode::Black};
+pub const CB_RED:      Color = Color { ct: ColorType::Background, cc: ColorCode::Red};
+pub const CB_GREEN:    Color = Color { ct: ColorType::Background, cc: ColorCode::Green};
+pub const CB_YELLOW:   Color = Color { ct: ColorType::Background, cc: ColorCode::Yellow};
+pub const CB_BLUE:     Color = Color { ct: ColorType::Background, cc: ColorCode::Blue};
+pub const CB_MAGENTA:  Color = Color { ct: ColorType::Background, cc: ColorCode::Magenta};
+pub const CB_CYAN:     Color = Color { ct: ColorType::Background, cc: ColorCode::Cyan};
+pub const CB_WHITE:    Color = Color { ct: ColorType::Background, cc: ColorCode::White};
+pub const CB_STANDARD: Color = Color { ct: ColorType::Background, cc: ColorCode::Standard};
 
+pub const ATT_RESET     : DisplayAttribute = DisplayAttribute::Reset;
+pub const ATT_BRIGHT    : DisplayAttribute = DisplayAttribute::Bright;
+pub const ATT_DIM       : DisplayAttribute = DisplayAttribute::Dim;
+pub const ATT_UNDERSCORE: DisplayAttribute = DisplayAttribute::Underscore;
+pub const ATT_BLINK     : DisplayAttribute = DisplayAttribute::Blink;
+pub const ATT_REVERSE   : DisplayAttribute = DisplayAttribute::Reverse;
+pub const ATT_HIDDEN    : DisplayAttribute = DisplayAttribute::Hidden;
 
 pub enum DeviceStatus{
     QueryDeviceCode,
@@ -40,7 +49,7 @@ pub enum TerminalSetup {
     DisableLineWrap,
 }
 
-pub enum Fonts {
+pub enum Font {
     FontSetG0,
     FontSetG1,
 }
@@ -58,7 +67,7 @@ pub enum CursorControl {
     LoadPosAndAtt,
 }
 
-pub enum DisplayAttributes{
+pub enum DisplayAttribute{
     Reset,
     Bright,
     Dim,
@@ -87,6 +96,7 @@ pub enum ColorCode{
     Magenta,
     Cyan,
     White,
+    Standard,
 }
 
 impl fmt::Display for Color {
@@ -96,28 +106,29 @@ impl fmt::Display for Color {
             ColorType::Background => 40,
         };
         write!(f, "\x1B[{}m", offset + match self.cc{
-            ColorCode::Black   => 0,
-            ColorCode::Red     => 1,
-            ColorCode::Green   => 2,
-            ColorCode::Yellow  => 3,
-            ColorCode::Blue    => 4,
-            ColorCode::Magenta => 5,
-            ColorCode::Cyan    => 6,
-            ColorCode::White   => 7,
+            ColorCode::Black    => 0,
+            ColorCode::Red      => 1,
+            ColorCode::Green    => 2,
+            ColorCode::Yellow   => 3,
+            ColorCode::Blue     => 4,
+            ColorCode::Magenta  => 5,
+            ColorCode::Cyan     => 6,
+            ColorCode::White    => 7,
+            ColorCode::Standard => 9,
         })
     }
 }
 
-impl fmt::Display for DisplayAttributes {
+impl fmt::Display for DisplayAttribute {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\x1B{}", match self{
-            &DisplayAttributes::Reset      => 0,
-            &DisplayAttributes::Bright     => 1,
-            &DisplayAttributes::Dim        => 2,
-            &DisplayAttributes::Underscore => 4,
-            &DisplayAttributes::Blink      => 5,
-            &DisplayAttributes::Reverse    => 7,
-            &DisplayAttributes::Hidden     => 8,
+            &DisplayAttribute::Reset      => 0,
+            &DisplayAttribute::Bright     => 1,
+            &DisplayAttribute::Dim        => 2,
+            &DisplayAttribute::Underscore => 4,
+            &DisplayAttribute::Blink      => 5,
+            &DisplayAttribute::Reverse    => 7,
+            &DisplayAttribute::Hidden     => 8,
         })
     }
 }
@@ -139,11 +150,11 @@ impl fmt::Display for CursorControl {
     }
 }
 
-impl fmt::Display for Fonts {
+impl fmt::Display for Font {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self {
-            &Fonts::FontSetG0 => "\x1B(",
-            &Fonts::FontSetG1 => "\x1B)",
+            &Font::FontSetG0 => "\x1B(",
+            &Font::FontSetG1 => "\x1B)",
         })
     }
 }
