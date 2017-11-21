@@ -68,7 +68,7 @@ pub extern fn _start() {
     //Initialise the DebugUnit
     DEBUG_UNIT.reset();
     DEBUG_UNIT.enable();
-    //commands::logo::draw();
+    commands::logo::draw();
     utils::shell::run();
 }
 

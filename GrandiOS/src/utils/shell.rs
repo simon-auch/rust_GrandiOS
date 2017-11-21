@@ -77,6 +77,7 @@ pub fn run() {
         ]);
     }
     let mut history = VecDeque::new();
+    println!("Welcome to pfush - the perfect functional shell");
     println!("type help for command list");
     loop {
         let mut raw_input = read_command("> ", &mut history);
