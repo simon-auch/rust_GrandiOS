@@ -35,7 +35,7 @@ impl ToString for EscapeSequence {
             &EscapeSequence::End => "4~".to_string(),
             &EscapeSequence::PgUp => "5~".to_string(),
             &EscapeSequence::PgDn => "6~".to_string(),
-            _ => "".to_string()
+            &EscapeSequence::Unknown => "".to_string(),
         }
     }
 }

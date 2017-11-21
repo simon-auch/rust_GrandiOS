@@ -37,6 +37,7 @@ mod utils{
     pub mod parser;
     pub mod shell;
     pub mod registers;
+    pub mod vt;
 }
 mod commands{
     pub mod logo;
