@@ -137,7 +137,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
         if mode != 20 && c == 91 { mode = 60; }
         if mode != 20 && c == 93 { mode = 65; }
         if mode != 20 && c == 44 { mode = 61; }
-        if mode == 30 && !cond[2](c) { mode = 0; }
+        if mode == 30 && !(cond[2](c) || (48..58).contains(c)) { mode = 0; }
         if mode == 40 && !cond[3](c) { mode = 0; }
         if mode == 10 && !(cond[0](c) || c == 120 || c == 98 || c == 111) {mode = 0; }
         if mode == 0 && cond[2](c) { mode = 30; }
@@ -164,7 +164,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
         }
         match mode {
             10 => {
-                if  c == 120 || c == 98 || c == 111 { //we found x/b/o
+                if  c == 120 || c == 98 && base != 16 || c == 111 { //we found x/b/o
                     if i != 0 {
                         return Err(("Cannot switch bases".to_string(), pos));
                     }
