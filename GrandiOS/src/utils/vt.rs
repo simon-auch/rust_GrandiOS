@@ -96,6 +96,7 @@ pub enum ColorCode{
     Magenta,
     Cyan,
     White,
+    Bit8(u8),
     Standard,
 }
 
@@ -105,17 +106,18 @@ impl fmt::Display for Color {
             ColorType::Foreground => 30,
             ColorType::Background => 40,
         };
-        write!(f, "\x1B[{}m", offset + match self.cc{
-            ColorCode::Black    => 0,
-            ColorCode::Red      => 1,
-            ColorCode::Green    => 2,
-            ColorCode::Yellow   => 3,
-            ColorCode::Blue     => 4,
-            ColorCode::Magenta  => 5,
-            ColorCode::Cyan     => 6,
-            ColorCode::White    => 7,
-            ColorCode::Standard => 9,
-        })
+        match self.cc{
+            ColorCode::Black    => write!(f, "\x1B[{}m", offset + 0),
+            ColorCode::Red      => write!(f, "\x1B[{}m", offset + 1),
+            ColorCode::Green    => write!(f, "\x1B[{}m", offset + 2),
+            ColorCode::Yellow   => write!(f, "\x1B[{}m", offset + 3),
+            ColorCode::Blue     => write!(f, "\x1B[{}m", offset + 4),
+            ColorCode::Magenta  => write!(f, "\x1B[{}m", offset + 5),
+            ColorCode::Cyan     => write!(f, "\x1B[{}m", offset + 6),
+            ColorCode::White    => write!(f, "\x1B[{}m", offset + 7),
+            ColorCode::Standard => write!(f, "\x1B[{}m", offset + 9),
+            ColorCode::Bit8(c)  => write!(f, "\x1B[{};5;{}m", offset + 8,  c),
+        }
     }
 }
 
