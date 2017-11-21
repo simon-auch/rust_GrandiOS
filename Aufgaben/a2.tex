@@ -1,0 +1,52 @@
+\input{preamble}
+\begin{document}
+\HEADER{2}{Betriebssysteme}{WiSe 2017}{Sebastian Börner, Christian Hofmann, Simon Auch}{23 November 2017, 10 Uhr}
+\begin{description}
+\AUFGABE{Threads}{6 Punkte}
+
+Wann ist es sinnvoll, nebenläufige Programmteile mit Hilfe von Threads anstatt Prozessen
+(heavyweight processes) zu implementieren?
+
+Welche Vorteile bieten User-Level-Threads gegenüber den Kernel-Level-Threads? Gibt es
+auch Nachteile?
+
+Welche Vorteile und Nachteile gibt es, wenn man Thread-Kontrollblöcke (TCB) als Skalare, in
+Arrays, Listen, Bäumen oder invertierten Tabellen speichert?
+
+In welchem Adressraum (Prozess-Eigner, Dienste-Prozess, BS-Kern) wird ein TCB ge-
+speichert?
+
+\textbf{Lösung:}\\
+Der größte unterschied zwischen nebenläufigen Programmteilen realisiert durch Threads anstatt von Prozessen ist, dass Threads im gleichen logischen Speicher liegen. Dies bedeutet insbesondere das Threads unter umständen schneller miteinander kommunizieren können, da diese dafür keine Systemaufrufe benötigen.
+Von dieser eigenschaft profitieren natürlich insbesondere Programmteile die viel mitteinander kommunizieren müssen. Dies ist jedoch eine Abwägung gegen die verlorene Sicherheit durch getrennte Speicherbereiche.
+
+
+\AUFGABE{Steuerung von Geräten}{15 Punkte}
+
+Nach der ersten Kontaktaufnahme mit der Zielplattform soll nun der ARM-Kern vollständig
+initialisiert werden und Ihr Betriebssystem-Code erste Aufgaben übernehmen, die über Low-
+level-Anwendungsentwicklung hinausgehen. Konkret sollen Sie Ausnahmesituationen
+abfangen, die entstehen, wenn Ihr Anwendungsprogramm derart Unsinn macht, dass der
+Prozessorkern an der weiteren Ausführung von Instruktionen gehindert wird.
+
+Die Erkennung von solchen Ausnahmesituationen erledigt der ARM-Kern von selbst; Sie sollen
+daran anknüpfen, eine Meldung über Art und Ort der Ausnahme ausgeben und das System
+anhalten. Es darf auch gerne eine hilfreichere Meldung mit weiteren Informationen sein.
+
+Um dies zu erreichen, sind folgende Teile zu erledigen (nicht unbedingt in dieser Reihenfolge):
+\begin{enumerate}
+	\item Entwickeln Sie entsprechende Handler für die verschiedenen Ausnahmen.
+	\item Bei der Ausführung eines Handlers befindet sich der ARM-Kern in einem anderen Modus. Bei ARM haben die verschiedenen Modi unterschiedliche Stacks. Überlegen Sie also, wo Sie die Stacks im Speicher ablegen wollen und initialisiert sämtliche Stackpointer des Prozessors. (Stacks sind bei ARM übrigens full-descending gemäß des Procedure Call Standard for the ARM Architecture, an den sich der gcc hält.)
+	\item Wenn eine Ausnahme auftritt, setzt der ARM-Kern den program counter (PC) auf eine feste, Ausnahme-spezifische Adresse. Bei ARM ist die Interrupt Vektor Tabelle (IVT) hart verdrahtet, sodass Sie mit den vorgegebenen Adressen zurechtkommen müssen, die sehr eng beieinander liegen. Schreiben Sie entsprechende Instruktionen in diesen Speicherbereich (der mangels besserer Begriffe dennoch als IVT bezeichnet wird), sodass die tatsächlichen Handler ausgeführt werden.
+	\item Im gegenwärtigen Zustand befindet sich im Speicherbereich der IVT kein RAM! Bevor Sie also Ihre Handler installieren, führen Sie ein Memory-Remap durch, um dort änderbaren Speicher einzublenden.\end{enumerate}
+Zum Testen bzw. zur Demonstration von zumindest einem Teil Ihrer Handler müssen Sie Code schreiben, der entsprechende Ausnahmen provoziert. Also:
+\begin{enumerate}
+	\setcounter{enumi}{4}
+	\item Schreiben Sie eine „Anwendung“, die in Abhängigkeit von einer Benutzereingabe entweder einen Data abort erzeugt, einen Software interrupt auslöst oder eine Undefined instruction ausführt. (Ein Prefetch abort ist derzeit noch nicht möglich. Interrupts sind Teil der nächsten Aufgabe.)
+\end{enumerate}
+
+\textbf{Lösung:}
+
+
+\end{description}
+\end{document}
