@@ -3,4 +3,4 @@ default:
 	make build
 
 build:
-	./kernel_build.sh "/home/mi/linnert/arm/bin/qemu-bsprak"
+	./kernel_build.sh "/home/mi/linnert/arm/bin/qemu-bsprak" -piotelnet

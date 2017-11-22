@@ -63,14 +63,21 @@ Zum Testen bzw. zur Demonstration von zumindest einem Teil Ihrer Handler müssen
 	\item Schreiben Sie eine „Anwendung“, die in Abhängigkeit von einer Benutzereingabe entweder einen Data abort erzeugt, einen Software interrupt auslöst oder eine Undefined instruction ausführt. (Ein Prefetch abort ist derzeit noch nicht möglich. Interrupts sind Teil der nächsten Aufgabe.)
 \end{enumerate}
 
+\pagebreak
 \textbf{Lösung:}
 Anleitung zum erstellen eines mit qemu benutzbaren Kernels:
 \begin{enumerate}
 	\item Wechseln in den Ordner \texttt{GrandiOS}
-	\item Zunächst wird mit dem Script \texttt{setup\_env.sh} die Toolchain von Rust vorbereitet. Unter umständen sind Benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
-	\item Durch starten von \texttt{kernel\_build.sh} kann nun der Kernel \texttt{kernel} erzeugt werden.
-	\item Starten von qemu mit dem Kernel: \texttt{qemu-bsprak -piotelnet -kernel kernel}
-	\item Starten einer telnet Verbindung zu qemu: \texttt{telnet localhost 44444}
+        \item Einen von beiden Optionen ausführen:
+          \begin{itemize}
+            \item Ausführen von \texttt{make}. Falls schon eine Rust-Umgebung vorhanden ist, stattdessen \texttt{make buid}.
+            \item \begin{enumerate}
+              \item Zunächst wird mit dem Script \texttt{setup\_env.sh} die Toolchain von Rust vorbereitet. Unter umständen sind Benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
+              \item Durch starten von \texttt{kernel\_build.sh} kann nun der Kernel \texttt{kernel} erzeugt werden.
+              \item Starten von qemu mit dem Kernel: \texttt{qemu-bsprak -piotelnet -kernel kernel}
+              \item Starten einer telnet Verbindung zu qemu: \texttt{telnet localhost 44444}
+            \end{enumerate}
+          \end{itemize}
 \end{enumerate}
 Das vorbereiten der Toolchain mittels \texttt{setup\_env.sh} ist nur einmal notwendig.
 
@@ -84,7 +91,7 @@ Eine kleine übersicht wo die für diese Aufgabe relevanten Codesegmente zu find
 	\item Stack pointer konfigurieren: \texttt{GrandiOS/src/lib.rs::init}
 	\item Aktivieren der IRQ und FIQ im Prozessor: \texttt{Grandios/src/lib.rs::init}
 	\item Zugriff auf die IVT sowie den AIC: \texttt{GrandiOS/src/driver/interrupts.rs}
-	\item Zum registrieren der einzelnen interrupt/exception Handler können nun die folgenden Befehle benutzt werden:
+	\item Zum registrieren der einzelnen interrupt/exception Handler können nun die folgenden Befehle benutzt werden (der Code ist in src/commands/test.rs):
 	\begin{itemize}
 		\item \texttt{test interrupts\_undefined\_instruction} hinterlegt einen Handler für undefined instruction Ausnahmen
 		\item \texttt{test interrupts\_software\_interrupt} hinterlegt einen Handler für software interrupt Ausnahmen
@@ -93,7 +100,7 @@ Eine kleine übersicht wo die für diese Aufgabe relevanten Codesegmente zu find
 		\item \texttt{test interrupts\_aic} hinterlegt einen Handler für die IRQ Leitung und konfiguriert den AIC sowie die DebugUnit einen Interrupt für das empfangen eines Zeichens zu erzeugen. Diese Funktion geht in eine endlosschleife, da durch den Interrupthandler zurzeit die Tastendrücke abgefangen werden und die \texttt{pfush} damit unbrauchbar wird.
 	\end{itemize}
 	\item Zum Betrachten was in die IVT geschrieben wurde, kann der Befehl \texttt{edit 0x0 0x40} genutzt werden. Wie der name nahelegt können hiermit auch Daten geschrieben werden, verlassen geht mit der Tastenkombination \texttt{strg-D}
-        \item Zum Auslösen der einzelnen interrupts/exceptions können die folgenden Befehle benutzt werden (der Code ist in src/commands/test.rs):
+        \item Zum Auslösen der einzelnen interrupts/exceptions können die folgenden Befehle benutzt werden:
 	\begin{itemize}
 		\item \texttt{test undefined\_instruction}
 		\item \texttt{test software\_interrupt}
