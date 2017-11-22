@@ -1,6 +1,8 @@
 use driver::serial::*;
 use utils::parser::*;
+use utils::vt;
 use commands::*;
+use core::str;
 use core::result::Result;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -8,37 +10,6 @@ use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
 use utils::spinlock;
-
-#[derive(Clone)]
-pub enum EscapeSequence {
-    Unknown,
-    Left,
-    Right,
-    Up,
-    Down,
-    Delete,
-    Home,
-    End,
-    PgUp,
-    PgDn,
-}
-
-impl ToString for EscapeSequence {
-    fn to_string(&self) -> String {
-        match self {
-            &EscapeSequence::Left => "D".to_string(),
-            &EscapeSequence::Right => "C".to_string(),
-            &EscapeSequence::Up => "A".to_string(),
-            &EscapeSequence::Down => "B".to_string(),
-            &EscapeSequence::Delete => "3~".to_string(),
-            &EscapeSequence::Home => "1~".to_string(),
-            &EscapeSequence::End => "4~".to_string(),
-            &EscapeSequence::PgUp => "5~".to_string(),
-            &EscapeSequence::PgDn => "6~".to_string(),
-            &EscapeSequence::Unknown => "".to_string(),
-        }
-    }
-}
 
 static IT: spinlock::Spinlock<Argument> = spinlock::Spinlock::new(Argument::Nothing);
 pub fn get_it(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
@@ -189,9 +160,9 @@ pub fn apply(app: &mut Argument) -> Option<Argument> {
 
 pub fn move_to(pos: usize, dest: usize) {
     if dest < pos {
-        print!("{}[{}{}", 27 as char, pos-dest, EscapeSequence::Left.to_string());
+        print!("{}", &vt::CursorControl::Left{count: (pos-dest) as u32});
     } else {
-        print!("{}[{}{}", 27 as char, dest-pos, EscapeSequence::Right.to_string());
+        print!("{}", &vt::CursorControl::Right{count: (dest-pos) as u32});
     }
 }
 
@@ -208,11 +179,11 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usiz
     let mut others = ln.split_off(stringpos);
     f(ln);
     print_command(&ln);
-    print!("{}7", 27 as char);
+    print!("{}", &vt::CursorControl::SavePos);
     print_command(&others);
     ln.append(&mut others);
-    print!("{}8", 27 as char);
-    if left { print!("{}[{}", 27 as char, EscapeSequence::Left.to_string()); }
+    print!("{}", &vt::CursorControl::LoadPos);
+    if left { print!("{}", &vt::CursorControl::Left{count: 1}); }
 }
 
 pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
@@ -267,33 +238,33 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
                 }
                 if escape && ((65..69).contains(c) || c == 126) {
                     escape = false;
-                    match parse_escape(sequence) {
-                        EscapeSequence::Home => {
+                    match vt::parse_input(str::from_utf8(&sequence[..]).unwrap()) {
+                        vt::Input::Home => {
                             move_to(stringpos, 0);
                             stringpos = 0;
                         },
-                        EscapeSequence::End => {
+                        vt::Input::End => {
                             move_to(stringpos, ln.len());
                             stringpos = ln.len();
                         },
-                        EscapeSequence::Delete => {
+                        vt::Input::Delete => {
                             if stringpos < ln.len() {
                                 print_split_command(&mut ln, prompt, stringpos+1, true, |ln: &mut LinkedList<u8>| {ln.pop_back();});
                             }
                         },
-                        EscapeSequence::Left => {
+                        vt::Input::Left => {
                             if stringpos > 0 {
                                 stringpos -= 1;
-                                print!("{}[{}", 27 as char, EscapeSequence::Left.to_string());
+                                print!("{}", &vt::CursorControl::Left{count: 1});
                             }
                         },
-                        EscapeSequence::Right => {
+                        vt::Input::Right => {
                             if stringpos < ln.len() {
                                 stringpos += 1;
-                                print!("{}[{}", 27 as char, EscapeSequence::Right.to_string());
+                                print!("{}", &vt::CursorControl::Right{count: 1});
                             }
                         },
-                        EscapeSequence::Up => {
+                        vt::Input::Up => {
                             if histpos > 0 {
                                 clear_prompt(prompt, ln.len());
                                 histpos -= 1;
@@ -303,7 +274,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
                                 stringpos = ln.len();
                             }
                         },
-                        EscapeSequence::Down => {
+                        vt::Input::Down => {
                             clear_prompt(prompt, ln.len());
                             histpos += if histpos == history.len() { 0 } else { 1 };
                             if histpos == history.len() {
@@ -322,32 +293,4 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
             }
         }
     }
-}
-
-pub fn get_position() -> (u32, u32) {
-	print!("{}[6n", 27 as char);
-    //we expect a response in the form <Esc>[h;wR
-    let mut h: u32 = 0;
-    let mut w: u32 = 0;
-    let _ = read!(); //Escape
-    let _ = read!(); //[
-	let mut c = read!();
-	while c != 59 { //read to ;
-        h = h*10 + (c as u32) - 48;
-        c = read!();
-	}
-    c = read!();
-    while c != 82 { //read to R
-        w = w*10 + (c as u32) - 48;
-        c = read!();
-    }
-    (w, h)
-}
-
-pub fn parse_escape(s: Vec<u8>) -> EscapeSequence {
-    let needle = String::from_utf8(s).unwrap();
-    for haystick in [EscapeSequence::Left, EscapeSequence::Right, EscapeSequence::Up, EscapeSequence::Down, EscapeSequence::Delete, EscapeSequence::Home, EscapeSequence::End, EscapeSequence::PgUp, EscapeSequence::PgDn].iter() {
-        if haystick.to_string() == needle { return haystick.clone(); }
-    }
-    EscapeSequence::Unknown
 }

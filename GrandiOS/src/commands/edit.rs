@@ -1,6 +1,8 @@
 use driver::serial::*;
 use utils::parser::Argument;
 use utils::shell::*;
+use utils::vt;
+use core::str;
 use core::result::Result;
 use alloc::vec::Vec;
 use alloc::string::{String, ToString};
@@ -10,11 +12,11 @@ pub fn move_col(pos: usize, dest: usize) {
     let offset = [0,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0];
     if dest < pos {
         for i in dest..pos {
-            print!("{}[{}{}", 27 as char, offset[i+1]+1, EscapeSequence::Left.to_string());
+            print!("{}", &vt::CursorControl::Left{count: offset[i+1]+1});
         }
     } else {
         for i in pos..dest {
-            print!("{}[{}{}", 27 as char, offset[i+1]+1, EscapeSequence::Right.to_string());
+            print!("{}", &vt::CursorControl::Right{count: offset[i+1]+1});
         }
     }
 }
@@ -84,36 +86,36 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         if c != 91 && c >= 32 && escape { sequence.push(c); }
         if escape && ((65..69).contains(c) || c == 126) {
             escape = false;
-            match parse_escape(sequence) {
-                EscapeSequence::Home => {
+            match vt::parse_input(str::from_utf8(&sequence[..]).unwrap()) {
+                vt::Input::Home => {
                     move_col(pos, 0);
                     pos = 0;
                 },
-                EscapeSequence::End => {
+                vt::Input::End => {
                     move_col(pos, 4*8-1);
                     pos = 4*8-1;
                 },
-                EscapeSequence::Left => {
+                vt::Input::Left => {
                     if pos > 0 {
                         move_col(pos, pos-1);
                         pos -= 1;
                     }
                 },
-                EscapeSequence::Right => {
+                vt::Input::Right => {
                     if pos < 4*8-1 {
                         move_col(pos, pos+1);
                         pos += 1;
                     }
                 },
-                EscapeSequence::Up => {
+                vt::Input::Up => {
                     if linepos > 0 {
-                        print!("{}[{}", 27 as char, EscapeSequence::Up.to_string());
+                        print!("{}", &vt::CursorControl::Up{count: 1});
                         linepos -= 1;
                     }
                 },
-                EscapeSequence::Down => {
+                vt::Input::Down => {
                     if linepos < lines-1 {
-                        print!("{}[{}", 27 as char, EscapeSequence::Down.to_string());
+                        print!("{}", &vt::CursorControl::Down{count: 1});
                         linepos += 1;
                     }
                 },

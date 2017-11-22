@@ -1,6 +1,6 @@
 use driver::serial::*;
 use utils::parser::Argument;
-use utils::shell::*;
+use utils::vt::*;
 use core::result::Result;
 use alloc::string::{String,ToString};
 use alloc::vec::Vec;
@@ -79,12 +79,4 @@ pub fn draw_at(x: u32, y: u32, c: char) {
 
 pub fn clear() {
     print!("{}[2J", 27 as char);
-}
-
-pub fn resize() -> (u32, u32) {
-    print!("{}7", 27 as char);
-    print!("{}[999:999H", 27 as char);
-    let res = get_position();
-    print!("{}8", 27 as char);
-    res
 }

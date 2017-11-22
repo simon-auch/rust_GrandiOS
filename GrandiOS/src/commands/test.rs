@@ -54,7 +54,7 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
 
 
 fn test_size(){
-    let (w, h) = logo::resize();
+    let (w, h) = vt::get_size();
     println!("{}x{}",w,h);
 }
 

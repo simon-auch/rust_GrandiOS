@@ -7,6 +7,8 @@
 //"\x1B" is the Escape character.
 
 use core::fmt;
+use alloc::vec::Vec;
+use driver::serial::*;
 
 //Some public constants that are often used
 pub const CF_BLACK:    Color = Color { ct: ColorType::Foreground, cc: ColorCode::Black};
@@ -58,13 +60,27 @@ pub enum CursorControl {
     Home {row: u32, col: u32},
     Up {count: u32},
     Down {count: u32},
-    Forward {count: u32},
-    Backward {count: u32},
+    Right {count: u32},
+    Left {count: u32},
     Position {row: u32, col: u32},
     SavePos,
     LoadPos,
     SavePosAndAtt,
     LoadPosAndAtt,
+}
+
+#[derive(Clone)]
+pub enum Input {
+    Unknown,
+    Left,
+    Right,
+    Up,
+    Down,
+    Delete,
+    Home,
+    End,
+    PgUp,
+    PgDn,
 }
 
 pub enum DisplayAttribute{
@@ -98,6 +114,58 @@ pub enum ColorCode{
     White,
     Bit8(u8),
     Standard,
+}
+
+impl Input {
+    pub fn as_str(&self) -> &str {
+        match self {
+            &Input::Left => "\x1B[D",
+            &Input::Right => "\x1B[C",
+            &Input::Up => "\x1B[A",
+            &Input::Down => "\x1B[B",
+            &Input::Delete => "\x1B[3~",
+            &Input::Home => "\x1B[1~",
+            &Input::End => "\x1B[4~",
+            &Input::PgUp => "\x1B[5~",
+            &Input::PgDn => "\x1B[6~",
+            _ => "",
+        }
+    }
+}
+
+pub fn parse_input(s: &str) -> Input {
+    for haystick in [Input::Left, Input::Right, Input::Up, Input::Down, Input::Delete, Input::Home, Input::End, Input::PgUp, Input::PgDn].into_iter() {
+        if haystick.as_str() == s { return haystick.clone(); }
+    }
+    Input::Unknown
+}
+
+pub fn get_position() -> (u32, u32) {
+	print!("\x1B[6n");
+    //we expect a response in the form <Esc>[h;wR
+    let mut h: u32 = 0;
+    let mut w: u32 = 0;
+    let _ = read!(); //Escape
+    let _ = read!(); //[
+	let mut c = read!();
+	while c != 59 { //read to ;
+        h = h*10 + (c as u32) - 48;
+        c = read!();
+	}
+    c = read!();
+    while c != 82 { //read to R
+        w = w*10 + (c as u32) - 48;
+        c = read!();
+    }
+    (w, h)
+}
+
+pub fn get_size() -> (u32, u32) {
+    print!("\x1B7");
+    print!("\x1B[999:999H");
+    let res = get_position();
+    print!("\x1B8");
+    res
 }
 
 impl fmt::Display for Color {
@@ -141,8 +209,8 @@ impl fmt::Display for CursorControl {
             &CursorControl::Home {row, col}     => write!(f, "\x1B[{};{}H", row, col),
             &CursorControl::Up {count}          => write!(f, "\x1B[{}A", count),
             &CursorControl::Down {count}        => write!(f, "\x1B[{}B", count),
-            &CursorControl::Forward {count}     => write!(f, "\x1B[{}C", count),
-            &CursorControl::Backward {count}    => write!(f, "\x1B[{}D", count),
+            &CursorControl::Right {count}       => write!(f, "\x1B[{}C", count),
+            &CursorControl::Left {count}        => write!(f, "\x1B[{}D", count),
             &CursorControl::Position {row, col} => write!(f, "\x1B[{};{}f", row, col),
             &CursorControl::SavePos             => write!(f, "\x1B[s"),
             &CursorControl::LoadPos             => write!(f, "\x1B[u"),
