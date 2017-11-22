@@ -20,8 +20,20 @@ speichert?
 \begin{enumerate}
 	\item Der größte unterschied zwischen nebenläufigen Programmteilen realisiert durch Threads anstatt von Prozessen ist, dass Threads im gleichen logischen Speicher liegen. Dies bedeutet insbesondere das Threads unter umständen schneller miteinander kommunizieren können, da diese dafür keine Systemaufrufe benötigen.
 Von dieser eigenschaft profitieren natürlich insbesondere Programmteile die viel mitteinander kommunizieren müssen. Dies ist jedoch eine Abwägung gegen die verlorene Sicherheit durch getrennte Speicherbereiche.
-	\item \todo{}
-	\item \todo{}
+	\item Der Vorteil von User-Level-Threads besteht in Abgrenzung gegenüber anderen Threads und Prozessen und erhöht dadurch die Sicherheit. Da der Scheduler aber Informationen aus dem Kernel-Space benötigt, muss für jeden Threadwechsel auch ein Wechsel zwischen diesen Kontexten vollzgen werden.
+	\item 
+          \begin{itemize}
+            \item Array\\
+              Vorteil: kein Overhead, konstante Zugriffszeit\\
+              Nachteil: feste Größe, muss zur Größenänderung komplett kopiert werden
+            \item Listen\\
+              Vorteil: in konstanter Zeit beliebig erweiterbar\\
+              Nachteil: Zugriff hat lineare Laufzeit
+            \item Bäume (Annahme: Suchbäume) \\
+              Vorteil: schnelles finden eines bestimmten TCB\\
+              Nachteil: Overhead, Einfügen/Entfernen dauert logarithmisch lang
+          \end{itenize}
+          \todo{the fuck ist eine invertierte tabelle?}
 	\item TCBs werden im Adressraum des Betriebssystems gespeichert, da die PRozesse selbst nicht (direkt) auf den TCB zugreifen können sollten. Die TCBs in einem Dienste-Prozess zu verwalten geht auch nicht direkt, da zumindest der TCB dieses Prozesses im Betriebssystem gespeichert werden muss.
 \end{enumerate}
 
@@ -62,7 +74,7 @@ Anleitung zum erstellen eines mit qemu benutzbaren Kernels:
 \end{enumerate}
 Das vorbereiten der Toolchain mittels \texttt{setup\_env.sh} ist nur einmal notwendig.
 
-Für den unwahrscheinlichen Fall, dass aus irgend einem Grund das bauen des Kernels fehlschlägt, ist unter \todo{Muss noch gemacht werden}{\texttt{GrandiOS/kernels/kernel\_02}} noch ein von uns gebauter Kernel vorhanden.
+Für den unwahrscheinlichen Fall, dass aus irgend einem Grund das bauen des Kernels fehlschlägt, ist unter {\texttt{GrandiOS/kernels/kernel\_02}} noch ein von uns gebauter Kernel vorhanden.
 
 Für diese Aufgabe kann der Parameter \texttt{-piotelnet} in Schritt 4 sowie das Starten von telnet in Schritt 5 ausgelassen werden.
 
@@ -81,7 +93,7 @@ Eine kleine übersicht wo die für diese Aufgabe relevanten Codesegmente zu find
 		\item \texttt{test interrupts\_aic} hinterlegt einen Handler für die IRQ Leitung und konfiguriert den AIC sowie die DebugUnit einen Interrupt für das empfangen eines Zeichens zu erzeugen. Diese Funktion geht in eine endlosschleife, da durch den Interrupthandler zurzeit die Tastendrücke abgefangen werden und die \texttt{pfush} damit unbrauchbar wird.
 	\end{itemize}
 	\item Zum Betrachten was in die IVT geschrieben wurde, kann der Befehl \texttt{edit 0x0 0x40} genutzt werden. Wie der name nahelegt können hiermit auch Daten geschrieben werden, verlassen geht mit der Tastenkombination \texttt{strg-D}
-	\item Zum Auslösen der einzelnen interrupts/exceptions können die folgenden Befehle benutzt werden:
+        \item Zum Auslösen der einzelnen interrupts/exceptions können die folgenden Befehle benutzt werden (der Code ist in src/commands/test.rs):
 	\begin{itemize}
 		\item \texttt{test undefined\_instruction}
 		\item \texttt{test software\_interrupt}
