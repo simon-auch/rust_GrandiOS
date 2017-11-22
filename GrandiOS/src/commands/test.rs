@@ -91,12 +91,13 @@ fn test_lock(){
 }
 
 fn test_tcb(){
+    /*TODO: später wieder includen
     //TCB again
     // Take a fn-pointer, make it a rawpointer
     let idle_thread_function_ptr: *mut _ = idle_thread as *mut _;
     // Shove it into the TCB
     let mut tcb = TCB::new("Test TCB",idle_thread_function_ptr);
-    let mut tcb2 = TCB::new("Test TCB2",idle_thread2 as *mut _);
+    let mut tcb2 = TCB::new("Test TCB2",idle_thread as *mut _);
     println!("[{1}] -- {0:?}: {2}", tcb.update_state(), tcb.id, tcb.name);
     //println!("pc...? {:p}",tcb.program_counter);
     //tcb.save_registers();
@@ -112,6 +113,7 @@ fn test_tcb(){
     //tcb2.load_registers();
     //tcb.load_registers();
     //println!("pc...? {:p}",tcb.program_counter);
+    */
 }
 
 fn test_vt_color(){
