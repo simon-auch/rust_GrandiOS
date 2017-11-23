@@ -22,8 +22,7 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         ("size", test_size as fn()),
         ("alloc", test_alloc as fn()),
         ("lock", test_lock as fn()),
-        ("tcb_1", test_tcb_1 as fn()),
-        ("tcb_2", test_tcb_2 as fn()),
+        ("tcb", test_tcb as fn()),
         ("vt_color", test_vt_color as fn()),
         ("interrupts_aic", test_interrupts_aic as fn()),
         ("interrupts_undefined_instruction", test_interrupts_undefined_instruction as fn()),
@@ -91,35 +90,30 @@ fn test_lock(){
     }
 }
 
-fn test_tcb_1(){
-    println!("Baut nicht mehr, war im commit so drin, signatur von TCB::new hat sich wohl geändert");
-    /*
-    // TCBs
-    let mut t1 = TCB::new(1,"Erster TCB");
-    let mut t2 = TCB::new(2,"Zweiter TCB");
-    t1.get_state();
-
-    println!("[{1}] -- {0:?}: {2}", t1.update_state(), t1.id, t1.name);
-    println!("[{1}] -- {0:?}: {2}", t2.update_state(), t2.id, t2.name);
-    t2.save_registers();
-    t1.load_registers();
-    */
-}
-
-fn test_tcb_2(){
+fn test_tcb(){
+    /*TODO: später wieder includen
     //TCB again
     // Take a fn-pointer, make it a rawpointer
     let idle_thread_function_ptr: *mut _ = idle_thread as *mut _;
-    // Box it
-    let idle = Box::new(idle_thread_function_ptr);
     // Shove it into the TCB
-    let mut tcb = TCB::new("Test TCB",idle);
+    let mut tcb = TCB::new("Test TCB",idle_thread_function_ptr);
+    let mut tcb2 = TCB::new("Test TCB2",idle_thread as *mut _);
     println!("[{1}] -- {0:?}: {2}", tcb.update_state(), tcb.id, tcb.name);
     //println!("pc...? {:p}",tcb.program_counter);
     //tcb.save_registers();
     //println!("pc...? {:p}",tcb.program_counter);
     tcb.load_registers();
+    tcb.save_registers();
+
+    tcb2.load_registers();
+    tcb2.save_registers();
+
+    tcb.load_registers();
+    tcb.save_registers();
+    //tcb2.load_registers();
+    //tcb.load_registers();
     //println!("pc...? {:p}",tcb.program_counter);
+    */
 }
 
 fn test_vt_color(){

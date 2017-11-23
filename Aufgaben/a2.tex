@@ -18,9 +18,9 @@ speichert?
 
 \textbf{Lösung:}\\
 \begin{enumerate}
-	\item Der größte unterschied zwischen nebenläufigen Programmteilen realisiert durch Threads anstatt von Prozessen ist, dass Threads im gleichen logischen Speicher liegen. Dies bedeutet insbesondere das Threads unter umständen schneller miteinander kommunizieren können, da diese dafür keine Systemaufrufe benötigen.
-Von dieser eigenschaft profitieren natürlich insbesondere Programmteile die viel mitteinander kommunizieren müssen. Dies ist jedoch eine Abwägung gegen die verlorene Sicherheit durch getrennte Speicherbereiche.
-	\item Der Vorteil von User-Level-Threads besteht in Abgrenzung gegenüber anderen Threads und Prozessen und erhöht dadurch die Sicherheit. Da der Scheduler aber Informationen aus dem Kernel-Space benötigt, muss für jeden Threadwechsel auch ein Wechsel zwischen diesen Kontexten vollzgen werden.
+	\item Der größte unterschied zwischen nebenläufigen Programmteilen realisiert durch Threads anstatt von Prozessen ist, dass Threads im gleichen logischen Speicher liegen. Dies bedeutet insbesondere das Threads unter Umständen schneller miteinander kommunizieren können, da diese dafür keine Systemaufrufe benötigen.
+Von dieser Eigenschaft profitieren natürlich insbesondere Programmteile die viel miteinander kommunizieren müssen. Dies ist jedoch eine Abwägung gegen die verlorene Sicherheit durch getrennte Speicherbereiche.
+	\item Der Vorteil von User-Level-Threads besteht in Abgrenzung gegenüber anderen Threads und Prozessen und erhöht dadurch die Sicherheit. Da der Scheduler aber Informationen aus dem Kernel-Space benötigt, muss für jeden Threadwechsel auch ein Wechsel zwischen diesen Kontexten vollzogen werden.
 	\item 
           \begin{itemize}
             \item Array\\
@@ -32,9 +32,11 @@ Von dieser eigenschaft profitieren natürlich insbesondere Programmteile die vie
             \item Bäume (Annahme: Suchbäume) \\
               Vorteil: schnelles finden eines bestimmten TCB\\
               Nachteil: Overhead, Einfügen/Entfernen dauert logarithmisch lang
+            \item Invertierte Tabellen (gehen von invertierten Seitentabellen aus (?)):\\
+              Vorteil: Schneller Zugriff auch bei verschiedenen Sichtweisen auf die TCBs (z.B. anhand von Prozess-ID oder Priorität) ohne Mehrfachspeicherung für die Ansischten\\
+              Nachteil: Mögliche Page Faults durch mapping von virtuellen auf physische Adressen
           \end{itemize}
-          \todo{the fuck ist eine invertierte tabelle?}
-	\item TCBs werden im Adressraum des Betriebssystems gespeichert, da die PRozesse selbst nicht (direkt) auf den TCB zugreifen können sollten. Die TCBs in einem Dienste-Prozess zu verwalten geht auch nicht direkt, da zumindest der TCB dieses Prozesses im Betriebssystem gespeichert werden muss.
+	\item TCBs werden im Adressraum des Betriebssystems gespeichert, da die Prozesse selbst nicht (direkt) auf den TCB zugreifen können sollten. Die TCBs in einem Dienste-Prozess zu verwalten geht auch nicht direkt, da zumindest der TCB dieses Prozesses im Betriebssystem gespeichert werden muss.
 \end{enumerate}
 
 
@@ -70,9 +72,9 @@ Anleitung zum erstellen eines mit qemu benutzbaren Kernels:
 	\item Wechseln in den Ordner \texttt{GrandiOS}
         \item Einen von beiden Optionen ausführen:
           \begin{itemize}
-            \item Ausführen von \texttt{make}. Falls schon eine Rust-Umgebung vorhanden ist, stattdessen \texttt{make buid}.
+            \item Ausführen von \texttt{make}. Falls schon eine Rust-Umgebung vorhanden ist, stattdessen \texttt{make build}.
             \item \begin{enumerate}
-              \item Zunächst wird mit dem Script \texttt{setup\_env.sh} die Toolchain von Rust vorbereitet. Unter umständen sind Benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
+              \item Zunächst wird mit dem Script \texttt{setup\_env.sh} die Toolchain von Rust vorbereitet. Unter Umständen sind Benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
               \item Durch starten von \texttt{kernel\_build.sh} kann nun der Kernel \texttt{kernel} erzeugt werden.
               \item Starten von qemu mit dem Kernel: \texttt{qemu-bsprak -piotelnet -kernel kernel}
               \item Starten einer telnet Verbindung zu qemu: \texttt{telnet localhost 44444}
@@ -85,7 +87,7 @@ Für den unwahrscheinlichen Fall, dass aus irgend einem Grund das bauen des Kern
 
 Für diese Aufgabe kann der Parameter \texttt{-piotelnet} in Schritt 4 sowie das Starten von telnet in Schritt 5 ausgelassen werden.
 
-Eine kleine übersicht wo die für diese Aufgabe relevanten Codesegmente zu finden sind:
+Eine kleine Übersicht wo die für diese Aufgabe relevanten Codesegmente zu finden sind:
 \begin{itemize}
 	\item Remap Befehl: \texttt{GrandiOS/src/lib.rs::init}
 	\item Stack pointer konfigurieren: \texttt{GrandiOS/src/lib.rs::init}
@@ -97,7 +99,7 @@ Eine kleine übersicht wo die für diese Aufgabe relevanten Codesegmente zu find
 		\item \texttt{test interrupts\_software\_interrupt} hinterlegt einen Handler für software interrupt Ausnahmen
 		\item \texttt{test interrupts\_prefetch\_abort} hinterlegt einen Handler für prefetch abort Ausnahmen
 		\item \texttt{test interrupts\_data\_abort} hinterlegt einen Handler für data abort Ausnahmen
-		\item \texttt{test interrupts\_aic} hinterlegt einen Handler für die IRQ Leitung und konfiguriert den AIC sowie die DebugUnit einen Interrupt für das empfangen eines Zeichens zu erzeugen. Diese Funktion geht in eine endlosschleife, da durch den Interrupthandler zurzeit die Tastendrücke abgefangen werden und die \texttt{pfush} damit unbrauchbar wird.
+		\item \texttt{test interrupts\_aic} hinterlegt einen Handler für die IRQ Leitung und konfiguriert den AIC sowie die DebugUnit einen Interrupt für das empfangen eines Zeichens zu erzeugen. Diese Funktion geht in eine Endlosschleife, da durch den Interrupthandler zurzeit die Tastendrücke abgefangen werden und die \texttt{pfush} damit unbrauchbar wird.
 	\end{itemize}
 	\item Zum Betrachten was in die IVT geschrieben wurde, kann der Befehl \texttt{edit 0x0 0x40} genutzt werden. Wie der name nahelegt können hiermit auch Daten geschrieben werden, verlassen geht mit der Tastenkombination \texttt{strg-D}
         \item Zum Auslösen der einzelnen interrupts/exceptions können die folgenden Befehle benutzt werden:
