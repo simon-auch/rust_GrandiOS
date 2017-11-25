@@ -12,6 +12,7 @@ use utils::spinlock::*;
 use utils::thread::*;
 use utils::registers;
 use utils::vt;
+use utils::syscalls;
 use core::ptr::{write_volatile, read_volatile};
 
 pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
@@ -23,6 +24,7 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         ("alloc", test_alloc as fn()),
         ("lock", test_lock as fn()),
         ("tcb", test_tcb as fn()),
+        ("syscat", syscall_cat as fn()),
         ("vt_color", test_vt_color as fn()),
         ("interrupts_aic", test_interrupts_aic as fn()),
         ("interrupts_undefined_instruction", test_interrupts_undefined_instruction as fn()),
@@ -362,4 +364,10 @@ fn test_data_abort(){
     */
     println!("Handler data_abort returned");
 }
-
+fn syscall_cat() {
+    let mut c = syscalls::read();
+    while c != 4 { //4 = ^d = end of transmission
+        print!("{}", c as char);
+        c = syscalls::read();
+    }
+}

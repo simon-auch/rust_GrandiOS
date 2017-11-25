@@ -1,5 +1,6 @@
 use driver::serial::*;
 use utils::parser::*;
+use utils::syscalls;
 use utils::vt;
 use commands::*;
 use core::str;

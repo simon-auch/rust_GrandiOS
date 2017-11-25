@@ -33,6 +33,7 @@ mod driver{
 mod utils{
     pub mod spinlock;
     pub mod allocator;
+    pub mod syscalls;
     pub mod thread;
     pub mod parser;
     pub mod shell;
@@ -49,6 +50,7 @@ mod commands{
     pub mod higher;
 }
 use driver::*;
+use utils::syscalls;
 
 #[global_allocator]
 static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x22000000, 0x23ffffff);
@@ -69,7 +71,8 @@ pub extern fn _start() {
     //Initialise the DebugUnit
     DEBUG_UNIT.reset();
     DEBUG_UNIT.enable();
-    commands::logo::draw();
+    syscalls::init();
+    //commands::logo::draw();
     utils::shell::run();
 }
 
