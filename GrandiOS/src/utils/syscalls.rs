@@ -18,7 +18,11 @@ use utils::vt;
 use utils::registers;
 use utils::ring::Ring;
 
-static mut RINGS: Option<Rings> = None;
+pub static mut RINGS: Option<Rings> = None;
+
+pub struct Rings {
+    read: Ring<u8>,
+}
 
 pub fn init() {
     //get interrupt controller, initialises some instruction inside the vector table too
@@ -50,10 +54,6 @@ struct register_stack{
     r11: u32,
     r12: u32,
     lr:  u32,
-}
-
-struct Rings {
-    read: Ring<u8>,
 }
 
 pub mod swi{
