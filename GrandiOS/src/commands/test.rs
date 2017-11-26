@@ -364,10 +364,10 @@ fn test_data_abort(){
 }
 fn syscall_cat() {
     syscalls::init();
-    let mut c = syscalls::read();
+    let mut c = syscalls::swi::read::call();
     while c != 4 { //4 = ^d = end of transmission
         print!("{}", c as char);
-        c = syscalls::read();
+        c = syscalls::swi::read::call();
     }
     println!("");
 }
