@@ -46,6 +46,7 @@ struct register_stack{
 
 pub mod swi{
     pub mod read{
+        use driver::serial::DEBUG_UNIT;
         pub struct Input{
         }
         pub struct Output{
@@ -61,6 +62,9 @@ pub mod swi{
                 :"memory" //clobbers
                 :"volatile");}
             output.c
+        }
+        pub fn work(input: &mut Input, output: &mut Output){
+            output.c = read!();
         }
     }
 }
@@ -99,7 +103,7 @@ fn handler_software_interrupt_helper(reg_sp: u32){
         1 => { //read
             let input = unsafe{ &mut(*(regs.r1 as *mut swi::read::Input))};
             let output = unsafe{ &mut(*(regs.r0 as *mut swi::read::Output))};
-            output.c = read!();
+            swi::read::work(input, output);
         },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
