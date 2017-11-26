@@ -44,12 +44,25 @@ struct register_stack{
     lr:  u32,
 }
 
-//These structs representates the input and output layout for the swi read
-#[repr(C)]
-struct swi_read_input{
-}
-struct swi_read_output{
-    c: u8,
+pub mod swi{
+    pub mod read{
+        pub struct Input{
+        }
+        pub struct Output{
+            pub c: u8,
+        }
+        pub fn call() -> u8 {
+            let mut output = Output{c: 0};
+            let mut input  = Input{};
+            unsafe{asm!("
+                swi 1"
+                : //outputs
+                : "{r0}"(&output), "{r1}"(&input)//inputs
+                :"memory" //clobbers
+                :"volatile");}
+            output.c
+        }
+    }
 }
 
 
@@ -77,9 +90,6 @@ extern fn handler_software_interrupt(){
     )}
 }
 
-
-
-
 fn handler_software_interrupt_helper(reg_sp: u32){
     let regs = unsafe{ &mut(*(reg_sp as *mut register_stack)) };
     let instruction = unsafe { read_volatile((regs.lr - 0x4) as *mut u32) };
@@ -87,26 +97,14 @@ fn handler_software_interrupt_helper(reg_sp: u32){
 
     match immed {
         1 => { //read
-            let input = unsafe{ &mut(*(regs.r1 as *mut swi_read_input))};
-            let output = unsafe{ &mut(*(regs.r0 as *mut swi_read_output))};
+            let input = unsafe{ &mut(*(regs.r1 as *mut swi::read::Input))};
+            let output = unsafe{ &mut(*(regs.r0 as *mut swi::read::Output))};
             output.c = read!();
         },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
             write!(debug_unit, "{}Exception{} software_interrupt at: 0x{:x}, instruction: 0x{:x}, swi value: 0x{:x}, registers:{:?}\n", &vt::CF_YELLOW, &vt::CF_STANDARD, regs.lr - 0x4, instruction, immed, regs).unwrap();
-            write!(debug_unit, "{}Unknown SWI{}", &vt::CF_RED, &vt::CF_STANDARD);
+            write!(debug_unit, "{}Unknown SWI{}", &vt::CF_RED, &vt::CF_STANDARD).unwrap();
         }
     }
-}
-
-pub fn read() -> u8 {
-    let mut output = swi_read_output{c: 0};
-    let mut input  = swi_read_input{};
-    unsafe{asm!("
-        swi 1"
-        : //outputs
-        : "{r0}"(&output), "{r1}"(&input)//inputs
-        :"memory" //clobbers
-        :"volatile");}
-    output.c
 }
