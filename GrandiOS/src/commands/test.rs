@@ -363,9 +363,11 @@ fn test_data_abort(){
     println!("Handler data_abort returned");
 }
 fn syscall_cat() {
+    syscalls::init();
     let mut c = syscalls::read();
     while c != 4 { //4 = ^d = end of transmission
         print!("{}", c as char);
         c = syscalls::read();
     }
+    println!("");
 }
