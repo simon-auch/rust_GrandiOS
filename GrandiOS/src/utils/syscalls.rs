@@ -14,6 +14,7 @@
 use core::ptr::read_volatile;
 use driver::interrupts::*;
 use driver::serial::*;
+use utils::irq;
 use utils::vt;
 use utils::registers;
 use utils::ring::Ring;
@@ -21,7 +22,7 @@ use utils::ring::Ring;
 pub static mut RINGS: Option<Rings> = None;
 
 pub struct Rings {
-    read: Ring<u8>,
+    pub read: Ring<u8>,
 }
 
 pub fn init() {
@@ -29,6 +30,7 @@ pub fn init() {
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the software interrupt
     ic.set_handler_software_interrupt(handler_software_interrupt);
+    //irq.enable();
     unsafe {
         RINGS = Some(Rings {
             read: Ring::new(128)
@@ -59,6 +61,7 @@ struct register_stack{
 pub mod swi{
     pub mod read{
         use driver::serial::DEBUG_UNIT;
+        use utils::syscalls;
         pub struct Input{
         }
         pub struct Output{
@@ -76,7 +79,11 @@ pub mod swi{
             output.c
         }
         pub fn work(input: &mut Input, output: &mut Output){
-            output.c = read!();
+            unsafe {
+                while syscalls::RINGS.as_mut().unwrap().read.is_empty() {
+                }
+                output.c = syscalls::RINGS.as_mut().unwrap().read.pop().unwrap().clone();
+            }
         }
     }
 }

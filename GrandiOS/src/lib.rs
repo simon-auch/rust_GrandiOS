@@ -40,6 +40,7 @@ mod utils{
     pub mod registers;
     pub mod vt;
     pub mod ring;
+    pub mod irq;
 }
 mod commands{
     pub mod logo;

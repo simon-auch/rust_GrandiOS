@@ -10,6 +10,7 @@ use driver::led::*;
 use driver::interrupts::*;
 use utils::spinlock::*;
 use utils::thread::*;
+use utils::irq;
 use utils::registers;
 use utils::vt;
 use utils::syscalls;
@@ -364,6 +365,7 @@ fn test_data_abort(){
 }
 fn syscall_cat() {
     syscalls::init();
+    irq::enable();
     let mut c = syscalls::swi::read::call();
     while c != 4 { //4 = ^d = end of transmission
         print!("{}", c as char);
