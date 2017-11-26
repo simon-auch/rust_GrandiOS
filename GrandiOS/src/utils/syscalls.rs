@@ -16,12 +16,20 @@ use driver::interrupts::*;
 use driver::serial::*;
 use utils::vt;
 use utils::registers;
+use utils::ring::Ring;
+
+static mut RINGS: Option<Rings> = None;
 
 pub fn init() {
     //get interrupt controller, initialises some instruction inside the vector table too
     let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
     //set the handler for the software interrupt
     ic.set_handler_software_interrupt(handler_software_interrupt);
+    unsafe {
+        RINGS = Some(Rings {
+            read: Ring::new(128)
+        });
+    }
 }
 
 //This represantates the memory layout that gets pushed onto the stack when the interrupt starts.
@@ -44,6 +52,10 @@ struct register_stack{
     lr:  u32,
 }
 
+struct Rings {
+    read: Ring<u8>,
+}
+
 //These structs representates the input and output layout for the swi read
 #[repr(C)]
 struct swi_read_input{
@@ -51,7 +63,6 @@ struct swi_read_input{
 struct swi_read_output{
     c: u8,
 }
-
 
 #[naked]
 extern fn handler_software_interrupt(){

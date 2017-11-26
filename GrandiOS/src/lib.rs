@@ -39,6 +39,7 @@ mod utils{
     pub mod shell;
     pub mod registers;
     pub mod vt;
+    pub mod ring;
 }
 mod commands{
     pub mod logo;
