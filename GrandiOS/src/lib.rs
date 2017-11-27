@@ -35,6 +35,7 @@ mod utils{
     pub mod allocator;
     pub mod syscalls;
     pub mod thread;
+    pub mod scheduler;
     pub mod parser;
     pub mod shell;
     pub mod registers;

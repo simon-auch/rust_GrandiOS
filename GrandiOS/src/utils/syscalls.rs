@@ -17,6 +17,7 @@ use driver::serial::*;
 use utils::irq;
 use utils::vt;
 use utils::registers;
+use utils::scheduler;
 
 pub fn init() {
     //get interrupt controller, initialises some instruction inside the vector table too
@@ -68,10 +69,11 @@ impl RegisterStack{
     }
 }
 
+macro_rules! SWITCH {() => {0};}
+macro_rules! READ   {() => {1};}
+macro_rules! WRITE  {() => {2};}
+
 pub mod swi{
-    pub const SWITCH : u32 = 0;
-    pub const READ   : u32 = 1;
-    pub const WRITE  : u32 = 2;
     #[derive(Clone, Copy, Debug)]
     pub enum SWI{
         Read{input: *mut read::Input, output: *mut read::Output},
@@ -85,7 +87,7 @@ pub mod swi{
             pub c: u8,
         }
         pub fn call(input: & Input, output: &mut Output) {
-            unsafe{asm!(concat!("swi ", stringify!(swi::READ))
+            unsafe{asm!(concat!("swi ", READ!())
                 : //outputs
                 : "{r0}"(output), "{r1}"(input)//inputs
                 :"memory" //clobbers
@@ -101,7 +103,7 @@ pub mod swi{
         pub struct Input{}
         pub struct Output{}
         pub fn call(input: & Input, output: &mut Output) {
-            unsafe{asm!(concat!("swi ", stringify!(swi::SWITCH))
+            unsafe{asm!(concat!("swi ", SWITCH!())
                 : //outputs
                 : "{r0}"(output), "{r1}"(input)//inputs
                 :"memory" //clobbers
@@ -158,25 +160,20 @@ fn handler_software_interrupt_helper(reg_sp: u32){
     let regs = unsafe{ &mut(*(reg_sp as *mut RegisterStack)) };
     let instruction = unsafe { read_volatile((regs.lr - 0x4) as *mut u32) };
     let immed = instruction & 0xFFFFFF;
+    let mut sched = unsafe {scheduler::get_scheduler()};
 
     match immed {
-        swi::SWITCH => {
+        SWITCH!() => {
             let input  = regs.r1 as *mut swi::switch::Input;
             let output = regs.r0 as *mut swi::switch::Output;
-            let tcb    = scheduler::get_current_tcb();
-            swi::switch::work(input, output, tcb);
-            tcb.save_registers(&regs);
-            let next   = scheduler::select();
-            next.load_registers(regs);
+            swi::switch::work(input, output, sched.get_current_tcb());
+            sched.switch(regs);
         },
-        swi::READ => {
+        READ!() => {
             let input  = regs.r1 as *mut swi::read::Input;
             let output = regs.r0 as *mut swi::read::Output;
-            let tcb    = scheduler::get_current_tcb();
-            swi::read::work(input, output, tcb);
-            tcb.save_registers(&regs);
-            let next   = scheduler::select();
-            next.load_registers(regs);
+            swi::read::work(input, output, sched.get_current_tcb());
+            sched.switch(regs);
         },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };

@@ -1,6 +1,7 @@
 use driver::serial::*;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use alloc::string::String;
 use rlibc::memcpy;
 use syscalls::swi::SWI;
 use syscalls;
@@ -14,10 +15,10 @@ pub enum State{
     Waiting(SWI),
     Terminated,
 }
-pub struct TCB<'a> {
+pub struct TCB {
     //TODO
     pub id: u32,
-    pub name: &'a str,
+    pub name: String,
     // scheduling information
     pub state: State,
     cpu_time: u32,
@@ -28,8 +29,8 @@ pub struct TCB<'a> {
 //TODO: sinnvollere ID Verwaltung / ID-Vergabe-Service (?)
 static mut NEXT_ID: u32 = 0;
 
-impl<'a> TCB<'a> {
-    pub fn new(name: &'a str,program_ptr: *mut u32) -> Self {
+impl TCB {
+    pub fn new(name: String,program_ptr: *mut u32) -> Self {
         let id;
         unsafe{
             NEXT_ID+=1;
