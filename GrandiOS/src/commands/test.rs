@@ -94,6 +94,7 @@ fn test_lock(){
 }
 
 fn test_tcb(){
+    /* //Does not work anymore
     //TCB again
     // Take a fn-pointer, make it a rawpointer
     let idle_thread_function_ptr: *mut _ = idle_thread as *mut _;
@@ -115,6 +116,7 @@ fn test_tcb(){
     //tcb2.load_registers();
     //tcb.load_registers();
     //println!("pc...? {:p}",tcb.program_counter);
+    */
 }
 
 fn test_vt_color(){
@@ -366,10 +368,12 @@ fn test_data_abort(){
 fn syscall_cat() {
     syscalls::init();
     irq::enable();
-    let mut c = syscalls::swi::read::call();
-    while c != 4 { //4 = ^d = end of transmission
-        print!("{}", c as char);
-        c = syscalls::swi::read::call();
+    let input      = syscalls::swi::read::Input{};
+    let mut output = syscalls::swi::read::Output{c: 0};
+    syscalls::swi::read::call(& input, &mut output);
+    while output.c != 4 { //4 = ^d = end of transmission
+        print!("{}", output.c as char);
+        syscalls::swi::read::call(& input, &mut output);
     }
     println!("");
 }

@@ -84,10 +84,10 @@ pub mod swi{
         pub struct Output{
             pub c: u8,
         }
-        pub fn call(input: Input, output: Output) {
+        pub fn call(input: & Input, output: &mut Output) {
             unsafe{asm!(concat!("swi ", stringify!(swi::READ))
                 : //outputs
-                : "{r0}"(&output), "{r1}"(&input)//inputs
+                : "{r0}"(output), "{r1}"(input)//inputs
                 :"memory" //clobbers
                 :"volatile");}
         }
@@ -100,10 +100,10 @@ pub mod swi{
         use utils::syscalls::swi;
         pub struct Input{}
         pub struct Output{}
-        pub fn call(input: Input, output: Output) {
+        pub fn call(input: & Input, output: &mut Output) {
             unsafe{asm!(concat!("swi ", stringify!(swi::SWITCH))
                 : //outputs
-                : "{r0}"(&output), "{r1}"(&input)//inputs
+                : "{r0}"(output), "{r1}"(input)//inputs
                 :"memory" //clobbers
                 :"volatile");}
         }
