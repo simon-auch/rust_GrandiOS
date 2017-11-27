@@ -14,6 +14,7 @@ use utils::irq;
 use utils::registers;
 use utils::vt;
 use utils::syscalls;
+use utils::scheduler;
 use core::ptr::{write_volatile, read_volatile};
 
 pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
@@ -25,6 +26,7 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         ("alloc", test_alloc as fn()),
         ("lock", test_lock as fn()),
         ("tcb", test_tcb as fn()),
+        ("scheduler", test_scheduler as fn()),
         ("syscat", syscall_cat as fn()),
         ("vt_color", test_vt_color as fn()),
         ("interrupts_aic", test_interrupts_aic as fn()),
@@ -91,6 +93,34 @@ fn test_lock(){
                 led_green.on();},
         }
     }
+}
+
+fn test_scheduler(){
+    let thread_function_ptr: *mut _ = test_scheduler_thread as *mut _;
+    let mut tcb_idle    = TCB::new("Idle Thread".to_string(), thread_function_ptr, 0x1000);
+    tcb_idle.state = State::Ready;
+    let mut tcb_current = TCB::new("Running Thread".to_string(), 0 as *mut _, 0); //function and memory will be set when calling the switch interrupt
+    tcb_current.state = State::Running;
+    //Initialise scheduler
+    println!("Initialising scheduler");
+    unsafe{ scheduler::init(tcb_current, tcb_idle) };
+    //Initialise software interrupts
+    println!("Initialising syscalls");
+    syscalls::init();
+    let input      = syscalls::swi::switch::Input{};
+    let mut output = syscalls::swi::switch::Output{};
+    //switch to idle thread
+    println!("calling switch");
+    syscalls::swi::switch::call(& input, &mut output);
+    //print something after we returned
+    println!("We returned from idle thread.");
+}
+fn test_scheduler_thread(){
+    println!("Hi from Thread");
+    let input      = syscalls::swi::switch::Input{};
+    let mut output = syscalls::swi::switch::Output{};
+    //switch back
+    syscalls::swi::switch::call(& input, &mut output);
 }
 
 fn test_tcb(){

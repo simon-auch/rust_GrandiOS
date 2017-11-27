@@ -48,7 +48,14 @@ impl Scheduler{
             }
         }
         next_tcb.load_registers(register_stack);
-        let current_tcb = replace(&mut self.current_tcb, next_tcb);
+        next_tcb.state = State::Running;
+        let mut current_tcb = replace(&mut self.current_tcb, next_tcb);
+        //make sure the old thread gets the correct state
+        match current_tcb.state{
+            State::Waiting(_) => {},
+            State::Terminated => {}
+            _ => {current_tcb.state = State::Ready;},
+        }
         self.tcbs.push_back(current_tcb);
     }
 }
