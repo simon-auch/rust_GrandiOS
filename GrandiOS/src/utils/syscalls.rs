@@ -17,13 +17,6 @@ use driver::serial::*;
 use utils::irq;
 use utils::vt;
 use utils::registers;
-use utils::ring::Ring;
-
-pub static mut RINGS: Option<Rings> = None;
-
-pub struct Rings {
-    pub read: Ring<u8>,
-}
 
 pub fn init() {
     //get interrupt controller, initialises some instruction inside the vector table too
@@ -31,59 +24,90 @@ pub fn init() {
     //set the handler for the software interrupt
     ic.set_handler_software_interrupt(handler_software_interrupt);
     //irq.enable();
-    unsafe {
-        RINGS = Some(Rings {
-            read: Ring::new(128)
-        });
-    }
 }
 
 //This represantates the memory layout that gets pushed onto the stack when the interrupt starts.
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 #[repr(C)]
-struct register_stack{
-    r0:  u32,
-    r1:  u32,
-    r2:  u32,
-    r3:  u32,
-    r4:  u32,
-    r5:  u32,
-    r6:  u32,
-    r7:  u32,
-    r8:  u32,
-    r9:  u32,
-    r10: u32,
-    r11: u32,
-    r12: u32,
-    lr:  u32,
+pub struct RegisterStack{
+    pub sp:   u32,
+    pub cpsr: u32,
+    pub r0:   u32,
+    pub r1:   u32,
+    pub r2:   u32,
+    pub r3:   u32,
+    pub r4:   u32,
+    pub r5:   u32,
+    pub r6:   u32,
+    pub r7:   u32,
+    pub r8:   u32,
+    pub r9:   u32,
+    pub r10:  u32,
+    pub r11:  u32,
+    pub r12:  u32,
+    pub lr:   u32,
+}
+impl RegisterStack{
+    pub fn copy(&mut self, source: & Self){
+        self.sp   = source.sp;
+        self.cpsr = source.cpsr;
+        self.r0   = source.r0;
+        self.r1   = source.r1;
+        self.r2   = source.r2;
+        self.r3   = source.r3;
+        self.r4   = source.r4;
+        self.r5   = source.r5;
+        self.r6   = source.r6;
+        self.r7   = source.r7;
+        self.r8   = source.r8;
+        self.r9   = source.r9;
+        self.r10  = source.r10;
+        self.r11  = source.r11;
+        self.r12  = source.r12;
+        self.lr   = source.lr;
+    }
 }
 
 pub mod swi{
+    pub const SWITCH : u32 = 0;
+    pub const READ   : u32 = 1;
+    pub const WRITE  : u32 = 2;
+    #[derive(Clone, Copy, Debug)]
+    pub enum SWI{
+        Read{input: *mut read::Input, output: *mut read::Output},
+    }
     pub mod read{
-        use driver::serial::DEBUG_UNIT;
-        use utils::syscalls;
+        use utils::thread::{TCB, State};
+        use utils::syscalls::swi;
         pub struct Input{
         }
         pub struct Output{
             pub c: u8,
         }
-        pub fn call() -> u8 {
-            let mut output = Output{c: 0};
-            let mut input  = Input{};
-            unsafe{asm!("
-                swi 1"
+        pub fn call(input: Input, output: Output) {
+            unsafe{asm!(concat!("swi ", stringify!(swi::READ))
                 : //outputs
                 : "{r0}"(&output), "{r1}"(&input)//inputs
                 :"memory" //clobbers
                 :"volatile");}
-            output.c
         }
-        pub fn work(input: &mut Input, output: &mut Output){
-            unsafe {
-                while syscalls::RINGS.as_mut().unwrap().read.is_empty() {
-                }
-                output.c = syscalls::RINGS.as_mut().unwrap().read.pop().unwrap().clone();
-            }
+        pub fn work(input: *mut Input, output: *mut Output, tcb: &mut TCB){
+            tcb.state = State::Waiting(swi::SWI::Read{input: input, output: output});
+        }
+    }
+    pub mod switch{
+        use utils::thread::{TCB, State};
+        use utils::syscalls::swi;
+        pub struct Input{}
+        pub struct Output{}
+        pub fn call(input: Input, output: Output) {
+            unsafe{asm!(concat!("swi ", stringify!(swi::SWITCH))
+                : //outputs
+                : "{r0}"(&output), "{r1}"(&input)//inputs
+                :"memory" //clobbers
+                :"volatile");}
+        }
+        pub fn work(input: *mut Input, output: *mut Output, tcb: &mut TCB){
         }
     }
 }
@@ -95,6 +119,15 @@ extern fn handler_software_interrupt(){
     unsafe{asm!("
         push   {r14}
         push   {r0-r12}  //save everything except the Stack pointer (useless since we are in the wrong mode) and r0 as we want to write our result to there
+        mrs    r0, SPSR  //move the program status from the interrupted program into r0
+        push   {r0}
+        mrs    r2, CPSR  //switch to ARM_MODE_SYS to save the stack pointer
+        mov    r1, r2
+        orr    r1, #0x1F
+        msr    CPSR, r1
+        mov    r0, sp    //move the stack pointer from thread into r0
+        msr    CPSR, r2  //get back to interrupt mode
+        push   {r0}
         mov    r0, sp    //move the stackpointer to r0 to know where r0-r12,r14 is stored
         sub    sp, 0x40" //make a bit of space on the stack for rust, since rust creates code like: "str r0, [pc, #4]" it expects the sp to be decremented before once. The 0x40 is a random guess and provides space for a few variables.
         :"={r0}"(reg_sp)
@@ -105,6 +138,15 @@ extern fn handler_software_interrupt(){
     }
     unsafe{asm!("
         add    sp, 0x40
+        pop    {r0}
+        mrs    r2, CPSR  //switch to ARM_MODE_SYS to save the stack pointer
+        mov    r1, r2
+        orr    r1, #0x1F
+        msr    CPSR, r1
+        mov    sp, r0
+        msr    CPSR, r2
+        pop    {r0}
+        msr    SPSR, r0
         pop    {r0-r12}
         pop    {r14}
         movs   pc, r14"
@@ -113,15 +155,28 @@ extern fn handler_software_interrupt(){
 }
 
 fn handler_software_interrupt_helper(reg_sp: u32){
-    let regs = unsafe{ &mut(*(reg_sp as *mut register_stack)) };
+    let regs = unsafe{ &mut(*(reg_sp as *mut RegisterStack)) };
     let instruction = unsafe { read_volatile((regs.lr - 0x4) as *mut u32) };
     let immed = instruction & 0xFFFFFF;
 
     match immed {
-        1 => { //read
-            let input = unsafe{ &mut(*(regs.r1 as *mut swi::read::Input))};
-            let output = unsafe{ &mut(*(regs.r0 as *mut swi::read::Output))};
-            swi::read::work(input, output);
+        swi::SWITCH => {
+            let input  = regs.r1 as *mut swi::switch::Input;
+            let output = regs.r0 as *mut swi::switch::Output;
+            let tcb    = scheduler::get_current_tcb();
+            swi::switch::work(input, output, tcb);
+            tcb.save_registers(&regs);
+            let next   = scheduler::select();
+            next.load_registers(regs);
+        },
+        swi::READ => {
+            let input  = regs.r1 as *mut swi::read::Input;
+            let output = regs.r0 as *mut swi::read::Output;
+            let tcb    = scheduler::get_current_tcb();
+            swi::read::work(input, output, tcb);
+            tcb.save_registers(&regs);
+            let next   = scheduler::select();
+            next.load_registers(regs);
         },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };

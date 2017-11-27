@@ -36,9 +36,6 @@ extern fn handler_irq(){
     {//this block is here to make sure destructors are called if needed.
         //TODO: find out what threw the interrupt.
         let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-        unsafe {
-            syscalls::RINGS.as_mut().unwrap().read.push(debug_unit.read(false)); //put the recieved char in ring buffer
-        }
         //IRQ_EXIT from AT91_interrupts.pdf
     }
     unsafe{asm!("

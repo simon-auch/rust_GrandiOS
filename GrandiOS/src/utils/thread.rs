@@ -2,6 +2,8 @@ use driver::serial::*;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use rlibc::memcpy;
+use syscalls::swi::SWI;
+use syscalls;
 
 #[derive(Copy,Clone,Debug)]
 pub enum State{
@@ -9,7 +11,7 @@ pub enum State{
     Created,
     Running,
     Ready,
-    Waiting,
+    Waiting(SWI),
     Terminated,
 }
 pub struct TCB<'a> {
@@ -17,11 +19,10 @@ pub struct TCB<'a> {
     pub id: u32,
     pub name: &'a str,
     // scheduling information
-    state: State,
+    pub state: State,
     cpu_time: u32,
     // ...
-    stack_ptr: *mut u32, //R15
-    registers: [u32;14],
+    register_stack: syscalls::RegisterStack,
 }
 
 //TODO: sinnvollere ID Verwaltung / ID-Vergabe-Service (?)
@@ -36,15 +37,14 @@ impl<'a> TCB<'a> {
         }
 
         println!("Created TCB with pc=\t{:p}",program_ptr);
-        let mut regs: [u32;14] = Default::default();
-        regs[13] = program_ptr as u32; //regs[13] ist das LR und der PC wird aus dem LR geladen
+        let mut regs : syscalls::RegisterStack = Default::default();
+        regs.lr = program_ptr as u32; //regs[13] ist das LR und der PC wird aus dem LR geladen
         TCB {
             id: id,
             name: name,
             state: State::Created,
             cpu_time: 0,
-            registers: regs,
-            stack_ptr: 0 as *mut _,
+            register_stack: regs,
         }
     }
 
@@ -54,15 +54,12 @@ impl<'a> TCB<'a> {
         self.state
     }
 
-    #[inline(always)]
-    pub fn load_registers(&mut self) {
-        
+    pub fn load_registers(&mut self, registers: &mut syscalls::RegisterStack) {
+        registers.copy(&mut self.register_stack)
     }
 
-    pub fn save_registers(&mut self, ptr: u32) {
-        let ptr = (ptr as *mut u32) as *mut [u32;14];
-        let registers = unsafe{&(*ptr)};
-        self.registers = registers.clone();
+    pub fn save_registers(&mut self, registers: & syscalls::RegisterStack) {
+        self.register_stack.copy(registers);
     }
 }
 
