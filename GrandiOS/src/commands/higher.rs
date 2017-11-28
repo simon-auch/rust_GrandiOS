@@ -1,4 +1,3 @@
-use driver::serial::*;
 use utils::parser::Argument;
 use utils::shell;
 use core::result::Result;

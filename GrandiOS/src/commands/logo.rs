@@ -1,8 +1,7 @@
 use driver::serial::*;
 use utils::parser::Argument;
-use utils::vt::*;
 use core::result::Result;
-use alloc::string::{String,ToString};
+use alloc::string::String;
 use alloc::vec::Vec;
 
 pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {

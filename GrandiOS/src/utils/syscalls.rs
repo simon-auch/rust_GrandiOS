@@ -11,14 +11,13 @@
 //Important note from the docu for the push, pop operations:
 //"Registers are stored on the stack in numerical order, with the lowest numbered register at the lowest address."
 
+use swi;
 use core::ptr::read_volatile;
 use driver::interrupts::*;
 use driver::serial::*;
-use utils::irq;
 use utils::vt;
-use utils::registers;
 use utils::scheduler;
-use utils::thread::{TCB, State};
+use utils::thread::State;
 
 pub fn init() {
     //get interrupt controller, initialises some instruction inside the vector table too
@@ -44,58 +43,6 @@ macro_rules! build_register_stack {
     );
 }
 build_register_stack!(sp, cpsr, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, lr);
-
-//macros that give the swi number of the corresponding swi
-macro_rules! SWITCH {() => {0};}
-macro_rules! READ   {() => {1};}
-macro_rules! WRITE  {() => {2};}
-
-pub mod swi {
-    //creates the input and output structs with the given types and identifiers
-    macro_rules! IO {
-        ($($in:ident : $ti:ty),*; $($out:ident : $to:ty),*) => (
-            #[repr(C)]
-            pub struct Input{
-                $(pub $in: $ti),*
-            }
-            #[repr(C)]
-            pub struct Output{
-                $(pub $out: $to),*
-            }
-        );
-    }
-    
-    //creates a call function given a Input and Output of the corresponding swi
-    macro_rules! CALL {
-        ($num:tt ) => (
-            pub fn call(input: & Input, output: &mut Output) {
-                unsafe{asm!(concat!("swi ", $num!())
-                    : //outputs
-                    : "{r0}"(output), "{r1}"(input)//inputs
-                    :"memory" //clobbers
-                    :"volatile");}
-            }
-        );
-    }
-    
-    //builds an swi call function and structs needed.
-    macro_rules! build_swi {
-        ($name_mod:ident, $name_macro:ident; $($in:ident : $ti:ty),*; $($out:ident : $to:ty),*) => (
-            pub mod $name_mod {
-                IO!($($in : $ti),*; $($out : $to),*);
-                CALL!($name_macro);
-            }
-        );
-    }
-
-    #[derive(Clone, Copy, Debug)]
-    pub enum SWI{
-        Read{input: *mut read::Input, output: *mut read::Output},
-    }
-    build_swi!(switch, SWITCH; ; );
-    build_swi!(read,   READ  ; ; c:u8);
-    build_swi!(write,  WRITE ; c:u8; );
-}
 
 #[naked]
 extern fn handler_software_interrupt(){

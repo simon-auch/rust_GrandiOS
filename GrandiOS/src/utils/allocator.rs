@@ -1,6 +1,4 @@
-use driver::serial::*;
 use alloc::heap::{Alloc, Layout, AllocErr};
-use alloc::boxed::Box;
 use core::mem::size_of;
 use core::ptr::read_volatile;
 use core::ptr::write_volatile;

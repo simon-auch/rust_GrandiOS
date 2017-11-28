@@ -1,7 +1,5 @@
 use driver::serial::*;
 use driver::interrupts::*;
-use utils::syscalls;
-use utils::ring::Ring;
 
 pub fn enable(){
     //enable interrupts

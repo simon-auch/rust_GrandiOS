@@ -4,6 +4,7 @@ version = "0.1.0"
 dependencies = [
  "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swi 0.1.0",
 ]
 
 [[package]]
@@ -15,6 +16,10 @@ source = "git+https://github.com/rust-lang-nursery/compiler-builtins#2d414afec5e
 name = "rlibc"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "swi"
+version = "0.1.0"
 
 [metadata]
 "checksum compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)" = "<none>"

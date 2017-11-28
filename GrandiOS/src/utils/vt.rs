@@ -7,7 +7,6 @@
 //"\x1B" is the Escape character.
 
 use core::fmt;
-use alloc::vec::Vec;
 use driver::serial::*;
 
 //Some public constants that are often used

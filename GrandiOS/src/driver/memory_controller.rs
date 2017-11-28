@@ -1,6 +1,6 @@
 //Dokumentation: S.239
 
-use core::ptr::{write_volatile, read_volatile};
+use core::ptr::write_volatile;
 
 pub const MC_BASE_ADRESS : u32 = 0xFFFFFF00;
 

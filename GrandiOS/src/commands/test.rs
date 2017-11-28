@@ -1,3 +1,4 @@
+use swi;
 use driver::serial::*;
 use utils::shell::*;
 use utils::parser::Argument;
@@ -5,7 +6,6 @@ use core::result::Result;
 use alloc::vec::Vec;
 use alloc::boxed::Box;
 use alloc::string::{String,ToString};
-use commands::logo;
 use driver::led::*;
 use driver::interrupts::*;
 use utils::spinlock::*;
@@ -15,7 +15,7 @@ use utils::registers;
 use utils::vt;
 use utils::syscalls;
 use utils::scheduler;
-use core::ptr::{write_volatile, read_volatile};
+use core::ptr::read_volatile;
 
 pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     eval_args(&mut args, 0);
@@ -107,20 +107,20 @@ fn test_scheduler(){
     //Initialise software interrupts
     println!("Initialising syscalls");
     syscalls::init();
-    let input      = syscalls::swi::switch::Input{};
-    let mut output = syscalls::swi::switch::Output{};
+    let input      = swi::switch::Input{};
+    let mut output = swi::switch::Output{};
     //switch to idle thread
     println!("calling switch");
-    syscalls::swi::switch::call(& input, &mut output);
+    swi::switch::call(& input, &mut output);
     //print something after we returned
     println!("We returned from idle thread.");
 }
 fn test_scheduler_thread(){
     println!("Hi from Thread");
-    let input      = syscalls::swi::switch::Input{};
-    let mut output = syscalls::swi::switch::Output{};
+    let input      = swi::switch::Input{};
+    let mut output = swi::switch::Output{};
     //switch back
-    syscalls::swi::switch::call(& input, &mut output);
+    swi::switch::call(& input, &mut output);
 }
 
 fn test_tcb(){
@@ -398,12 +398,12 @@ fn test_data_abort(){
 fn syscall_cat() {
     syscalls::init();
     irq::enable();
-    let input      = syscalls::swi::read::Input{};
-    let mut output = syscalls::swi::read::Output{c: 0};
-    syscalls::swi::read::call(& input, &mut output);
+    let input      = swi::read::Input{};
+    let mut output = swi::read::Output{c: 0};
+    swi::read::call(& input, &mut output);
     while output.c != 4 { //4 = ^d = end of transmission
         print!("{}", output.c as char);
-        syscalls::swi::read::call(& input, &mut output);
+        swi::read::call(& input, &mut output);
     }
     println!("");
 }

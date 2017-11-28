@@ -1,11 +1,9 @@
 use driver::serial::*;
 use utils::parser::*;
-use utils::syscalls;
 use utils::vt;
 use commands::*;
 use core::str;
 use core::result::Result;
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;

@@ -1,9 +1,7 @@
 use driver::serial::*;
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::string::String;
-use rlibc::memcpy;
-use syscalls::swi::SWI;
+use swi::SWI;
 use syscalls;
 
 #[derive(Copy,Clone,Debug)]
