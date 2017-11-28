@@ -137,7 +137,7 @@ impl InterruptController {
             write_volatile(&mut (*(self.aicmm)).smr[interrupt_line], reg);
         }
     }
-    pub fn end_interrupt(&mut self){
+    pub fn end_of_interrupt(&mut self){
         unsafe{
             write_volatile(&mut (*(self.aicmm)).eoicr, 0);
         }

@@ -4,7 +4,7 @@ use core::fmt;
 pub use core::fmt::Write;
 use alloc::vec;
 
-const DUMM_BASE_ADRESS : u32 = 0xFFFFF200;
+pub const DUMM_BASE_ADRESS : u32 = 0xFFFFF200;
 
 //lots of consts for all the register bits
 const CR_RSTRX: u32 = 1 << 2;
@@ -121,6 +121,17 @@ impl DebugUnit {
             c
         }
     }
+    pub fn read_nonblocking(&mut self, echo: bool) -> Option<u8> {
+        unsafe {
+            if (read_volatile(&mut (*(self.dumm)).sr) & (SR_RXRDY)) == 0 {
+                return None;
+            }else{
+                let c = read_volatile(&mut (*(self.dumm)).rhr);
+                if echo { self.write_char(c as char).unwrap(); }
+                return Some(c);
+            }
+        }
+    }
     pub fn readln(&mut self, echo: bool) -> vec::Vec<u8> {
         // Aktuell kein Support für \r\n line endings.
         unsafe{
@@ -187,6 +198,10 @@ impl DebugUnitWrapper{
     pub fn read(& self, echo: bool) -> u8 {
         let mut debug_unit = self.lock.lock();
         debug_unit.read(echo)
+    }
+    pub fn read_nonblocking(& self, echo: bool) -> Option<u8> {
+        let mut debug_unit = self.lock.lock();
+        debug_unit.read_nonblocking(echo)
     }
     pub fn readln(& self, echo: bool) -> vec::Vec<u8> {
         let mut debug_unit = self.lock.lock();

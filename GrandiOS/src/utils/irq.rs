@@ -1,5 +1,8 @@
+use driver::interrupts::*;
+use utils::scheduler;
+
+//imports for possible interrupt sources
 use driver::serial::*;
-use driver::interrupts::InterruptController;
 
 pub fn init(ic : &mut InterruptController, debug_unit : & DebugUnitWrapper){
     ic.set_handler(1, handler_line_1); //interrupt line 1 is SYS: Debug unit, clocks, etc
@@ -9,43 +12,56 @@ pub fn init(ic : &mut InterruptController, debug_unit : & DebugUnitWrapper){
 
 #[naked]
 extern fn handler_line_1(){
-    //IRQ_ENTRY from AT91_interrupts.pdf
-    //Note: ldmfd/stmfd sp! is equivalent to pop/push and according to the docs the better way
-    //TODO die stack pointer für den irq modus und den system/user modus muss zuerst noch gesetzt werden (beim system start)
+    //the address stored in r14 must be adjusted by -4 to correctly resume the interrupted thread.
+    let reg_sp: u32;
     unsafe{asm!("
-        sub     r14, r14, #4
-        push    {r14}
-        mrs     r14, SPSR
-        push    {r0, r14}
-        mrs     r14, CPSR
-        bic     r14, r14, #0x80 //I_BIT
-        orr     r14, r14, #0x1F //ARM_MODE_SYS
-        msr     CPSR, r14
-        push    {r1-r3, r4-r11, r12, r14}"
+        sub    r14, #4
+        push   {r14}
+        push   {r0-r12}  //save everything except the Stack pointer (useless since we are in the wrong mode) and r0 as we want to write our result to there
+        mrs    r0, SPSR  //move the program status from the interrupted program into r0
+        push   {r0}
+        mrs    r2, CPSR  //switch to ARM_MODE_SYS to save the stack pointer
+        mov    r1, r2
+        orr    r1, #0x1F
+        msr    CPSR, r1
+        mov    r0, sp    //move the stack pointer from thread into r0
+        msr    CPSR, r2  //get back to interrupt mode
+        push   {r0}
+        mov    r0, sp    //move the stackpointer to r0 to know where r0-r12,r14 is stored
+        sub    sp, 0x40" //make a bit of space on the stack for rust, since rust creates code like: "str r0, [pc, #4]" it expects the sp to be decremented before once. The 0x40 is a random guess and provides space for a few variabl$
         :
-        :
-        :
-        :
+        :::
     )}
     {//this block is here to make sure destructors are called if needed.
-        //TODO: find out what threw the interrupt.
-        let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-        //IRQ_EXIT from AT91_interrupts.pdf
+        handler_helper_line_1();
+        let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
+        ic.end_of_interrupt();
     }
     unsafe{asm!("
-        pop     {r1-r3, r4-r11, r12, r14}
-        mrs     r0, CPSR
-        bic     r0, r0, #0x1F //clear mode bits
-        orr     r0, r0, #0x92 //I_BIT | ARM_MODE_IRQ
-        msr     CPSR, r0
-        ldr     r0, = 0xFFFFF000 //AIC_BASE
-        str     r0, [r0, #0x0130] //AIC_EOICR
-        pop     {r0, r14}
-        msr     SPSR, r14
-        ldmfd   sp!, {pc}^"
-        :
-        :
-        :
-        :
+        add    sp, 0x40
+        pop    {r0}
+        mrs    r2, CPSR  //switch to ARM_MODE_SYS to restore the stack pointer
+        mov    r1, r2
+        orr    r1, #0x1F
+        msr    CPSR, r1
+        mov    sp, r0
+        msr    CPSR, r2
+        pop    {r0}
+        msr    SPSR, r0
+        pop    {r0-r12}
+        pop    {r14}
+        movs   pc, r14"
+        ::::
     )}
+}
+fn handler_helper_line_1(){
+    let mut sched = unsafe {scheduler::get_scheduler()};
+    //find out who threw the interrupt.
+    let mut debug_unit = unsafe { DebugUnit::new(DUMM_BASE_ADRESS) };
+    match debug_unit.read_nonblocking(false) {
+        None => {},
+        Some(c) => {
+            sched.push_queue_waiting_read_input(c);
+        },
+    }
 }

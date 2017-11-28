@@ -110,7 +110,14 @@ fn main(){
     //Initialise scheduler
     unsafe{ utils::scheduler::init(tcb_current) };
 
-    
+    //switch into user mode before starting the shell + enable interrupts, from this moment on the entire os stuff that needs privileges is done from syscalls (which might start privileged threads)
+    unsafe{asm!("
+        msr CPSR, r0"
+        :
+        :"{r0}"(utils::registers::CPSR_MODE_USER) //interrupts are enabled if the bits are 0
+        :
+        :"volatile"
+    );}
     //commands::logo::draw();
     println!("Starte Shell");
     utils::shell::run();
