@@ -9,6 +9,7 @@ use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
 use utils::spinlock;
+use swi;
 
 static IT: spinlock::Spinlock<Argument> = spinlock::Spinlock::new(Argument::Nothing);
 pub fn get_it(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
@@ -194,7 +195,10 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
     let mut histpos = history.len();
     let mut stringpos = 0;
     loop {
-        let c = read!();
+        let input      = swi::read::Input{};
+        let mut output = swi::read::Output{c: 0};
+        swi::read::call(& input, &mut output);
+        let c = output.c;
         match c {
             10 | 13 => { //newline
                 println!("");

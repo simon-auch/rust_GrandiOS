@@ -1,5 +1,6 @@
 use driver::interrupts::*;
 use utils::scheduler;
+use utils::exceptions::software_interrupt::*;
 
 //imports for possible interrupt sources
 use driver::serial::*;
@@ -29,11 +30,11 @@ extern fn handler_line_1(){
         push   {r0}
         mov    r0, sp    //move the stackpointer to r0 to know where r0-r12,r14 is stored
         sub    sp, 0x40" //make a bit of space on the stack for rust, since rust creates code like: "str r0, [pc, #4]" it expects the sp to be decremented before once. The 0x40 is a random guess and provides space for a few variabl$
-        :
+        :"={r0}"(reg_sp)
         :::
     )}
     {//this block is here to make sure destructors are called if needed.
-        handler_helper_line_1();
+        handler_helper_line_1(reg_sp);
         let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
         ic.end_of_interrupt();
     }
@@ -54,7 +55,8 @@ extern fn handler_line_1(){
         ::::
     )}
 }
-fn handler_helper_line_1(){
+fn handler_helper_line_1(reg_sp: u32){
+    let regs = unsafe{ &mut(*(reg_sp as *mut RegisterStack)) };
     let mut sched = unsafe {scheduler::get_scheduler()};
     //find out who threw the interrupt.
     let mut debug_unit = unsafe { DebugUnit::new(DUMM_BASE_ADRESS) };
@@ -64,4 +66,6 @@ fn handler_helper_line_1(){
             sched.push_queue_waiting_read_input(c);
         },
     }
+    //call switch just in case a new process was made available
+    sched.switch(regs, scheduler::State::Ready);
 }
