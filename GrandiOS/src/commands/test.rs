@@ -98,9 +98,7 @@ fn test_lock(){
 fn test_scheduler(){
     let thread_function_ptr: *mut _ = test_scheduler_thread as *mut _;
     let mut tcb_idle    = TCB::new("Idle Thread".to_string(), thread_function_ptr, 0x1000);
-    tcb_idle.state = State::Ready;
     let mut tcb_current = TCB::new("Running Thread".to_string(), 0 as *mut _, 0); //function and memory will be set when calling the switch interrupt
-    tcb_current.state = State::Running;
     //Initialise scheduler
     println!("Initialising scheduler");
     unsafe{ scheduler::init(tcb_current, tcb_idle) };

@@ -17,7 +17,7 @@ use driver::interrupts::*;
 use driver::serial::*;
 use utils::vt;
 use utils::scheduler;
-use utils::thread::State;
+use utils::thread::TCB;
 
 pub fn init() {
     //get interrupt controller, initialises some instruction inside the vector table too
@@ -94,15 +94,10 @@ fn handler_software_interrupt_helper(reg_sp: u32){
 
     match immed {
         SWITCH!() => {
-            let input  = regs.r1 as *mut swi::switch::Input;
-            let output = regs.r0 as *mut swi::switch::Output;
-            sched.switch(regs);
+            sched.switch(regs, scheduler::State::Ready);
         },
         READ!() => {
-            let input  = regs.r1 as *mut swi::read::Input;
-            let output = regs.r0 as *mut swi::read::Output;
-            sched.get_current_tcb().state = State::Waiting(swi::SWI::Read{input: input, output: output});
-            sched.switch(regs);
+            sched.switch(regs, scheduler::State::WaitingRead);
         },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
