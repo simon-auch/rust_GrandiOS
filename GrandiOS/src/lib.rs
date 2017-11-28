@@ -8,7 +8,7 @@
 #![feature(slice_concat_ext)]
 //disable some warnings
 #![allow(unused_variables)]
-#![allow(unused_imports)]
+//#![allow(unused_imports)]
 #![allow(unused_unsafe)]
 #![allow(unused_mut)]
 #![allow(dead_code)]

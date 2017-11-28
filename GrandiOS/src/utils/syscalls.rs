@@ -18,6 +18,7 @@ use utils::irq;
 use utils::vt;
 use utils::registers;
 use utils::scheduler;
+use utils::thread::{TCB, State};
 
 pub fn init() {
     //get interrupt controller, initialises some instruction inside the vector table too
@@ -28,90 +29,72 @@ pub fn init() {
 }
 
 //This represantates the memory layout that gets pushed onto the stack when the interrupt starts.
-#[derive(Debug, Clone, Default)]
-#[repr(C)]
-pub struct RegisterStack{
-    pub sp:   u32,
-    pub cpsr: u32,
-    pub r0:   u32,
-    pub r1:   u32,
-    pub r2:   u32,
-    pub r3:   u32,
-    pub r4:   u32,
-    pub r5:   u32,
-    pub r6:   u32,
-    pub r7:   u32,
-    pub r8:   u32,
-    pub r9:   u32,
-    pub r10:  u32,
-    pub r11:  u32,
-    pub r12:  u32,
-    pub lr:   u32,
+macro_rules! build_register_stack {
+    ($($name:ident),*) => (
+        #[derive(Debug, Clone, Default)]
+        #[repr(C)]
+        pub struct RegisterStack {
+            $(pub $name: u32),*
+        }
+        impl RegisterStack {
+            pub fn copy(&mut self, source: & Self){
+                $(self.$name = source.$name);*
+            }
+        }
+    );
 }
-impl RegisterStack{
-    pub fn copy(&mut self, source: & Self){
-        self.sp   = source.sp;
-        self.cpsr = source.cpsr;
-        self.r0   = source.r0;
-        self.r1   = source.r1;
-        self.r2   = source.r2;
-        self.r3   = source.r3;
-        self.r4   = source.r4;
-        self.r5   = source.r5;
-        self.r6   = source.r6;
-        self.r7   = source.r7;
-        self.r8   = source.r8;
-        self.r9   = source.r9;
-        self.r10  = source.r10;
-        self.r11  = source.r11;
-        self.r12  = source.r12;
-        self.lr   = source.lr;
-    }
-}
+build_register_stack!(sp, cpsr, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, lr);
 
+//macros that give the swi number of the corresponding swi
 macro_rules! SWITCH {() => {0};}
 macro_rules! READ   {() => {1};}
 macro_rules! WRITE  {() => {2};}
 
-pub mod swi{
+pub mod swi {
+    //creates the input and output structs with the given types and identifiers
+    macro_rules! IO {
+        ($($in:ident : $ti:ty),*; $($out:ident : $to:ty),*) => (
+            #[repr(C)]
+            pub struct Input{
+                $(pub $in: $ti),*
+            }
+            #[repr(C)]
+            pub struct Output{
+                $(pub $out: $to),*
+            }
+        );
+    }
+    
+    //creates a call function given a Input and Output of the corresponding swi
+    macro_rules! CALL {
+        ($num:tt ) => (
+            pub fn call(input: & Input, output: &mut Output) {
+                unsafe{asm!(concat!("swi ", $num!())
+                    : //outputs
+                    : "{r0}"(output), "{r1}"(input)//inputs
+                    :"memory" //clobbers
+                    :"volatile");}
+            }
+        );
+    }
+    
+    //builds an swi call function and structs needed.
+    macro_rules! build_swi {
+        ($name_mod:ident, $name_macro:ident; $($in:ident : $ti:ty),*; $($out:ident : $to:ty),*) => (
+            pub mod $name_mod {
+                IO!($($in : $ti),*; $($out : $to),*);
+                CALL!($name_macro);
+            }
+        );
+    }
+
     #[derive(Clone, Copy, Debug)]
     pub enum SWI{
         Read{input: *mut read::Input, output: *mut read::Output},
     }
-    pub mod read{
-        use utils::thread::{TCB, State};
-        use utils::syscalls::swi;
-        pub struct Input{
-        }
-        pub struct Output{
-            pub c: u8,
-        }
-        pub fn call(input: & Input, output: &mut Output) {
-            unsafe{asm!(concat!("swi ", READ!())
-                : //outputs
-                : "{r0}"(output), "{r1}"(input)//inputs
-                :"memory" //clobbers
-                :"volatile");}
-        }
-        pub fn work(input: *mut Input, output: *mut Output, tcb: &mut TCB){
-            tcb.state = State::Waiting(swi::SWI::Read{input: input, output: output});
-        }
-    }
-    pub mod switch{
-        use utils::thread::{TCB, State};
-        use utils::syscalls::swi;
-        pub struct Input{}
-        pub struct Output{}
-        pub fn call(input: & Input, output: &mut Output) {
-            unsafe{asm!(concat!("swi ", SWITCH!())
-                : //outputs
-                : "{r0}"(output), "{r1}"(input)//inputs
-                :"memory" //clobbers
-                :"volatile");}
-        }
-        pub fn work(input: *mut Input, output: *mut Output, tcb: &mut TCB){
-        }
-    }
+    build_swi!(switch, SWITCH; ; );
+    build_swi!(read, READ; ; c:u8);
+    build_swi!(write, WRITE; c:u8;);
 }
 
 #[naked]
@@ -166,13 +149,12 @@ fn handler_software_interrupt_helper(reg_sp: u32){
         SWITCH!() => {
             let input  = regs.r1 as *mut swi::switch::Input;
             let output = regs.r0 as *mut swi::switch::Output;
-            swi::switch::work(input, output, sched.get_current_tcb());
             sched.switch(regs);
         },
         READ!() => {
             let input  = regs.r1 as *mut swi::read::Input;
             let output = regs.r0 as *mut swi::read::Output;
-            swi::read::work(input, output, sched.get_current_tcb());
+            sched.get_current_tcb().state = State::Waiting(swi::SWI::Read{input: input, output: output});
             sched.switch(regs);
         },
         _ => {
