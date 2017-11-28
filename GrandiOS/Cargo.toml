@@ -7,5 +7,6 @@ authors = ["build"]
 crate-type = ["staticlib"]
 
 [dependencies]
+swi = { path = "./swi" }
 compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
 rlibc = "1.0.0"

@@ -61,6 +61,8 @@ static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x
 extern crate alloc;
 extern crate compiler_builtins;
 extern crate rlibc;
+#[macro_use]
+extern crate swi;
 
 //#[no_mangle]
 //keep the function name so we can call it from assembler

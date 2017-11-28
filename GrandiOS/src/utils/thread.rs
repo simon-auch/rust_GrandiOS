@@ -1,7 +1,7 @@
 use driver::serial::*;
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::string::String;
+use swi::SWI;
 use syscalls;
 
 pub struct TCB {
