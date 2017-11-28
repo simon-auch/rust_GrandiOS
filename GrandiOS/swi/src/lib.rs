@@ -1,6 +1,8 @@
 #![no_std]
-#![feature(lang_items)]
 #![feature(asm)]
+#![feature(alloc,allocator_api)]
+
+extern crate alloc;
 
 //macros that give the swi number of the corresponding swi
 #[macro_export]
@@ -9,6 +11,10 @@ macro_rules! SWITCH {() => {0};}
 macro_rules! READ   {() => {1};}
 #[macro_export]
 macro_rules! WRITE  {() => {2};}
+#[macro_export]
+macro_rules! ALLOC  {() => {3};}
+#[macro_export]
+macro_rules! DEALLOC  {() => {4};}
 
 //creates the input and output structs with the given types and identifiers
 macro_rules! IO {
@@ -39,14 +45,20 @@ macro_rules! CALL {
 
 //builds an swi call function and structs needed.
 macro_rules! build_swi {
-    ($name_mod:ident, $name_macro:ident; $($in:ident : $ti:ty),*; $($out:ident : $to:ty),*) => (
+    ($name_mod:ident; $name_macro:ident; $($in:ident : $ti:ty),*; $($out:ident : $to:ty),*) => (
+        build_swi!($name_mod; $name_macro; $($in:$ti),*; $($out:$to),*;);
+    );
+    ($name_mod:ident; $name_macro:ident; $($in:ident : $ti:ty),*; $($out:ident : $to:ty),*; $($use:path),*) => (
         pub mod $name_mod {
+            $(use $use;)*
             IO!($($in : $ti),*; $($out : $to),*);
             CALL!($name_macro);
         }
     );
 }
 
-build_swi!(switch, SWITCH; ; );
-build_swi!(read,   READ  ; ; c:u8);
-build_swi!(write,  WRITE ; c:u8; );
+build_swi!(switch;      SWITCH ; ; );
+build_swi!(read;        READ   ; ; c:u8);
+build_swi!(write;       WRITE  ; c:u8; );
+build_swi!(useralloc;   ALLOC  ; l:Layout; r:Option<Result<*mut u8, AllocErr>>; alloc::heap::Layout, alloc::heap::AllocErr);
+build_swi!(userdealloc; DEALLOC; l:Layout; ; alloc::heap::Layout);

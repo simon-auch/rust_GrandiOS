@@ -1,0 +1,8 @@
+[package]
+name = "aids"
+version = "0.1.0"
+authors = ["myname"]
+
+[lib]
+
+[dependencies]
