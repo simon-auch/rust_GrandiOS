@@ -2,25 +2,13 @@ use driver::serial::*;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::string::String;
-use rlibc::memcpy;
-use syscalls::swi::SWI;
 use syscalls;
 
-#[derive(Copy,Clone,Debug)]
-pub enum State{
-    // TODO: Welche wollen wir alle haben?
-    Created,
-    Running,
-    Ready,
-    Waiting(SWI),
-    Terminated,
-}
 pub struct TCB {
     //TODO
     pub id: u32,
     pub name: String,
     // scheduling information
-    pub state: State,
     cpu_time: u32,
     // ...
     register_stack: syscalls::RegisterStack,
@@ -46,17 +34,10 @@ impl TCB {
         TCB {
             id: id,
             name: name,
-            state: State::Created,
             cpu_time: 0,
             register_stack: regs,
             memory: memory,
         }
-    }
-
-    pub fn update_state(&mut self) -> State {
-        println!("TODO: Implement me! @TCB.update_state()");
-        //self.state=State::Ready;
-        self.state
     }
 
     pub fn load_registers(&mut self, registers: &mut syscalls::RegisterStack) {
@@ -76,13 +57,4 @@ pub fn idle_thread() {
     }
     */
     //TODO: need syscall EXIT
-}
-
-//TODO: Delete (war nur zu testzwecken^^)
-pub fn idle_thread2() {
-    println!("anderer thread");
-    /*
-    loop{
-    }
-    */
 }
