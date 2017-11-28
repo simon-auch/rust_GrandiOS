@@ -93,8 +93,8 @@ pub mod swi {
         Read{input: *mut read::Input, output: *mut read::Output},
     }
     build_swi!(switch, SWITCH; ; );
-    build_swi!(read, READ; ; c:u8);
-    build_swi!(write, WRITE; c:u8;);
+    build_swi!(read,   READ  ; ; c:u8);
+    build_swi!(write,  WRITE ; c:u8; );
 }
 
 #[naked]
