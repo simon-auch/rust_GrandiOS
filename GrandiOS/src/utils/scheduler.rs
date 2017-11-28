@@ -13,6 +13,7 @@ pub unsafe fn init(current_tcb: TCB, idle_thread: TCB){
         queue_ready: VecDeque::new(),
         queue_terminate: VecDeque::new(),
         queue_waiting_read: VecDeque::new(),
+        queue_waiting_read_input: VecDeque::new(),
     });
     let scheduler = get_scheduler();
     scheduler.add_thread(idle_thread);
@@ -34,9 +35,12 @@ pub enum State{
 
 pub struct Scheduler{
     running: TCB,
+    //Queues for the threads
     queue_ready: VecDeque<TCB>,
     queue_terminate: VecDeque<TCB>,
-    queue_waiting_read: VecDeque<TCB>, //ist zur zeit der einzige blockierende syscall
+    queue_waiting_read: VecDeque<TCB>,
+    //Queues for stuff that threads can wait for
+    queue_waiting_read_input: VecDeque<u8>,
 }
 
 impl Scheduler{
@@ -63,9 +67,32 @@ impl Scheduler{
                 match new_state{
                     State::Ready       => { &mut self.queue_ready },
                     State::Terminate   => { &mut self.queue_terminate },
-                    State::WaitingRead => { &mut self.queue_waiting_read },
+                    State::WaitingRead => { 
+                        match self.queue_waiting_read_input.pop_front() {
+                            None => { //there is no input available, so we need to wait
+                                &mut self.queue_waiting_read
+                            },
+                            Some(c) => { //input is available, process it and make the thread ready
+                                syscalls::work::read(&mut old_running, c);
+                                &mut self.queue_ready
+                            },
+                        }
+                    },
                 }.push_back(old_running);
             }
+        }
+    }
+
+    //set of function to push something into the queue_waiting_*_input queues
+    pub fn push_queue_waiting_read_input(&mut self, c: u8){
+        match self.queue_waiting_read.pop_front() {
+            None => { //No thread is waiting for this input
+                self.queue_waiting_read_input.push_back(c);
+            },
+            Some(mut tcb) => {
+                syscalls::work::read(&mut tcb, c);
+                self.queue_ready.push_back(tcb);
+            },
         }
     }
 }

@@ -1,7 +1,6 @@
 use driver::serial::*;
 use alloc::vec::Vec;
 use alloc::string::String;
-use swi::SWI;
 use syscalls;
 
 pub struct TCB {
@@ -9,9 +8,9 @@ pub struct TCB {
     pub id: u32,
     pub name: String,
     // scheduling information
-    cpu_time: u32,
+    pub cpu_time: u32,
     // ...
-    register_stack: syscalls::RegisterStack,
+    pub register_stack: syscalls::RegisterStack,
     //memory information (should later contain mmu parameters) for now it contains a memory location that is the used for the thread stack
     memory: Vec<u8>,
 }

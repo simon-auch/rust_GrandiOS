@@ -106,3 +106,16 @@ fn handler_software_interrupt_helper(reg_sp: u32){
         }
     }
 }
+
+
+//contains all the function to process a syscall, given the needed inputs. Will typically be called from the scheduler if the inputs are available and the corresponding syscall was called for that thread
+//TODO: wenn we have a MMU we need to translate the addresses behind r0 and r1 before using them.
+pub mod work {
+    use utils::thread::TCB;
+    use swi;
+
+    pub fn read(tcb: &mut  TCB, c: u8){
+        let mut output : &mut swi::read::Output = unsafe{ &mut *(tcb.register_stack.r0 as *mut _) };
+        output.c = c;
+    }
+}
