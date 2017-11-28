@@ -19,12 +19,9 @@ use utils::vt;
 use utils::scheduler;
 use utils::thread::TCB;
 
-pub fn init() {
-    //get interrupt controller, initialises some instruction inside the vector table too
-    let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
+pub fn init(ic: &mut InterruptController) {
     //set the handler for the software interrupt
     ic.set_handler_software_interrupt(handler_software_interrupt);
-    //irq.enable();
 }
 
 //This represantates the memory layout that gets pushed onto the stack when the interrupt starts.

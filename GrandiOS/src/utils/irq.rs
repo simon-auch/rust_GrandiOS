@@ -1,18 +1,14 @@
 use driver::serial::*;
-use driver::interrupts::*;
+use driver::interrupts::InterruptController;
 
-pub fn enable(){
-    //enable interrupts
-    let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
-    ic.set_handler(1, handler_irq); //interrupt line 1 is SYS: Debug unit, clocks, etc
-    ic.set_priority(1, 0);
-    ic.set_sourcetype(1, 3);//positive edge triggered
+pub fn init(ic : &mut InterruptController, debug_unit : & DebugUnitWrapper){
+    ic.set_handler(1, handler_line_1); //interrupt line 1 is SYS: Debug unit, clocks, etc
     ic.enable();
-    DEBUG_UNIT.interrupt_set_rxrdy(true);
+    debug_unit.interrupt_set_rxrdy(true);
 }
 
 #[naked]
-extern fn handler_irq(){
+extern fn handler_line_1(){
     //IRQ_ENTRY from AT91_interrupts.pdf
     //Note: ldmfd/stmfd sp! is equivalent to pop/push and according to the docs the better way
     //TODO die stack pointer für den irq modus und den system/user modus muss zuerst noch gesetzt werden (beim system start)

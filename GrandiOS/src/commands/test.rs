@@ -13,7 +13,7 @@ use utils::thread::*;
 use utils::irq;
 use utils::registers;
 use utils::vt;
-use utils::syscalls;
+use utils::exceptions::software_interrupt;
 use utils::scheduler;
 use core::ptr::read_volatile;
 
@@ -96,9 +96,11 @@ fn test_lock(){
 }
 
 fn test_scheduler(){
+    println!("geht nicht mehr");
+    /*
     let thread_function_ptr: *mut _ = test_scheduler_thread as *mut _;
-    let mut tcb_idle    = TCB::new("Idle Thread".to_string(), thread_function_ptr, 0x1000);
-    let mut tcb_current = TCB::new("Running Thread".to_string(), 0 as *mut _, 0); //function and memory will be set when calling the switch interrupt
+    let mut tcb_idle    = TCB::new("Idle Thread".to_string(), thread_function_ptr, 0x1000, registers::CPSR_MODE_USER);
+    let mut tcb_current = TCB::new("Running Thread".to_string(), 0 as *mut _, 0, 0); //function, memory, and cpsr will be set when calling the switch interrupt
     //Initialise scheduler
     println!("Initialising scheduler");
     unsafe{ scheduler::init(tcb_current, tcb_idle) };
@@ -112,6 +114,7 @@ fn test_scheduler(){
     swi::switch::call(& input, &mut output);
     //print something after we returned
     println!("We returned from idle thread.");
+    */
 }
 fn test_scheduler_thread(){
     println!("Hi from Thread");
@@ -394,6 +397,8 @@ fn test_data_abort(){
     println!("Handler data_abort returned");
 }
 fn syscall_cat() {
+    println!("geht nicht mehr")
+    /*
     syscalls::init();
     irq::enable();
     let input      = swi::read::Input{};
@@ -404,4 +409,5 @@ fn syscall_cat() {
         swi::read::call(& input, &mut output);
     }
     println!("");
+    */
 }

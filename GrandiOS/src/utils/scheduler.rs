@@ -3,11 +3,13 @@
 use core::mem::replace;
 use utils::thread::TCB;
 use alloc::vec_deque::VecDeque;
-use syscalls;
+use utils::exceptions::software_interrupt;
+use utils::registers;
+use alloc::string::ToString;
 
 static mut SCHEDULER: Option<Scheduler> = None;
 
-pub unsafe fn init(current_tcb: TCB, idle_thread: TCB){
+pub unsafe fn init(current_tcb: TCB){
     SCHEDULER = Some(Scheduler{
         running: current_tcb,
         queue_ready: VecDeque::new(),
@@ -16,7 +18,8 @@ pub unsafe fn init(current_tcb: TCB, idle_thread: TCB){
         queue_waiting_read_input: VecDeque::new(),
     });
     let scheduler = get_scheduler();
-    scheduler.add_thread(idle_thread);
+    let mut tcb_idle = TCB::new("Idle Thread".to_string(), idle as *mut _ , 0x100, registers::CPSR_MODE_USER);
+    scheduler.add_thread(tcb_idle);
 }
 
 pub unsafe fn get_scheduler() -> &'static mut Scheduler {
@@ -50,7 +53,7 @@ impl Scheduler{
     pub fn add_thread(&mut self, tcb: TCB){
         self.queue_ready.push_back(tcb);
     }
-    pub fn switch(&mut self, register_stack: &mut syscalls::RegisterStack, new_state: State){
+    pub fn switch(&mut self, register_stack: &mut software_interrupt::RegisterStack, new_state: State){
         let mut next_tcb = self.queue_ready.pop_front();
         match next_tcb {
             None => {
@@ -73,7 +76,7 @@ impl Scheduler{
                                 &mut self.queue_waiting_read
                             },
                             Some(c) => { //input is available, process it and make the thread ready
-                                syscalls::work::read(&mut old_running, c);
+                                software_interrupt::work::read(&mut old_running, c);
                                 &mut self.queue_ready
                             },
                         }
@@ -90,9 +93,14 @@ impl Scheduler{
                 self.queue_waiting_read_input.push_back(c);
             },
             Some(mut tcb) => {
-                syscalls::work::read(&mut tcb, c);
+                software_interrupt::work::read(&mut tcb, c);
                 self.queue_ready.push_back(tcb);
             },
         }
     }
+}
+
+
+fn idle(){
+    loop{}
 }

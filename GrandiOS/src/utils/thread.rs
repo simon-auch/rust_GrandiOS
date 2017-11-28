@@ -1,7 +1,7 @@
 use driver::serial::*;
 use alloc::vec::Vec;
 use alloc::string::String;
-use syscalls;
+use utils::exceptions::software_interrupt;
 
 pub struct TCB {
     //TODO
@@ -10,7 +10,7 @@ pub struct TCB {
     // scheduling information
     pub cpu_time: u32,
     // ...
-    pub register_stack: syscalls::RegisterStack,
+    pub register_stack: software_interrupt::RegisterStack,
     //memory information (should later contain mmu parameters) for now it contains a memory location that is the used for the thread stack
     memory: Vec<u8>,
 }
@@ -19,7 +19,7 @@ pub struct TCB {
 static mut NEXT_ID: u32 = 0;
 
 impl TCB {
-    pub fn new(name: String, program_ptr: *mut u32, memory_size: usize) -> Self {
+    pub fn new(name: String, program_ptr: *mut u32, memory_size: usize, cpsr: u32) -> Self {
         let id;
         unsafe{
             NEXT_ID+=1;
@@ -27,9 +27,10 @@ impl TCB {
         }
         println!("Created TCB with pc=\t{:p}",program_ptr);
         let memory = Vec::with_capacity(memory_size);
-        let mut regs : syscalls::RegisterStack = Default::default();
+        let mut regs : software_interrupt::RegisterStack = Default::default();
         regs.lr = program_ptr as u32; //regs[13] ist das LR und der PC wird aus dem LR geladen
         regs.sp = unsafe { memory.as_ptr().offset(memory_size as isize) as u32 };
+        regs.cpsr = cpsr;
         TCB {
             id: id,
             name: name,
@@ -39,21 +40,11 @@ impl TCB {
         }
     }
 
-    pub fn load_registers(&mut self, registers: &mut syscalls::RegisterStack) {
+    pub fn load_registers(&mut self, registers: &mut software_interrupt::RegisterStack) {
         registers.copy(&mut self.register_stack)
     }
 
-    pub fn save_registers(&mut self, registers: & syscalls::RegisterStack) {
+    pub fn save_registers(&mut self, registers: & software_interrupt::RegisterStack) {
         self.register_stack.copy(registers);
     }
-}
-
-//IDLE Thread
-pub fn idle_thread() {
-    println!("Idling..");
-    /*
-    loop{
-    }
-    */
-    //TODO: need syscall EXIT
 }

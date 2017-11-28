@@ -33,7 +33,12 @@ mod driver{
 mod utils{
     pub mod spinlock;
     pub mod allocator;
-    pub mod syscalls;
+    pub mod exceptions{
+        pub mod data_abort;
+        pub mod undefined_instruction;
+        pub mod prefetch_abort;
+        pub mod software_interrupt;
+    }
     pub mod thread;
     pub mod scheduler;
     pub mod parser;
@@ -53,7 +58,7 @@ mod commands{
     pub mod higher;
 }
 use driver::*;
-use utils::syscalls;
+use alloc::string::ToString;
 
 #[global_allocator]
 static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x22000000, 0x23ffffff);
@@ -71,66 +76,85 @@ extern crate swi;
 #[no_mangle]
 #[naked]
 pub extern fn _start() {
-    //initialisiert register, stack pointer und remaped speicher
-    init();
+    init_stacks();
+    unsafe{asm!("sub sp, #0x40")}
+    {
+        main();//call another function to make sure rust correctly does its stack stuff
+    }
+    unsafe{asm!("add sp, #0x40")}
+}
+fn main(){
+    //make interupt table writable
+    let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
+    mc.remap();
+
     //Initialise the DebugUnit
     DEBUG_UNIT.reset();
     DEBUG_UNIT.enable();
-    syscalls::init();
+
+    //Initialisieren der Ausnahmen
+    println!("Initialisiere Ausnahmen");
+    let mut ic = unsafe { InterruptController::new(IT_BASE_ADDRESS, AIC_BASE_ADDRESS) } ;
+    utils::exceptions::software_interrupt::init(&mut ic);
+    utils::exceptions::data_abort::init(&mut ic);
+    utils::exceptions::undefined_instruction::init(&mut ic);
+    utils::exceptions::prefetch_abort::init(&mut ic);
+
+    //Initialisieren der Interrupts
+    println!("Initialisiere Interrupts");
+    utils::irq::init(&mut ic, & DEBUG_UNIT);
+
+    //Initialisieren des Schedulers
+    println!("Initialisiere Scheduler");
+    let mut tcb_current = utils::thread::TCB::new("Running Thread".to_string(), 0 as *mut _, 0, 0); //function, memory, and cpsr will be set when calling the switch interrupt
+    //Initialise scheduler
+    unsafe{ utils::scheduler::init(tcb_current) };
+
+    
     //commands::logo::draw();
+    println!("Starte Shell");
     utils::shell::run();
 }
 
 #[inline(always)]
 #[naked]
-fn init(){
-    //make interupt table writable
-    let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
-    mc.remap();
+fn init_stacks(){
     //initialise the stack pointers for all modes.
     //each stack gets around 1kbyte, except the fiq which has a bit less (vector table+ jump addresses) and the system/user stack which has 11kbyte
     unsafe{asm!("
-        mrs     r0, CPSR		//auslaesen vom status register
+        mov     r2, #0x200000
+        mrs     r0, CPSR	//auslaesen vom status register
         bic     r0, r0, #0x1F	//set all mode bits to zero
         orr     r1, r0, #0x11	//ARM_MODE_FIQ
         msr     CPSR, r1
-        mov     sp, #0x400	//set stack pointer for fiq mode
+        add     r2, #0x400
+        mov     sp, r2		//set stack pointer for fiq mode
         orr     r1, r0, #0x12	//ARM_MODE_IRQ
         msr     CPSR, r1
-        mov     sp, #0x800	//set stack pointer for irq mode
+        add     r2, #0x400
+        mov     sp, r2		//set stack pointer for irq mode
         orr     r1, r0, #0x13	//ARM_MODE_ABORT
         msr     CPSR, r1
-        mov     sp, #0xC00	//set stack pointer for abort mode
+        add     r2, #0x400
+        mov     sp, r2		//set stack pointer for abort mode
         orr     r1, r0, #0x17	//ARM_MODE_supervisor
         msr     CPSR, r1
-        mov     sp, #0x1000	//set stack pointer for supervisor mode
+        add     r2, #0x400
+        mov     sp, r2		//set stack pointer for supervisor mode
         orr     r1, r0, #0x1B	//ARM_MODE_UNDEFINED
         msr     CPSR, r1
-        mov     sp, #0x1400	//set stack pointer for undefined mode
+        add     r2, #0x400
+        mov     sp, r2		//set stack pointer for undefined mode
         orr     r1, r0, #0x1F	//ARM_MODE_SYS
         msr     CPSR, r1
-        mov     sp, #0x4000	//set stack pointer for system/user mode
+        add     r2, #0x2C00
+        mov     sp, r2		//set stack pointer for system/user mode
         "
         :
         :
         :
         :
     )}
-    //Code anschalten der interrupts (IRQ + FIQ), von dem Register CPSR müssen jeweils bit 7 und 6 auf 0 gesetzt werden, damit die interrupts aufgerufen werden.
-    //Zusätzlich müssen die Interrupts noch im advanced interrupt controller angeschaltet werden.
-    unsafe{
-        asm!("
-            push {r0}
-            mrs  r0, CPSR
-            bic  r0, r0, #0b11000000	//enable irq, fiq
-            msr  CPSR, r0
-            pop {r0}"
-            :
-            :
-            :
-            :
-        )
-    }
 }
 
 // These functions and traits are used by the compiler, but not
