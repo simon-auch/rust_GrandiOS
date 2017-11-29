@@ -53,7 +53,8 @@ macro_rules! command {
 static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>> = None;
 
 pub fn run() {
-    unsafe{write!(PRINTER, "test")};
+    println!("Welcome to pfush - the perfect functional shell");
+    println!("type help for command list");
     unsafe {
         COMMANDS = Some(vec![
             command!(Method, "it", get_it, self),
@@ -72,8 +73,6 @@ pub fn run() {
         ]);
     }
     let mut history = VecDeque::new();
-    println!("Welcome to pfush - the perfect functional shell");
-    println!("type help for command list");
     loop {
         let mut raw_input = read_command("> ", &mut history);
         history.push_back(raw_input.clone());
