@@ -41,33 +41,23 @@ mod utils{
     }
     pub mod thread;
     pub mod scheduler;
-    pub mod parser;
-    pub mod shell;
     pub mod registers;
-    pub mod vt;
     pub mod ring;
     pub mod irq;
-}
-mod commands{
-    pub mod logo;
-    pub mod cat;
-    pub mod test;
-    pub mod edit;
-    pub mod cowsay;
-    pub mod math;
-    pub mod higher;
+    pub mod vt;
 }
 use driver::*;
 use alloc::string::ToString;
 
 #[global_allocator]
-static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x22000000, 0x23ffffff);
+pub static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x22000000, 0x23ffffff);
 #[macro_use]
 extern crate alloc;
 extern crate compiler_builtins;
 extern crate rlibc;
 #[macro_use]
 extern crate swi;
+extern crate shell;
 
 //#[no_mangle]
 //keep the function name so we can call it from assembler
@@ -107,6 +97,7 @@ fn main(){
     //Initialisieren des Schedulers
     println!("Initialisiere Scheduler");
     let mut tcb_current = utils::thread::TCB::new("Running Thread".to_string(), 0 as *mut _, 0, 0); //function, memory, and cpsr will be set when calling the switch interrupt
+    tcb_current.set_priority(10);
     //Initialise scheduler
     unsafe{ utils::scheduler::init(tcb_current) };
 
@@ -118,43 +109,43 @@ fn main(){
         :
         :"volatile"
     );}
-    //commands::logo::draw();
     println!("Starte Shell");
-    utils::shell::run();
+    //Teste einen syscall
+    shell::run();
 }
 
 #[inline(always)]
 #[naked]
 fn init_stacks(){
     //initialise the stack pointers for all modes.
-    //each stack gets around 1kbyte, except the fiq which has a bit less (vector table+ jump addresses) and the system/user stack which has 11kbyte
+    //each stack gets around 2kbyte, except the fiq which has a bit less (vector table+ jump addresses) and the system/user stack which has (16-2*6 = 4)kbyte
     unsafe{asm!("
         mov     r2, #0x200000
         mrs     r0, CPSR	//auslaesen vom status register
         bic     r0, r0, #0x1F	//set all mode bits to zero
         orr     r1, r0, #0x11	//ARM_MODE_FIQ
         msr     CPSR, r1
-        add     r2, #0x400
+        add     r2, #0x800
         mov     sp, r2		//set stack pointer for fiq mode
         orr     r1, r0, #0x12	//ARM_MODE_IRQ
         msr     CPSR, r1
-        add     r2, #0x400
+        add     r2, #0x800
         mov     sp, r2		//set stack pointer for irq mode
         orr     r1, r0, #0x13	//ARM_MODE_ABORT
         msr     CPSR, r1
-        add     r2, #0x400
+        add     r2, #0x800
         mov     sp, r2		//set stack pointer for abort mode
         orr     r1, r0, #0x17	//ARM_MODE_supervisor
         msr     CPSR, r1
-        add     r2, #0x400
+        add     r2, #0x800
         mov     sp, r2		//set stack pointer for supervisor mode
         orr     r1, r0, #0x1B	//ARM_MODE_UNDEFINED
         msr     CPSR, r1
-        add     r2, #0x400
+        add     r2, #0x800
         mov     sp, r2		//set stack pointer for undefined mode
         orr     r1, r0, #0x1F	//ARM_MODE_SYS
         msr     CPSR, r1
-        add     r2, #0x2C00
+        add     r2, #0x1800
         mov     sp, r2		//set stack pointer for system/user mode
         "
         :

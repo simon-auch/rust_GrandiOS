@@ -1,4 +1,4 @@
-use driver::serial::*;
+use core::fmt::Write;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::String;

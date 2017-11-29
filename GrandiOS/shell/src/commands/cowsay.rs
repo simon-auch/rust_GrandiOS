@@ -1,13 +1,12 @@
-use driver::serial::*;
+use core::fmt::Write;
 use utils::parser::Argument;
-use utils::shell::*;
 use utils::vt;
 use core::result::Result;
 use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 
 pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    eval_args(&mut args, 0);
+    ::eval_args(&mut args, 0);
     if args.len() == 0 { return Err("Arguments expected".to_string()); }
     print!("{}", "\n".repeat(8));
     print!("{}< ", &vt::CursorControl::Up{count: 7});

@@ -1,4 +1,4 @@
-//Syscalls interface
+    //Syscalls interface
 //How should a syscall look like (example read_char):
 // 1. reserve space for the return value of the syscall
 // 2. create a pointer to the reserved space for the return value
@@ -18,6 +18,8 @@ use driver::serial::*;
 use utils::vt;
 use utils::scheduler;
 use utils::thread::TCB;
+use utils::allocator::*;
+use alloc::allocator::Alloc;
 
 pub fn init(ic: &mut InterruptController) {
     //set the handler for the software interrupt
@@ -88,13 +90,33 @@ fn handler_software_interrupt_helper(reg_sp: u32){
     let instruction = unsafe { read_volatile((regs.lr - 0x4) as *mut u32) };
     let immed = instruction & 0xFFFFFF;
     let mut sched = unsafe {scheduler::get_scheduler()};
-
+        
     match immed {
         SWITCH!() => {
             sched.switch(regs, scheduler::State::Ready);
         },
         READ!() => {
             sched.switch(regs, scheduler::State::WaitingRead);
+        },
+        WRITE!() => {
+            let mut input : &mut swi::write::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+            write!(debug_unit, "{}", input.c as char).unwrap();
+        },
+        ALLOC!() => {
+            let mut input : &mut swi::useralloc::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            let mut output: &mut swi::useralloc::Output = unsafe{ &mut *(regs.r0 as *mut _) };
+            let layout = input.l.clone();
+            unsafe {
+                output.r = Some((&mut &::GLOBAL).alloc(layout));
+            }
+        },
+        DEALLOC!() => {
+            let mut input : &mut swi::userdealloc::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            let layout = input.l.clone();
+            unsafe {
+                (&mut &::GLOBAL).dealloc(input.p, layout);
+            }
         },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };

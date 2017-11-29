@@ -1,17 +1,16 @@
 use utils::parser::Argument;
-use utils::shell;
 use core::result::Result;
 use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 
 pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() < 2 { return Ok(args); } //TODO
-    shell::unpack_args(&mut args, 2);
+    ::unpack_args(&mut args, 2);
     if !args[1].is_list() { return Err("Arg2: List expected".to_string()); }
     let mut res = vec![];
     for e in args[1].get_list() {
         let mut cmd = get_cmd(&mut args, e);
-        match shell::apply(&mut Argument::Application(cmd.clone())) {
+        match ::apply(&mut Argument::Application(cmd.clone())) {
             Some(r) => res.push(r),
             None => return Err(format!("Executing {}  failed", Argument::Application(cmd).to_string()))
         }
@@ -23,7 +22,7 @@ pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
 
 pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() < 3 { return Ok(args); } //TODO
-    shell::unpack_args(&mut args, 3);
+    ::unpack_args(&mut args, 3);
     if !args[2].is_list() { return Err("Arg3: List expected".to_string()); }
     let mut akk = args.remove(1);
     for e in args[1].get_list() {
@@ -33,7 +32,7 @@ pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
             vec![args[0].clone(), e.clone()]
         };
         cmd = get_cmd(&mut cmd, e);
-        match shell::apply(&mut Argument::Application(cmd.clone())) {
+        match ::apply(&mut Argument::Application(cmd.clone())) {
             Some(r) => akk = r,
             None => return Err(format!("Executing {} failed", Argument::Application(cmd).to_string()))
         }
@@ -64,12 +63,12 @@ fn get_cmd(args: &mut Vec<Argument>, e: Argument) -> Vec<Argument> {
 
 pub fn dot(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() < 3 { return Ok(args); }
-    shell::unpack_args(&mut args, 3);
+    ::unpack_args(&mut args, 3);
     let f1 = args.remove(0);
     let f2 = args.remove(0);
     let mut cmd = vec![f1, Argument::Application(vec![f2, args[0].clone()])];
-    shell::unpack_args(&mut cmd, 0);
-    match shell::apply(&mut Argument::Application(cmd.clone())) {
+    ::unpack_args(&mut cmd, 0);
+    match ::apply(&mut Argument::Application(cmd.clone())) {
         Some(r) => args[0] = r,
         None => return Err(format!("Executing {} failed", Argument::Application(cmd).to_string()))
     }
