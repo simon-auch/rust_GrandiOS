@@ -3,18 +3,20 @@
 use core::mem::replace;
 use utils::thread::TCB;
 use alloc::vec_deque::VecDeque;
+use alloc::binary_heap::BinaryHeap;
 use utils::exceptions::software_interrupt;
 use utils::registers;
 use alloc::string::ToString;
+use core::cmp::Ordering;
 
 static mut SCHEDULER: Option<Scheduler> = None;
 
 pub unsafe fn init(current_tcb: TCB){
     SCHEDULER = Some(Scheduler{
         running: current_tcb,
-        queue_ready: VecDeque::new(),
-        queue_terminate: VecDeque::new(),
-        queue_waiting_read: VecDeque::new(),
+        queue_ready: BinaryHeap::new(),
+        queue_terminate: BinaryHeap::new(),
+        queue_waiting_read: BinaryHeap::new(),
         queue_waiting_read_input: VecDeque::new(),
     });
     let scheduler = get_scheduler();
@@ -36,12 +38,35 @@ pub enum State{
     WaitingRead,
 }
 
+//struct that contains a tcb and a priority which to use for scheduling
+struct Priority<T>{
+    priority: u32,
+    data: T,
+}
+//impls we need for BinaryHeap to work
+impl<T> Eq for Priority<T> {}
+impl<T> Ord for Priority<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.priority.cmp(&other.priority)
+    }
+}
+impl<T> PartialOrd for Priority<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl<T> PartialEq for Priority<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.priority == other.priority
+    }
+}
+
 pub struct Scheduler{
     running: TCB,
     //Queues for the threads
-    queue_ready: VecDeque<TCB>,
-    queue_terminate: VecDeque<TCB>,
-    queue_waiting_read: VecDeque<TCB>,
+    queue_ready: BinaryHeap<Priority<TCB>>,
+    queue_terminate: BinaryHeap<Priority<TCB>>,
+    queue_waiting_read: BinaryHeap<Priority<TCB>>,
     //Queues for stuff that threads can wait for
     queue_waiting_read_input: VecDeque<u8>,
 }
@@ -51,7 +76,7 @@ impl Scheduler{
         &mut self.running
     }
     pub fn add_thread(&mut self, tcb: TCB){
-        self.queue_ready.push_back(tcb);
+        self.queue_ready.push(tcb);
     }
     pub fn switch(&mut self, register_stack: &mut software_interrupt::RegisterStack, new_state: State){
         let mut next_tcb = self.queue_ready.pop_front();
@@ -81,7 +106,7 @@ impl Scheduler{
                             },
                         }
                     },
-                }.push_back(old_running);
+                }.push(Priority{priority: old_running.get_priority(), data: old_running});
             }
         }
     }

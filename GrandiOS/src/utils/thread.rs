@@ -9,6 +9,7 @@ pub struct TCB {
     pub name: String,
     // scheduling information
     pub cpu_time: u32,
+    priority: u32,
     // ...
     pub register_stack: software_interrupt::RegisterStack,
     //memory information (should later contain mmu parameters) for now it contains a memory location that is the used for the thread stack
@@ -35,9 +36,17 @@ impl TCB {
             id: id,
             name: name,
             cpu_time: 0,
+            priority: 0,
             register_stack: regs,
             memory: memory,
         }
+    }
+
+    pub fn set_priority(&mut self, priority: u32){
+        self.priority = priority;
+    }
+    pub fn get_priority(&self) -> u32 {
+        self.priority
     }
 
     pub fn load_registers(&mut self, registers: &mut software_interrupt::RegisterStack) {
