@@ -108,7 +108,8 @@ fn main(){
         :
         :"volatile"
     );}
-    //commands::logo::draw();
+    println!("Starte Shell");
+    //Teste einen syscall
     shell::run();
 }
 

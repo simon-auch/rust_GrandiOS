@@ -90,7 +90,7 @@ fn handler_software_interrupt_helper(reg_sp: u32){
     let instruction = unsafe { read_volatile((regs.lr - 0x4) as *mut u32) };
     let immed = instruction & 0xFFFFFF;
     let mut sched = unsafe {scheduler::get_scheduler()};
-
+        
     match immed {
         SWITCH!() => {
             sched.switch(regs, scheduler::State::Ready);
@@ -99,33 +99,23 @@ fn handler_software_interrupt_helper(reg_sp: u32){
             sched.switch(regs, scheduler::State::WaitingRead);
         },
         WRITE!() => {
-            let mut tcb = sched.get_current_tcb();
-            let mut input : &mut swi::write::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
-		    write!(DEBUG_UNIT, "{}", input.c as char).unwrap();
+            let mut input : &mut swi::write::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+            write!(debug_unit, "{}", input.c as char).unwrap();
         },
         ALLOC!() => {
-            let mut tcb = sched.get_current_tcb();
-            let mut input : &mut swi::useralloc::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
-            let mut output: &mut swi::useralloc::Output = unsafe{ &mut *(tcb.register_stack.r0 as *mut _) };
-            match input.l.take() {
-                None => {}, //Why did you call this with nothing to allocate
-                Some(layout) => {
-                    unsafe {
-                        output.r = Some((&mut &::GLOBAL).alloc(layout));
-                    }
-                },
+            let mut input : &mut swi::useralloc::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            let mut output: &mut swi::useralloc::Output = unsafe{ &mut *(regs.r0 as *mut _) };
+            let layout = input.l.clone();
+            unsafe {
+                output.r = Some((&mut &::GLOBAL).alloc(layout));
             }
         },
         DEALLOC!() => {
-            let mut tcb = sched.get_current_tcb();
-            let mut input : &mut swi::userdealloc::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
-            match input.l.take() {
-                None => {}, //Well... why did you call this with nothing to deallocate??
-                Some(layout) => {
-                    unsafe {
-                        (&mut &::GLOBAL).dealloc(input.p, layout);
-                    }
-                },
+            let mut input : &mut swi::userdealloc::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            let layout = input.l.clone();
+            unsafe {
+                (&mut &::GLOBAL).dealloc(input.p, layout);
             }
         },
         _ => {

@@ -53,6 +53,7 @@ macro_rules! command {
 static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>> = None;
 
 pub fn run() {
+    unsafe{write!(PRINTER, "test")};
     unsafe {
         COMMANDS = Some(vec![
             command!(Method, "it", get_it, self),
