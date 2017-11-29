@@ -33,6 +33,7 @@ version = "0.1.0"
 dependencies = [
  "aids 0.1.0",
  "swi 0.1.0",
+ "vt 0.1.0",
 ]
 
 [[package]]

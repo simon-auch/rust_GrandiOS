@@ -13,7 +13,38 @@ init!();
 
 mod utils{
     pub mod parser;
-    pub mod vt;
+    pub mod vt {
+        use core::fmt::Write;
+        extern crate vt as vt_lib;
+        pub use self::vt_lib::*;
+        pub fn get_position() -> (u32, u32) {
+            print!("\x1B[6n");
+            //we expect a response in the form <Esc>[h;wR
+            let mut h: u32 = 0;
+            let mut w: u32 = 0;
+            let _ = read!(); //Escape
+            let _ = read!(); //[
+            let mut c = read!();
+            while c != 59 { //read to ;
+                h = h*10 + (c as u32) - 48;
+                c = read!();
+            }
+            c = read!();
+            while c != 82 { //read to R
+                w = w*10 + (c as u32) - 48;
+                c = read!();
+            }
+            (w, h)
+        }
+        
+        pub fn get_size() -> (u32, u32) {
+            print!("\x1B7");
+            print!("\x1B[999:999H");
+            let res = get_position();
+            print!("\x1B8");
+            res
+        }
+    }
 }
 mod commands{
     //pub mod logo;

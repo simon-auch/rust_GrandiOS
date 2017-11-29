@@ -8,3 +8,4 @@ authors = ["myname"]
 [dependencies]
 aids = { path = "../aids" }
 swi = { path = "../swi" }
+vt = { path = "../vt" }
