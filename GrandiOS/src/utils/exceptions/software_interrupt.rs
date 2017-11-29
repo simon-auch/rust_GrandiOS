@@ -36,7 +36,7 @@ macro_rules! build_register_stack {
         }
         impl RegisterStack {
             pub fn copy(&mut self, source: & Self){
-                $(self.$name = source.$name);*
+                $(self.$name = source.$name);*;
             }
         }
     );
@@ -62,7 +62,7 @@ extern fn handler_software_interrupt(){
         mov    r0, sp    //move the stackpointer to r0 to know where r0-r12,r14 is stored
         sub    sp, 0x40" //make a bit of space on the stack for rust, since rust creates code like: "str r0, [pc, #4]" it expects the sp to be decremented before once. The 0x40 is a random guess and provides space for a few variables.
         :"={r0}"(reg_sp)
-        :::
+        :::"volatile"
     )}
     {//this block is here to make sure destructors are called if needed.
         handler_software_interrupt_helper(reg_sp);
@@ -81,11 +81,12 @@ extern fn handler_software_interrupt(){
         pop    {r0-r12}
         pop    {r14}
         movs   pc, r14"
-        ::::
+        ::::"volatile"
     )}
 }
 
-fn handler_software_interrupt_helper(reg_sp: u32){
+#[inline(never)]
+extern fn handler_software_interrupt_helper(reg_sp: u32){
     let regs = unsafe{ &mut(*(reg_sp as *mut RegisterStack)) };
     let instruction = unsafe { read_volatile((regs.lr - 0x4) as *mut u32) };
     let immed = instruction & 0xFFFFFF;

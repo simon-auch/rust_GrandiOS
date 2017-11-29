@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use alloc::string::String;
 use utils::exceptions::software_interrupt;
 
+#[derive(Debug)]
 pub struct TCB {
     //TODO
     pub id: u32,

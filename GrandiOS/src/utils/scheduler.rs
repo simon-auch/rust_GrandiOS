@@ -83,6 +83,8 @@ impl Scheduler{
     pub fn switch(&mut self, register_stack: &mut software_interrupt::RegisterStack, new_state: State){
         //save registers for current thread
         let mut running = self.running.take().unwrap();
+        //println!("Switching from: {:?}", running);
+        //println!("Current registers: {:?}", register_stack);
         running.save_registers(&register_stack);
         //make sure the old thread gets the correct state and gets moved into the correct Queue
         add_thread_to_queue(match new_state{
@@ -101,6 +103,7 @@ impl Scheduler{
             },
         }, running);
         let mut next = self.queue_ready.pop().unwrap().data;  //muss es immer geben, da idle thread
+        //println!("Switching to: {:?}", next);
         next.load_registers(register_stack);
         self.running = Some(next);
     }
