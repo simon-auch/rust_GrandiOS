@@ -1,0 +1,39 @@
+[[package]]
+name = "aids"
+version = "0.1.0"
+dependencies = [
+ "swi 0.1.0",
+]
+
+[[package]]
+name = "compiler_builtins"
+version = "0.1.0"
+source = "git+https://github.com/rust-lang-nursery/compiler-builtins#200c94eebf3705fa9590451f5a9e8c3fb94d7323"
+
+[[package]]
+name = "rlibc"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "shell"
+version = "0.1.0"
+dependencies = [
+ "aids 0.1.0",
+ "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
+ "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swi 0.1.0",
+ "vt 0.1.0",
+]
+
+[[package]]
+name = "swi"
+version = "0.1.0"
+
+[[package]]
+name = "vt"
+version = "0.1.0"
+
+[metadata]
+"checksum compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)" = "<none>"
+"checksum rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"

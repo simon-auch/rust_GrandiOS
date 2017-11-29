@@ -24,10 +24,23 @@ if [ $? -eq 1 ]; then
 fi
 
 #build
+#First we build the shell
+cd shell
+cp ../armv4t-none-eabi.json armv4t-none-eabi.json #Ja das muss sein, sonst gibts kryptische fehlermeldungen von xargo
 xargo clean
-xargo build --release --target armv4t-none-eabi
+xargo build --target armv4t-none-eabi
+rm armv4t-none-eabi.json
 #link + cleanup
-$LINKER --gc-sections -Tkernel.lds -o kernel target/armv4t-none-eabi/release/libGrandiOS.a
+$LINKER --gc-sections -Tlinker.lds -o shell target/armv4t-none-eabi/debug/libshell.a
+cd ..
+
+exit 1
+
+#Now we build the kernel. the binarys of the programs will be statically linked into the kernel
+xargo clean
+xargo build --target armv4t-none-eabi
+#link + cleanup
+$LINKER --gc-sections -Tlinker.lds -o kernel target/armv4t-none-eabi/debug/libGrandiOS.a shell/shell
 
 if [[ $? == 0 && "$@" != "" ]]; then
   $@ -kernel kernel

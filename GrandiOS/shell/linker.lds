@@ -1,7 +1,7 @@
-ENTRY(_start) 
+ENTRY(_start_shell) 
 SECTIONS
 { 
-. = 0x20000000;
+. = 0x0;
 .init : { *(.init) }
 .text : { *(.text) }
 }

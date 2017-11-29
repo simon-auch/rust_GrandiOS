@@ -15,8 +15,8 @@ macro_rules! init {
         extern crate swi;
         use core::fmt;
         use core::fmt::Write;
-        //#[global_allocator]
-        //static GLOBAL: aids::allocator::Allocator = aids::allocator::Allocator::new();
+        #[global_allocator]
+        static GLOBAL: aids::allocator::Allocator = aids::allocator::Allocator::new();
         pub struct Printer;
         pub static mut PRINTER: Printer = Printer{};
         impl fmt::Write for Printer{
@@ -36,6 +36,18 @@ macro_rules! init {
                 fmt::write(self, args)
             }
         }
+        // These functions and traits are used by the compiler, but not
+        // for a bare-bones hello world. These are normally
+        // provided by libstd.
+        #[lang = "eh_personality"]
+        extern fn eh_personality() {}
+        #[lang = "panic_fmt"]
+        #[no_mangle]
+        pub fn panic_fmt() -> ! { loop {} }
+
+        // We need this to remove a linking error for the allocator
+        #[no_mangle]
+        pub unsafe fn __aeabi_unwind_cpp_pr0() { loop {} }
     );
 }
 #[macro_export]

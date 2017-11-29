@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(lang_items)]
 #![feature(alloc,global_allocator)]
 #![feature(range_contains)]
 #![feature(slice_concat_ext)]
@@ -7,6 +8,7 @@
 #![allow(unused_mut)]
 #![allow(unused_imports)]
 #![allow(dead_code)]
+#![feature(compiler_builtins_lib)]
 #[macro_use]
 extern crate aids;
 init!();
@@ -57,6 +59,8 @@ mod commands{
     pub mod higher;
 }
 
+extern crate rlibc;
+extern crate compiler_builtins;
 use utils::parser::*;
 use utils::vt;
 use commands::*;
@@ -84,7 +88,8 @@ macro_rules! command {
 
 static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>> = None;
 
-pub fn run() {
+#[no_mangle]
+pub fn _start_shell() {
     println!("Welcome to pfush - the perfect functional shell");
     println!("type help for command list");
     unsafe {

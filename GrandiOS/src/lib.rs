@@ -57,7 +57,6 @@ extern crate compiler_builtins;
 extern crate rlibc;
 #[macro_use]
 extern crate swi;
-extern crate shell;
 
 //#[no_mangle]
 //keep the function name so we can call it from assembler
@@ -67,11 +66,8 @@ extern crate shell;
 #[naked]
 pub extern fn _start() {
     init_stacks();
-    unsafe{asm!("sub sp, #0x40")}
-    {
-        main();//call another function to make sure rust correctly does its stack stuff
-    }
-    unsafe{asm!("add sp, #0x40")}
+    main();//call another function to make sure rust correctly does its stack stuff
+    loop{};
 }
 fn main(){
     //make interupt table writable
@@ -110,8 +106,6 @@ fn main(){
         :"volatile"
     );}
     println!("Starte Shell");
-    //Teste einen syscall
-    shell::run();
 }
 
 #[inline(always)]
