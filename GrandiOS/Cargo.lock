@@ -20,7 +20,7 @@ dependencies = [
 [[package]]
 name = "compiler_builtins"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang-nursery/compiler-builtins#2d414afec5e9bd41cc3a507b745ab6925cd29413"
+source = "git+https://github.com/rust-lang-nursery/compiler-builtins#200c94eebf3705fa9590451f5a9e8c3fb94d7323"
 
 [[package]]
 name = "rlibc"
