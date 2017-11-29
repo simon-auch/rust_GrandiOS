@@ -1,6 +1,5 @@
-use driver::serial::*;
+use core::fmt::Write;
 use utils::parser::Argument;
-use utils::shell::*;
 use utils::vt;
 use core::str;
 use core::result::Result;
@@ -35,7 +34,7 @@ fn print_line(i: usize) {
 }
 
 pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    eval_args(&mut args, 0);
+    ::eval_args(&mut args, 0);
     if args.len() < 1 {
         return Err("Start address and an optional length needed!".to_string());
     }
@@ -49,7 +48,7 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     let start = if args[0].is_int() {
         args[0].get_int().unwrap()
     } else {
-        (get_function(args[0].clone()).unwrap()) as usize
+        (::get_function(args[0].clone()).unwrap()) as usize
     };
     let length = if args.len() > 1 { args[1].get_int().unwrap() } else { width*8 };
     if length <= 0 {

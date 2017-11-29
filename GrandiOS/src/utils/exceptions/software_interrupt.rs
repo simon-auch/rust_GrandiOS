@@ -1,4 +1,4 @@
-//Syscalls interface
+    //Syscalls interface
 //How should a syscall look like (example read_char):
 // 1. reserve space for the return value of the syscall
 // 2. create a pointer to the reserved space for the return value
@@ -18,6 +18,7 @@ use driver::serial::*;
 use utils::vt;
 use utils::scheduler;
 use utils::thread::TCB;
+use alloc::heap::Alloc;
 
 pub fn init(ic: &mut InterruptController) {
     //set the handler for the software interrupt
@@ -95,6 +96,26 @@ fn handler_software_interrupt_helper(reg_sp: u32){
         },
         READ!() => {
             sched.switch(regs, scheduler::State::WaitingRead);
+        },
+        WRITE!() => {
+            let mut tcb = sched.get_current_tcb();
+            let mut input : &mut swi::write::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
+		    write!(DEBUG_UNIT, "{}", input.c as char).unwrap();
+        },
+        ALLOC!() => {
+            let mut tcb = sched.get_current_tcb();
+            let mut input : &mut swi::useralloc::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
+            let mut output: &mut swi::useralloc::Output = unsafe{ &mut *(tcb.register_stack.r0 as *mut _) };
+            unsafe {
+                output.r = Some(::GLOBAL.alloc(input.l));
+            }
+        },
+        DEALLOC!() => {
+            let mut tcb = sched.get_current_tcb();
+            let mut input : &mut swi::userdealloc::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
+            unsafe {
+                ::GLOBAL.dealloc(input.p, input.l);
+            }
         },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };

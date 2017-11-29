@@ -1,7 +1,7 @@
 use swi;
-use alloc::heap::Layout, AllocErr;
+use alloc::heap::{Alloc, Layout, AllocErr};
 
-struct Allocator {}
+pub struct Allocator {}
 
 impl Allocator {
 	pub const fn new() -> Self { Allocator{}  }
@@ -15,7 +15,7 @@ unsafe impl<'a> Alloc for &'a Allocator {
         output.r.unwrap()
     }
     unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
-        let input      = swi::userdealloc::Input{l:layout};
+        let input      = swi::userdealloc::Input{p:ptr, l:layout};
         let mut output = swi::userdealloc::Output{};
         swi::userdealloc::call(& input, &mut output);
     }

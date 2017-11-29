@@ -61,4 +61,4 @@ build_swi!(switch;      SWITCH ; ; );
 build_swi!(read;        READ   ; ; c:u8);
 build_swi!(write;       WRITE  ; c:u8; );
 build_swi!(useralloc;   ALLOC  ; l:Layout; r:Option<Result<*mut u8, AllocErr>>; alloc::heap::Layout, alloc::heap::AllocErr);
-build_swi!(userdealloc; DEALLOC; l:Layout; ; alloc::heap::Layout);
+build_swi!(userdealloc; DEALLOC; p:*mut u8, l:Layout; ; alloc::heap::Layout);

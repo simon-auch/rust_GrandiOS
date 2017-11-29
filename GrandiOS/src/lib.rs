@@ -41,33 +41,23 @@ mod utils{
     }
     pub mod thread;
     pub mod scheduler;
-    pub mod parser;
-    pub mod shell;
     pub mod registers;
-    pub mod vt;
     pub mod ring;
     pub mod irq;
-}
-mod commands{
-    pub mod logo;
-    pub mod cat;
-    pub mod test;
-    pub mod edit;
-    pub mod cowsay;
-    pub mod math;
-    pub mod higher;
+    pub mod vt;
 }
 use driver::*;
 use alloc::string::ToString;
 
 #[global_allocator]
-static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x22000000, 0x23ffffff);
+pub static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x22000000, 0x23ffffff);
 #[macro_use]
 extern crate alloc;
 extern crate compiler_builtins;
 extern crate rlibc;
 #[macro_use]
 extern crate swi;
+extern crate shell;
 
 //#[no_mangle]
 //keep the function name so we can call it from assembler
@@ -119,8 +109,7 @@ fn main(){
         :"volatile"
     );}
     //commands::logo::draw();
-    println!("Starte Shell");
-    utils::shell::run();
+    shell::run();
 }
 
 #[inline(always)]

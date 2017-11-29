@@ -1,4 +1,30 @@
-use driver::serial::*;
+#![no_std]
+#![feature(alloc,global_allocator)]
+#![feature(range_contains)]
+#![feature(slice_concat_ext)]
+#![allow(unused_variables)]
+#![allow(unused_unsafe)]
+#![allow(unused_mut)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
+#[macro_use]
+extern crate aids;
+init!();
+
+mod utils{
+    pub mod parser;
+    pub mod vt;
+}
+mod commands{
+    //pub mod logo;
+    pub mod cat;
+    //pub mod test;
+    pub mod edit;
+    pub mod cowsay;
+    pub mod math;
+    pub mod higher;
+}
+
 use utils::parser::*;
 use utils::vt;
 use commands::*;
@@ -8,13 +34,10 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
-use utils::spinlock;
-use swi;
 
-static IT: spinlock::Spinlock<Argument> = spinlock::Spinlock::new(Argument::Nothing);
+static mut IT: Argument = Argument::Nothing;
 pub fn get_it(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    let it = IT.lock();
-    args.insert(0, (*it).clone());
+    unsafe { args.insert(0, IT.clone()); }
     Ok(args)
 }
 
@@ -33,8 +56,8 @@ pub fn run() {
     unsafe {
         COMMANDS = Some(vec![
             command!(Method, "it", get_it, self),
-            command!(Method, "logo", exec, logo),
-            command!(Method, "test", exec, test),
+            //command!(Method, "logo", exec, logo),
+            //command!(Method, "test", exec, test),
             command!(Method, "edit", exec, edit),
             command!(Method, "cowsay", exec, cowsay),
             command!(Method, "cat", exec, cat),
@@ -58,8 +81,7 @@ pub fn run() {
             Ok(mut v) => { 
                 match apply(&mut v.0[0]) {
                     Some(arg) => {
-                        let mut it = IT.lock();
-                        *it = arg.clone();
+                        unsafe { IT = arg.clone(); }
                         if arg.is_something() {
                             println!("{}", arg.to_string());
                         }
@@ -195,10 +217,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
     let mut histpos = history.len();
     let mut stringpos = 0;
     loop {
-        let input      = swi::read::Input{};
-        let mut output = swi::read::Output{c: 0};
-        swi::read::call(& input, &mut output);
-        let c = output.c;
+        let c = read!();
         match c {
             10 | 13 => { //newline
                 println!("");
