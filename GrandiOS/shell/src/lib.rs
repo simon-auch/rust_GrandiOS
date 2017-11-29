@@ -17,6 +17,7 @@ mod utils{
         use core::fmt::Write;
         extern crate vt as vt_lib;
         pub use self::vt_lib::*;
+        //These two function currently cannot be implemented in vt, since they require a read makro (and we dont have input streams, or any kind of abstraction for this).
         pub fn get_position() -> (u32, u32) {
             print!("\x1B[6n");
             //we expect a response in the form <Esc>[h;wR
