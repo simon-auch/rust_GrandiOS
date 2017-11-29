@@ -10,5 +10,6 @@ crate-type = ["staticlib"]
 swi = { path = "./swi" }
 aids = { path = "./aids" }
 shell = { path = "./shell" }
+vt = { path = "./vt" }
 compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
 rlibc = "1.0.0"

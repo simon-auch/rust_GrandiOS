@@ -3,11 +3,11 @@
 //Sections that are missing:
 //Scrolling, Tab Control, Erasing Text, Printing, Define Key
 
+#![no_std]
 
 //"\x1B" is the Escape character.
 
 use core::fmt;
-use driver::serial::*;
 
 //Some public constants that are often used
 pub const CF_BLACK:    Color = Color { ct: ColorType::Foreground, cc: ColorCode::Black};
@@ -137,34 +137,6 @@ pub fn parse_input(s: &str) -> Input {
         if haystick.as_str() == s { return haystick.clone(); }
     }
     Input::Unknown
-}
-
-pub fn get_position() -> (u32, u32) {
-	print!("\x1B[6n");
-    //we expect a response in the form <Esc>[h;wR
-    let mut h: u32 = 0;
-    let mut w: u32 = 0;
-    let _ = read!(); //Escape
-    let _ = read!(); //[
-	let mut c = read!();
-	while c != 59 { //read to ;
-        h = h*10 + (c as u32) - 48;
-        c = read!();
-	}
-    c = read!();
-    while c != 82 { //read to R
-        w = w*10 + (c as u32) - 48;
-        c = read!();
-    }
-    (w, h)
-}
-
-pub fn get_size() -> (u32, u32) {
-    print!("\x1B7");
-    print!("\x1B[999:999H");
-    let res = get_position();
-    print!("\x1B8");
-    res
 }
 
 impl fmt::Display for Color {

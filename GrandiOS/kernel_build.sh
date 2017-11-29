@@ -25,9 +25,9 @@ fi
 
 #build
 xargo clean
-xargo build --target armv4t-none-eabi
+xargo build --release --target armv4t-none-eabi
 #link + cleanup
-$LINKER --gc-sections -Tkernel.lds -o kernel target/armv4t-none-eabi/debug/libGrandiOS.a
+$LINKER --gc-sections -Tkernel.lds -o kernel target/armv4t-none-eabi/release/libGrandiOS.a
 
 if [[ $? == 0 && "$@" != "" ]]; then
   $@ -kernel kernel

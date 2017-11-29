@@ -44,7 +44,7 @@ mod utils{
     pub mod registers;
     pub mod ring;
     pub mod irq;
-    pub mod vt;
+    extern crate vt;
 }
 use driver::*;
 use alloc::string::ToString;

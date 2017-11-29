@@ -1,0 +1,8 @@
+[package]
+name = "vt"
+version = "0.1.0"
+authors = ["simon"]
+
+[lib]
+
+[dependencies]
