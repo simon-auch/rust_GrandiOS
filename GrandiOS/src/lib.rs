@@ -58,6 +58,10 @@ extern crate rlibc;
 #[macro_use]
 extern crate swi;
 
+extern {
+    fn _shell_start();
+}
+
 //#[no_mangle]
 //keep the function name so we can call it from assembler
 //pub extern
@@ -77,6 +81,9 @@ fn main(){
     //Initialise the DebugUnit
     DEBUG_UNIT.reset();
     DEBUG_UNIT.enable();
+    
+    println!("Waiting for keypress before continue");
+    read!();
 
     //Initialisieren der Ausnahmen
     println!("Initialisiere Ausnahmen");
@@ -92,7 +99,7 @@ fn main(){
 
     //Initialisieren des Schedulers
     println!("Initialisiere Scheduler");
-    let mut tcb_current = utils::thread::TCB::new("Shell Thread".to_string(), 0 as *mut _, 0, 0); //function, memory, and cpsr will be set when calling the switch interrupt
+    let mut tcb_current = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *mut _, 0, 0); //function, memory, and cpsr will be set when calling the switch interrupt
     tcb_current.set_priority(10);
     //Initialise scheduler
     unsafe{ utils::scheduler::init(tcb_current) };
@@ -106,6 +113,7 @@ fn main(){
         :"volatile"
     );}
     println!("Starte Shell");
+    unsafe{_shell_start()};
 }
 
 #[inline(always)]

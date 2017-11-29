@@ -89,7 +89,7 @@ macro_rules! command {
 static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>> = None;
 
 #[no_mangle]
-pub fn _start_shell() {
+pub extern fn _start() {
     println!("Welcome to pfush - the perfect functional shell");
     println!("type help for command list");
     unsafe {

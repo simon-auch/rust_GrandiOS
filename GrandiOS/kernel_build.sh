@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LINKER_SIMON="arm-linux-gnueabihf-ld"
+LINKER_SIMON="arm-none-eabi-ld"
 LINKER_FU="/home/mi/linnert/arm/bin/arm-none-eabi-ld"
 LINKER_ARCH="/usr/arm-none-eabi/bin/ld"
 
@@ -12,6 +12,22 @@ fi
 which $LINKER_ARCH >/dev/null 2>&1
 if [ $? -eq 0 ]; then
   LINKER=$LINKER_ARCH
+fi
+
+
+
+OBJCOPY_SIMON="arm-none-eabi-objcopy"
+OBJCOPY_FU="/home/mi/linnert/arm/bin/arm-none-eabi-objcopy"
+OBJCOPY_ARCH="/usr/arm-none-eabi/bin/objcopy"
+
+OBJCOPY=$OBJCOPY_FU
+which $OBJCOPY_SIMON >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+  OBJCOPY=$OBJCOPY_SIMON
+fi
+which $OBJCOPY_ARCH >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+  OBJCOPY=$OBJCOPY_ARCH
 fi
 
 #make sure cargo,rustup,xargo is in the path
@@ -27,20 +43,19 @@ fi
 #First we build the shell
 cd shell
 cp ../armv4t-none-eabi.json armv4t-none-eabi.json #Ja das muss sein, sonst gibts kryptische fehlermeldungen von xargo
-xargo clean
+#xargo clean
 xargo build --target armv4t-none-eabi
 rm armv4t-none-eabi.json
 #link + cleanup
-$LINKER --gc-sections -Tlinker.lds -o shell target/armv4t-none-eabi/debug/libshell.a
+$LINKER --gc-sections -Tlinker.lds -o shell.a target/armv4t-none-eabi/debug/libshell.a
+$OBJCOPY --prefix-symbols=_shell shell.a
 cd ..
 
-exit 1
-
 #Now we build the kernel. the binarys of the programs will be statically linked into the kernel
-xargo clean
+#xargo clean
 xargo build --target armv4t-none-eabi
 #link + cleanup
-$LINKER --gc-sections -Tlinker.lds -o kernel target/armv4t-none-eabi/debug/libGrandiOS.a shell/shell
+$LINKER --gc-sections -Tlinker.lds -o kernel target/armv4t-none-eabi/debug/libGrandiOS.a shell/shell.a
 
 if [[ $? == 0 && "$@" != "" ]]; then
   $@ -kernel kernel

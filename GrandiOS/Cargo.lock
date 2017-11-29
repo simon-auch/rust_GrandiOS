@@ -32,6 +32,8 @@ name = "shell"
 version = "0.1.0"
 dependencies = [
  "aids 0.1.0",
+ "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
+ "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "swi 0.1.0",
  "vt 0.1.0",
 ]
