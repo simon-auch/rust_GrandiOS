@@ -46,16 +46,16 @@ cp ../armv4t-none-eabi.json armv4t-none-eabi.json #Ja das muss sein, sonst gibts
 #xargo clean
 xargo build --target armv4t-none-eabi
 rm armv4t-none-eabi.json
-#link + cleanup
-$LINKER --gc-sections -Tlinker.lds -o shell.a target/armv4t-none-eabi/debug/libshell.a
-$OBJCOPY --prefix-symbols=_shell shell.a
+#add prefixes for the symbols.
+$OBJCOPY --prefix-symbols=_shell target/armv4t-none-eabi/debug/libshell.a shell.a
 cd ..
 
 #Now we build the kernel. the binarys of the programs will be statically linked into the kernel
 #xargo clean
 xargo build --target armv4t-none-eabi
+$OBJCOPY target/armv4t-none-eabi/debug/libGrandiOS.a kernel.a
 #link + cleanup
-$LINKER --gc-sections -Tlinker.lds -o kernel target/armv4t-none-eabi/debug/libGrandiOS.a shell/shell.a
+$LINKER --gc-sections -Tlinker.lds -o kernel kernel.a shell/shell.a
 
 if [[ $? == 0 && "$@" != "" ]]; then
   $@ -kernel kernel
