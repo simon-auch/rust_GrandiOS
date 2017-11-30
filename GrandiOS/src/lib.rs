@@ -98,7 +98,7 @@ fn main(){
 
     //Initialisieren des Schedulers
     println!("Initialisiere Scheduler");
-    let mut tcb_current = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *mut _, 0, 0); //function, memory, and cpsr will be set when calling the switch interrupt
+    let mut tcb_current = utils::thread::TCB::new("Shell Thread".to_string(), 0 as *mut _, 0, 0); //function, memory, and cpsr will be set when calling the switch interrupt
     tcb_current.set_priority(10);
     //Initialise scheduler
     unsafe{ utils::scheduler::init(tcb_current) };
