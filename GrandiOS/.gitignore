@@ -3,4 +3,5 @@
 *~
 *.swp
 kernel
-kernel.dump
+*.dump
+*.a
