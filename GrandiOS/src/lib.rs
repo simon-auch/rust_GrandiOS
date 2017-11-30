@@ -54,7 +54,6 @@ pub static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::ne
 #[macro_use]
 extern crate alloc;
 extern crate compiler_builtins;
-extern crate rlibc;
 #[macro_use]
 extern crate swi;
 
