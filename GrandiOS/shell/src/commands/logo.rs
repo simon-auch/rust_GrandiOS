@@ -1,4 +1,4 @@
-use driver::serial::*;
+use core::fmt::Write;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::String;
@@ -11,7 +11,7 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
 
 pub fn draw() {
     clear();
-    let d: Vec<&str> = include_str!("../logo.txt").split('\n').collect();
+    let d: Vec<&str> = include_str!("../../../src/logo.txt").split('\n').collect();
     let h = d.len() as i32;
     let w = d[0].len() as i32;
     for s in (0..(h/2)).rev() {
@@ -50,7 +50,7 @@ pub fn draw() {
 }
 
 fn draw_name(offset: i32) {
-    let d: Vec<&str> = include_str!("../name.txt").split('\n').collect();
+    let d: Vec<&str> = include_str!("../../../src/name.txt").split('\n').collect();
     let h = d.len() as i32;
     let w = d[(h-2) as usize].len() as i32;
     for i in 0..(h+w) {

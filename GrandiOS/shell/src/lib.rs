@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(asm)]
 #![feature(lang_items)]
 #![feature(alloc,global_allocator)]
 #![feature(range_contains)]
@@ -50,9 +51,9 @@ mod utils{
     }
 }
 mod commands{
-    //pub mod logo;
+    pub mod logo;
     pub mod cat;
-    //pub mod test;
+    pub mod colors;
     pub mod edit;
     pub mod cowsay;
     pub mod math;
@@ -95,8 +96,8 @@ pub extern fn _start() {
     unsafe {
         COMMANDS = Some(vec![
             command!(Method, "it", get_it, self),
-            //command!(Method, "logo", exec, logo),
-            //command!(Method, "test", exec, test),
+            command!(Method, "logo", exec, logo),
+            command!(Method, "colors", exec, colors),
             command!(Method, "edit", exec, edit),
             command!(Method, "cowsay", exec, cowsay),
             command!(Method, "cat", exec, cat),

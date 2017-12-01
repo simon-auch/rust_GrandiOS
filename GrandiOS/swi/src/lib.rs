@@ -19,6 +19,10 @@ macro_rules! DEALLOC  {() => {4};}
 macro_rules! GET_LED {() => {5};}
 #[macro_export]
 macro_rules! SET_LED {() => {6};}
+#[macro_export]
+macro_rules! GET_LED {() => {5};}
+#[macro_export]
+macro_rules! SET_LED {() => {6};}
 
 //creates the input and output structs with the given types and identifiers
 macro_rules! IO {
