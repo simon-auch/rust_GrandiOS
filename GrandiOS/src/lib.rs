@@ -53,6 +53,8 @@ use alloc::string::ToString;
 pub static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x22000000, 0x23ffffff);
 #[macro_use]
 extern crate alloc;
+#[macro_use]
+extern crate serde_derive;
 extern crate compiler_builtins;
 #[macro_use]
 extern crate swi;
