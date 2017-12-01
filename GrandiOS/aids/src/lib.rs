@@ -85,9 +85,26 @@ macro_rules! println {
 }
 #[macro_export]
 macro_rules! switch {
-    () => {
+    () => {{
         let input      = ::swi::switch::Input{};
         let mut output = ::swi::switch::Output{};
         ::swi::switch::call(& input, &mut output);
-    };
+    }};
+}
+#[macro_export]
+macro_rules! get_led {
+    ( $l:expr ) => {{
+        let input      = ::swi::get_led::Input{l:$l};
+        let mut output = ::swi::get_led::Output{s:false};
+        ::swi::get_led::call(& input, &mut output);
+        output.s
+    }};
+}
+#[macro_export]
+macro_rules! set_led {
+    ( $l:expr, $s:expr ) => {{
+        let input      = ::swi::set_led::Input{l:$l, s:$s};
+        let mut output = ::swi::set_led::Output{};
+        ::swi::set_led::call(& input, &mut output);
+    }};
 }

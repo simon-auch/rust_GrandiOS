@@ -111,7 +111,7 @@ pub extern fn _start() {
     }
     let mut history = VecDeque::new();
     loop {
-        let mut raw_input = read_command("> ", &mut history);
+        let mut raw_input = read_command(&mut history);
         history.push_back(raw_input.clone());
         match parse(&mut raw_input, 0) {
             Err((s,p)) => { println!("{}^\n{}", "-".repeat(p+1), s); continue; },
@@ -128,6 +128,14 @@ pub extern fn _start() {
             }
         }
     }
+}
+
+fn prompt() -> String {
+    format!("{2} {3} {4} {0}{1}> ", &vt::ATT_RESET, &vt::CB_STANDARD,
+            if get_led!(0) { &vt::CB_RED } else { &vt::CB_STANDARD },
+            if get_led!(1) { &vt::CB_YELLOW } else { &vt::CB_STANDARD },
+            if get_led!(2) { &vt::CB_GREEN } else { &vt::CB_STANDARD }
+    ).to_string()
 }
 
 pub fn get_function(command: Argument) -> Option<fn(Vec<Argument>) -> Result<Vec<Argument>,String>> {
@@ -225,16 +233,16 @@ pub fn move_to(pos: usize, dest: usize) {
     }
 }
 
-fn clear_prompt(prompt: &str, s: usize) {
-    print!("\r{}{}\r{}", prompt, " ".repeat(s), prompt);
+fn clear_prompt(s: usize) {
+    print!("\r{}{}\r{}", prompt(), " ".repeat(s), prompt());
 }
 
 fn print_command(ln: &LinkedList<u8>) {
     print!("{}", ln.iter().map(|x| *x as char).collect::<String>());
 }
 
-fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usize, left: bool, f: F) where F: Fn(&mut LinkedList<u8>) {
-    clear_prompt(prompt, ln.len());
+fn print_split_command<F>(ln: &mut LinkedList<u8>, stringpos: usize, left: bool, f: F) where F: Fn(&mut LinkedList<u8>) {
+    clear_prompt(ln.len());
     let mut others = ln.split_off(stringpos);
     f(ln);
     print_command(&ln);
@@ -245,8 +253,8 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, prompt: &str, stringpos: usiz
     if left { print!("{}", &vt::CursorControl::Left{count: 1}); }
 }
 
-pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
-    print!("{}", prompt);
+pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
+    print!("{}", prompt());
     let mut ln = LinkedList::new();
     let mut pos = 0;
     let mut escape = false;
@@ -274,7 +282,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
             },
             127 => { //backspace
                 if stringpos > 0 {
-                    print_split_command(&mut ln, prompt, stringpos, false, |ln: &mut LinkedList<u8>| {ln.pop_back();});
+                    print_split_command(&mut ln, stringpos, false, |ln: &mut LinkedList<u8>| {ln.pop_back();});
                     stringpos -= 1;
                 }
             },
@@ -288,7 +296,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
                     if stringpos == ln.len() {
                         ln.push_back(c);
                     } else {
-                        print_split_command(&mut ln, prompt, stringpos, true, |ln: &mut LinkedList<u8>| {ln.push_back(c);});
+                        print_split_command(&mut ln, stringpos, true, |ln: &mut LinkedList<u8>| {ln.push_back(c);});
                     }
                     stringpos += 1;
                 }
@@ -308,7 +316,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
                         },
                         vt::Input::Delete => {
                             if stringpos < ln.len() {
-                                print_split_command(&mut ln, prompt, stringpos+1, true, |ln: &mut LinkedList<u8>| {ln.pop_back();});
+                                print_split_command(&mut ln, stringpos+1, true, |ln: &mut LinkedList<u8>| {ln.pop_back();});
                             }
                         },
                         vt::Input::Left => {
@@ -325,7 +333,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
                         },
                         vt::Input::Up => {
                             if histpos > 0 {
-                                clear_prompt(prompt, ln.len());
+                                clear_prompt(ln.len());
                                 histpos -= 1;
                                 ln = history[histpos].clone();
                                 ln.pop_back();
@@ -334,7 +342,7 @@ pub fn read_command(prompt: &str, history: &mut VecDeque<LinkedList<u8>>) -> Lin
                             }
                         },
                         vt::Input::Down => {
-                            clear_prompt(prompt, ln.len());
+                            clear_prompt(ln.len());
                             histpos += if histpos == history.len() { 0 } else { 1 };
                             if histpos == history.len() {
                                 ln = LinkedList::new();

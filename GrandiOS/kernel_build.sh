@@ -54,10 +54,11 @@ cd ..
 #Now we build the kernel. the binarys of the programs will be statically linked into the kernel
 #xargo clean
 xargo build --target armv4t-none-eabi
+if [ $? -ne 0 ]; then exit; fi
 $OBJCOPY target/armv4t-none-eabi/debug/libGrandiOS.a kernel.a
 #link + cleanup
 $LINKER --gc-sections -Tlinker.lds -o kernel kernel.a shell/shell.a
 
-if [[ $? == 0 && "$@" != "" ]]; then
+if [[ "$@" != "" ]]; then
   $@ -kernel kernel
 fi

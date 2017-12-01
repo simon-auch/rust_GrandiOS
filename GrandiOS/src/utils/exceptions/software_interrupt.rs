@@ -15,6 +15,7 @@ use swi;
 use core::ptr::read_volatile;
 use driver::interrupts::*;
 use driver::serial::*;
+use driver::led::*;
 use utils::vt;
 use utils::scheduler;
 use utils::thread::TCB;
@@ -119,6 +120,25 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
                 (&mut &::GLOBAL).dealloc(input.p, layout);
             }
         },
+        GET_LED!() => {
+            let mut input : &mut swi::get_led::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            let mut output: &mut swi::get_led::Output = unsafe{ &mut *(regs.r0 as *mut _) };
+            output.s = match input.l {
+                0 => unsafe{ PIO::new(PIO_LED_RED).is_on() },
+                1 => unsafe{ PIO::new(PIO_LED_YELLOW).is_on() },
+                2 => unsafe{ PIO::new(PIO_LED_GREEN).is_on() },
+                _ => false
+            };
+        },
+        SET_LED!() => {
+            let mut input : &mut swi::set_led::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            match input.l {
+                0 => unsafe{ PIO::new(PIO_LED_RED).set(input.s) },
+                1 => unsafe{ PIO::new(PIO_LED_YELLOW).set(input.s) },
+                2 => unsafe{ PIO::new(PIO_LED_GREEN).set(input.s) },
+                _ => {}
+            };
+        }
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
             write!(debug_unit, "{}Exception{} software_interrupt at: 0x{:x}, instruction: 0x{:x}, swi value: 0x{:x}, registers:{:?}\n", &vt::CF_YELLOW, &vt::CF_STANDARD, regs.lr - 0x4, instruction, immed, regs).unwrap();

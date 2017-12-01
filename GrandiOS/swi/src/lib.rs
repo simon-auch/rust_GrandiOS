@@ -15,6 +15,10 @@ macro_rules! WRITE  {() => {2};}
 macro_rules! ALLOC  {() => {3};}
 #[macro_export]
 macro_rules! DEALLOC  {() => {4};}
+#[macro_export]
+macro_rules! GET_LED {() => {5};}
+#[macro_export]
+macro_rules! SET_LED {() => {6};}
 
 //creates the input and output structs with the given types and identifiers
 macro_rules! IO {
@@ -62,3 +66,5 @@ build_swi!(read;        READ   ; ; c:u8);
 build_swi!(write;       WRITE  ; c:u8; );
 build_swi!(useralloc;   ALLOC  ; l:Layout; r:Option<Result<*mut u8, AllocErr>>; alloc::heap::Layout, alloc::heap::AllocErr);
 build_swi!(userdealloc; DEALLOC; p:*mut u8, l:Layout; ; alloc::heap::Layout);
+build_swi!(get_led;     GET_LED; l:u8; s:bool);
+build_swi!(set_led;     SET_LED; l:u8, s:bool; );

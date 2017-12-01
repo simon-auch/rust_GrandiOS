@@ -1,4 +1,4 @@
-use core::ptr::write_volatile;
+use core::ptr::{read_volatile,write_volatile};
 
 pub const PIO_B: u32 = 0xfffff600;
 pub const PIO_C: u32 = 0xfffff800;
@@ -47,6 +47,13 @@ impl PIO {
 			pin: pio_pin.pin,
 		}
 	}
+    pub fn set(&mut self, state: bool) {
+        if state {
+            self.on();
+        } else {
+            self.off();
+        }
+    }
 	pub fn on(&mut self){
 		unsafe {
 		//Initialisieren
@@ -65,4 +72,14 @@ impl PIO {
 		write_volatile(&mut (*(self.hw_pio)).codr, self.pin);
 		}
 	}
+    pub fn is_on(&mut self) -> bool {
+        unsafe {
+		//Initialisieren
+		write_volatile(&mut (*(self.hw_pio)).per, self.pin);
+		write_volatile(&mut (*(self.hw_pio)).oer, self.pin);
+        //Lesen
+		read_volatile(&mut (*(self.hw_pio)).odsr);
+        (*(self.hw_pio)).odsr != 0
+        }
+    }
 }
