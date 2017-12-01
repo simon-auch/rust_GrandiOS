@@ -104,6 +104,7 @@ pub extern fn _start() {
             command!(Operator, "/", div, math),
         ]);
         VARS = Some(vec![("it".to_string(), Argument::Nothing)]);
+        load_prelude();
     }
     let mut history = VecDeque::new();
     loop {
@@ -119,6 +120,27 @@ pub extern fn _start() {
                             println!("{}", arg.to_string());
                         }
                     }
+                    None => {}
+                }
+            }
+        }
+    }
+}
+
+unsafe fn load_prelude() {
+    let d = include_str!("utils/prelude.txt").split('\n');
+    for l in d {
+        let mut raw_input = LinkedList::new();
+        for c in l.chars() {
+            raw_input.push_back(c as u8);
+        }
+        if raw_input.is_empty() { continue; }
+        raw_input.push_back(32);
+        match parse(&mut raw_input, 0) {
+            Err((s,p)) => { println!("{}^\n{}", "-".repeat(p+1), s); continue; },
+            Ok(mut v) => { 
+                match apply(&mut v.0[0]) {
+                    Some(arg) => { set_var(v.1, &arg); }
                     None => {}
                 }
             }
@@ -211,6 +233,13 @@ pub fn apply(app: &mut Argument) -> Option<Argument> {
     let mut args = app.get_application();
     unpack_args(&mut args, 2);
     if args.len() == 1 && args[0].is_application() { return apply(&mut args[0]); }
+    if is_var(&args[0]) {
+        let mut t = args.clone();
+        let v = t.remove(0).get_method_name().unwrap();
+        let mut res = vec![get_var(v)];
+        res.append(&mut t);
+        return apply(&mut Argument::Application(res));
+    }
     if args.len() == 1 && !args[0].is_method() { return Some(args[0].clone()); }
     if args.is_empty() { return None; }
     if args[0].is_application() {
@@ -221,9 +250,9 @@ pub fn apply(app: &mut Argument) -> Option<Argument> {
         };
     }
     let mut command = if args.len() > 1 && args[1].is_operator() {
-        args.remove(1)
+        args[1].clone()
     } else {
-        args.remove(0)
+        args[0].clone()
     };
     if command == Argument::Method("help".to_string()) {
         if args.is_empty() {
@@ -237,8 +266,8 @@ pub fn apply(app: &mut Argument) -> Option<Argument> {
             println!("");
             return None;
         } else {
-            command = args[0].clone();
-            args[0] = Argument::Method("help".to_string());
+            command = args[1].clone();
+            args[1] = Argument::Method("help".to_string());
         }
     }
     unsafe {

@@ -1,0 +1,2 @@
+let sum = foldl (+) 0
+let prod = foldl (*) 1

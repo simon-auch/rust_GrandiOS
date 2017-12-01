@@ -1,11 +1,11 @@
-use core::fmt::Write;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 
 pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    if args.len() < 2 { return Ok(args); } //TODO
+    if args.len() < 3 { return Ok(args); }
+    args.remove(0);
     ::unpack_args(&mut args, 2);
     if !args[1].is_list() { return Err("Arg2: List expected".to_string()); }
     let mut res = vec![];
@@ -22,7 +22,8 @@ pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
 }
 
 pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    if args.len() < 3 { return Ok(args); } //TODO
+    if args.len() < 4 { return Ok(args); }
+    args.remove(0);
     ::unpack_args(&mut args, 3);
     if !args[2].is_list() { return Err("Arg3: List expected".to_string()); }
     let mut akk = args.remove(1);
@@ -70,7 +71,8 @@ fn get_cmd(args: &mut Vec<Argument>, e: Argument) -> Vec<Argument> {
 }
 
 pub fn dot(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    if args.len() < 3 { return Ok(args); }
+    if args.len() < 4 { return Ok(args); }
+    args.remove(1);
     ::unpack_args(&mut args, 3);
     let f1 = args.remove(0);
     let f2 = args.remove(0);

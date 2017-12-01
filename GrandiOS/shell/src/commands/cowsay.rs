@@ -6,6 +6,7 @@ use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 
 pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    args.remove(0);
     ::eval_args(&mut args, 0);
     if args.len() == 0 { return Err("Arguments expected".to_string()); }
     print!("{}", "\n".repeat(8));
