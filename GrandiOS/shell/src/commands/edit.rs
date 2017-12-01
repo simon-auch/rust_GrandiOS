@@ -7,28 +7,28 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use core::ptr::{write_volatile, read_volatile};
 
-pub fn move_col(pos: usize, dest: usize) {
+pub fn move_col(pos: isize, dest: isize) {
     let offset = [0,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0];
     if dest < pos {
         for i in dest..pos {
-            print!("{}", &vt::CursorControl::Left{count: offset[i+1]+1});
+            print!("{}", &vt::CursorControl::Left{count: offset[i as usize+1]+1});
         }
     } else {
         for i in pos..dest {
-            print!("{}", &vt::CursorControl::Right{count: offset[i+1]+1});
+            print!("{}", &vt::CursorControl::Right{count: offset[i as usize+1]+1});
         }
     }
 }
 
-fn print_line(i: usize) {
+fn print_line(i: isize) {
     let line = unsafe { read_volatile(i as *mut [u8; 16]) };
     print!("{:08x}   {:02x}{:02x} {:02x}{:02x}  {:02x}{:02x} {:02x}{:02x}  {:02x}{:02x} {:02x}{:02x}  {:02x}{:02x} {:02x}{:02x}   ",
              i, line[0], line[1], line[2], line[3], line[4], line[5], line[6],
              line[7], line[8], line[9], line[10], line[11], line[12], line[13],
              line[14], line[15]);
     for i in 0..(line.len()) {
-        print!("{}", if line[i] < 32 || line[i] >= 127 {
-            48 } else { line[i] } as char);
+        print!("{}", if line[i as usize] < 32 || line[i as usize] >= 127 {
+            48 } else { line[i as usize] } as char);
     }
     println!("");
 }
@@ -48,7 +48,7 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     let start = if args[0].is_int() {
         args[0].get_int().unwrap()
     } else {
-        (::get_function(args[0].clone()).unwrap()) as usize
+        (::get_function(args[0].clone()).unwrap()) as isize
     };
     let length = if args.len() > 1 { args[1].get_int().unwrap() } else { width*8 };
     if length <= 0 {
@@ -124,6 +124,6 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         }
         c = read!();
     }
-    print!("{}", "\n".repeat(lines-linepos));
+    print!("{}", "\n".repeat((lines-linepos) as usize));
     Ok(vec![])
 }

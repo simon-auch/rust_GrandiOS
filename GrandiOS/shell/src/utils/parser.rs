@@ -8,7 +8,7 @@ use alloc::slice::SliceConcatExt;
 
 #[derive(PartialEq,Debug,Clone)]
 pub enum Argument {
-    Nothing, Int(usize), Str(String), List(Vec<Argument>),
+    Nothing, Int(isize), Str(String), List(Vec<Argument>),
     Operator(String), Method(String), Application(Vec<Argument>),
 }
 
@@ -77,7 +77,7 @@ impl Argument {
             _ => None
         }
     }
-    pub fn get_int(&self) -> Option<usize> {
+    pub fn get_int(&self) -> Option<isize> {
         match self {
             &Argument::Int(i) => Some(i),
             _ => None
@@ -173,7 +173,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
                         120 => 16, 98 => 2, 111 => 8, _ => 0
                     };
                 } else {
-                    let mut v = c as usize;
+                    let mut v = c as isize;
                     match v {
                         48...57 | 65...90 | 97...122 => {
                             v -= 48;
@@ -234,17 +234,11 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
 fn precedence(args: Vec<Argument>) -> Argument {
     let mut res = vec![];
     let mut akk: Vec<Argument> = vec![];
-    let prec: Vec<Box<Fn(&Argument) -> bool>> = vec![
-        Box::new(|arg| arg.is_operator()),
-        Box::new(|arg| arg.is_operator() && ["+".to_string(), "-".to_string()].contains(&arg.get_operator().unwrap())),
-        Box::new(|arg| false)
-    ];
     // evaluate methods first
     for arg in args {
         if arg.is_operator() {
             res.push(match akk.len() {
                 0 => Argument::Nothing,
-                1 => akk[0].clone(),
                 _ => Argument::Application(akk)
             });
             res.push(arg);
@@ -254,7 +248,7 @@ fn precedence(args: Vec<Argument>) -> Argument {
         }
     }
     if !akk.is_empty() {
-        res.push(if akk.len() == 1 { akk[0].clone() } else { Argument::Application(akk) });
+        res.push(Argument::Application(akk));
     }
     opprec(res)
 }

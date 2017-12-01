@@ -45,6 +45,7 @@ cd shell
 cp ../armv4t-none-eabi.json armv4t-none-eabi.json #Ja das muss sein, sonst gibts kryptische fehlermeldungen von xargo
 #xargo clean
 xargo build --target armv4t-none-eabi
+if [ $? -ne 0 ]; then exit; fi
 rm armv4t-none-eabi.json
 #add prefixes for the symbols.
 $OBJCOPY --prefix-symbols=_shell target/armv4t-none-eabi/debug/libshell.a shell.a

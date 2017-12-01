@@ -118,15 +118,15 @@ pub enum ColorCode{
 impl Input {
     pub fn as_str(&self) -> &str {
         match self {
-            &Input::Left => "\x1B[D",
-            &Input::Right => "\x1B[C",
-            &Input::Up => "\x1B[A",
-            &Input::Down => "\x1B[B",
-            &Input::Delete => "\x1B[3~",
-            &Input::Home => "\x1B[1~",
-            &Input::End => "\x1B[4~",
-            &Input::PgUp => "\x1B[5~",
-            &Input::PgDn => "\x1B[6~",
+            &Input::Left => "D",
+            &Input::Right => "C",
+            &Input::Up => "A",
+            &Input::Down => "B",
+            &Input::Delete => "3~",
+            &Input::Home => "1~",
+            &Input::End => "4~",
+            &Input::PgUp => "5~",
+            &Input::PgDn => "6~",
             _ => "",
         }
     }
