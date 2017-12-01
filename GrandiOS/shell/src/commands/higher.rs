@@ -1,3 +1,4 @@
+use core::fmt::Write;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::{String,ToString};
@@ -43,6 +44,13 @@ pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
 }
 
 fn get_cmd(args: &mut Vec<Argument>, e: Argument) -> Vec<Argument> {
+    if ::is_var(&args[0]) {
+        let mut t = args.clone();
+        let v = t.remove(0).get_method_name().unwrap();
+        let mut res = vec![::get_var(v)];
+        res.append(&mut t);
+        return get_cmd(&mut res, e);
+    }
     if args[0].is_application() {
         let mut arg = args[0].get_application();
         if arg.len() > 2 && !arg[0].is_something() {

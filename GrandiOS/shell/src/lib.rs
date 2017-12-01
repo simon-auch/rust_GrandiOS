@@ -161,6 +161,16 @@ fn get_var(name: String) -> Argument {
     Argument::Nothing
 }
 
+fn is_var(name: &Argument) -> bool {
+    if !name.is_method() { return false; }
+    unsafe {
+        for &(ref n, ref a) in VARS.as_ref().unwrap().iter() {
+            if name.get_method_name().unwrap() == *n { return true; }
+        }
+    }
+    false
+}
+
 pub fn get_function(command: Argument) -> Option<fn(Vec<Argument>) -> Result<Vec<Argument>,String>> {
     unsafe {
         for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
