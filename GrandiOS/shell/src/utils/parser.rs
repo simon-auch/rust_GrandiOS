@@ -103,13 +103,14 @@ impl Argument {
     }
 }
 
-pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usize), (String, usize)> {
+pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, String, usize), (String, usize)> {
     let mut res = vec![];
     let mut akk = vec![];
     let mut pos = start;
     let mut i = 0;
     let mut sign = 1;
     let mut base = 10;
+    let mut name = "it".to_string();
     //conditions for mode switching in the same order as the modes
     let cond: Vec<Box<Fn(u8) -> bool>> = vec![
         Box::new(|c| (48..58).contains(c) || (65..71).contains(c) || (97..103).contains(c)),
@@ -128,7 +129,6 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
      */
     let mut mode = 0;
     let mut oldmode = 0;
-    let mut base = 10;
     while !s.is_empty() && mode != 55 {
         let c = s.pop_front().unwrap();
         pos += 1;
@@ -153,7 +153,21 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
                     base = 10;
                 },
                 30 => {
-                    res.push(Argument::Method(String::from_utf8(akk).unwrap()));
+                    let w = String::from_utf8(akk).unwrap();
+                    if w == "let".to_string() {
+                        name = "".to_string();
+                    } else if name == "".to_string() {
+                        name = w;
+                        loop {
+                            pos += 1;
+                            match s.pop_front() {
+                                Some(c) => if c == 61 { break; },
+                                None => {return Err(("Missing =".to_string(), pos));}
+                            }
+                        }
+                    } else {
+                        res.push(Argument::Method(w));
+                    }
                     akk = vec![];
                 },
                 40 => {
@@ -201,7 +215,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
             },
             55 => {
                 if start != 0 {
-                    return Ok((vec![precedence(res)], pos));
+                    return Ok((vec![precedence(res)], name, pos));
                 } else {
                     return Err(("Unbalanced parantheses!".to_string(), pos));
                 }
@@ -209,7 +223,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
             61 => { mode = 0; },
             65 => {
                 if start != 0 {
-                    return Ok((vec![Argument::List(res)], pos));
+                    return Ok((vec![Argument::List(res)], name, pos));
                 } else {
                     return Err(("Unbalanced brackets!".to_string(), pos));
                 }
@@ -219,7 +233,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
         if mode == 50 || mode == 60 {
             match parse(s, pos) {
                 Err(x) => { return Err(x); },
-                Ok((mut e, p)) => { res.append(&mut e); pos = p; }
+                Ok((mut e, _, p)) => { res.append(&mut e); pos = p; }
             }
             mode = 0;
         }
@@ -228,7 +242,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, usi
     if start != 0 {
         return Err(("Unbalanced parantheses or brackets!".to_string(), pos));
     }
-    Ok((vec![precedence(res)], pos))
+    Ok((vec![precedence(res)], name, pos))
 }
 
 fn precedence(args: Vec<Argument>) -> Argument {

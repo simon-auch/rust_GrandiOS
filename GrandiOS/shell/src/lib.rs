@@ -72,12 +72,6 @@ use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
 
-static mut IT: Argument = Argument::Nothing;
-pub fn get_it(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    unsafe { args.insert(0, IT.clone()); }
-    Ok(args)
-}
-
 macro_rules! command {
 	( $t:tt, $o:expr, $c:tt, $m:tt ) => {
         (Argument::$t($o.to_string()), $m::$c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
@@ -88,6 +82,7 @@ macro_rules! command {
 }
 
 static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>> = None;
+static mut VARS: Option<Vec<(String, Argument)>> = None;
 
 #[no_mangle]
 pub extern fn _start() {
@@ -95,7 +90,6 @@ pub extern fn _start() {
     println!("type help for command list");
     unsafe {
         COMMANDS = Some(vec![
-            command!(Method, "it", get_it, self),
             command!(Method, "logo", exec, logo),
             command!(Method, "colors", exec, colors),
             command!(Method, "edit", exec, edit),
@@ -109,6 +103,7 @@ pub extern fn _start() {
             command!(Operator, "*", times, math),
             command!(Operator, "/", div, math),
         ]);
+        VARS = Some(vec![("it".to_string(), Argument::Nothing)]);
     }
     let mut history = VecDeque::new();
     loop {
@@ -119,7 +114,7 @@ pub extern fn _start() {
             Ok(mut v) => { 
                 match apply(&mut v.0[0]) {
                     Some(arg) => {
-                        unsafe { IT = arg.clone(); }
+                        set_var(v.1, &arg);
                         if arg.is_something() {
                             println!("{}", arg.to_string());
                         }
@@ -137,6 +132,33 @@ fn prompt() -> String {
             if get_led!(1) { &vt::CB_YELLOW } else { &vt::CB_STANDARD },
             if get_led!(2) { &vt::CB_GREEN } else { &vt::CB_STANDARD }
     ).to_string()
+}
+
+fn set_var(name: String, arg: &Argument) {
+    unsafe {
+        let mut p: isize = -1;
+        for (i, &(ref n, ref a)) in VARS.as_ref().unwrap().iter().enumerate() {
+            if name == *n {
+                p = i as isize;
+                break;
+            }
+        }
+        if p >= 0 {
+            let x = VARS.as_mut().unwrap();
+            x[p as usize] = (name, arg.clone());
+        } else {
+            VARS.as_mut().unwrap().push((name, arg.clone()));
+        }
+    }
+}
+
+fn get_var(name: String) -> Argument {
+    unsafe {
+        for &(ref n, ref a) in VARS.as_ref().unwrap().iter() {
+            if name == *n { return a.clone(); }
+        }
+    }
+    Argument::Nothing
 }
 
 pub fn get_function(command: Argument) -> Option<fn(Vec<Argument>) -> Result<Vec<Argument>,String>> {
@@ -210,6 +232,13 @@ pub fn apply(app: &mut Argument) -> Option<Argument> {
         }
     }
     unsafe {
+        if command.is_method() {
+            for &(ref n, ref a) in VARS.as_ref().unwrap().iter() {
+                if command.get_method_name().unwrap() == *n {
+                    return Some(a.clone());
+                }
+            }
+        }
         for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
             if command == *c {
                 match m(args) {
