@@ -98,6 +98,8 @@ pub extern fn _start() {
             command!(Method, "map", map, higher),
             command!(Method, "foldl", foldl, higher),
             command!(Operator, ".", dot, higher),
+            command!(Operator, "\\", lambda, higher),
+            command!(Operator, "->", lambda, higher),
             command!(Operator, "+", plus, math),
             command!(Operator, "-", minus, math),
             command!(Operator, "*", times, math),
@@ -158,19 +160,22 @@ fn prompt() -> String {
 
 fn set_var(name: String, arg: &Argument) {
     unsafe {
-        let mut p: isize = -1;
-        for (i, &(ref n, ref a)) in VARS.as_ref().unwrap().iter().enumerate() {
-            if name == *n {
-                p = i as isize;
-                break;
-            }
+        set_var_local(name, arg, &mut VARS);
+    }
+}
+pub fn set_var_local(name: String, arg: &Argument, vars: &mut Option<Vec<(String, Argument)>>) {
+    let mut p: isize = -1;
+    for (i, &(ref n, ref a)) in vars.as_ref().unwrap().iter().enumerate() {
+        if name == *n {
+            p = i as isize;
+            break;
         }
-        if p >= 0 {
-            let x = VARS.as_mut().unwrap();
-            x[p as usize] = (name, arg.clone());
-        } else {
-            VARS.as_mut().unwrap().push((name, arg.clone()));
-        }
+    }
+    if p >= 0 {
+        let x = vars.as_mut().unwrap();
+        x[p as usize] = (name, arg.clone());
+    } else {
+        vars.as_mut().unwrap().push((name, arg.clone()));
     }
 }
 
@@ -226,23 +231,30 @@ pub fn eval_args(args: &mut Vec<Argument>, len: usize) {
 }
 
 pub fn apply(app: &mut Argument) -> Option<Argument> {
+    apply_with(app, &None)
+}
+pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) -> Option<Argument> {
+    if vars.is_some() {
+        println!("{:?}", vars);
+        return None;
+    }
     if !app.is_application() {
         println!("Unexpected call of apply without Application");
         return None;
     }
     let mut args = app.get_application();
-    unpack_args(&mut args, 2);
-    if args.len() == 1 && args[0].is_application() { return apply(&mut args[0]); }
+    if args.len() <= 1 || !args[1].is_operator() { unpack_args(&mut args, 2); }
+    if args.len() == 1 && args[0].is_application() { return apply_with(&mut args[0], vars); }
     if is_var(&args[0]) {
         let mut t = args.clone();
         let v = t.remove(0).get_method_name().unwrap();
         let mut res = vec![get_var(v)];
         res.append(&mut t);
-        return apply(&mut Argument::Application(res));
+        return apply_with(&mut Argument::Application(res), vars);
     }
     if args.len() == 1 && !args[0].is_method() { return Some(args[0].clone()); }
     if args.is_empty() { return None; }
-    if args[0].is_application() {
+    if args[0].is_application() && (args.len() <= 1 || !args[1].is_operator()) {
         args = {
             let mut t = args.remove(0).get_application();
             t.append(&mut args);
@@ -272,6 +284,13 @@ pub fn apply(app: &mut Argument) -> Option<Argument> {
     }
     unsafe {
         if command.is_method() {
+            if vars.is_some() {
+                for &(ref n, ref a) in vars.as_ref().unwrap().iter() {
+                    if command.get_method_name().unwrap() == *n {
+                        return Some(a.clone());
+                    }
+                }
+            }
             for &(ref n, ref a) in VARS.as_ref().unwrap().iter() {
                 if command.get_method_name().unwrap() == *n {
                     return Some(a.clone());

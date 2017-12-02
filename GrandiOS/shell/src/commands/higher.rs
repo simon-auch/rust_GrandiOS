@@ -1,3 +1,4 @@
+use core::fmt::Write;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::{String,ToString};
@@ -83,4 +84,42 @@ pub fn dot(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         None => return Err(format!("Executing {} failed", Argument::Application(cmd).to_string()))
     }
     Ok(args)
+}
+
+/** This is a pretty hacky solution!
+ * Lambda gets called by two different operators: -> and \, -> having the greater precedence.
+ * We ignore that -> completely and check for what is _before_ \. Normally there is Nothing.
+ * If we find Nothing, we will be called for the first time and it will not need evaluation.
+ * At that point, we prepare everything to make it possible to know wether we need to eval.
+ * That preparation involves changing the Nothing before \ to (Nothing Nothing).
+ * Since (Nothing Nothing) shouldn't be contained in the Arguments ever, we know what to do.
+ */
+pub fn lambda(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    if args[1].get_operator().unwrap() != "\\".to_string() { return Ok(args); }
+    if args.len() < 3 { return Ok(args); }
+    if !args[0].is_something() { //first call!
+        args = args[2].get_application().clone();
+        let exp = args[2].clone();
+        let vars = Argument::List(args[0].get_application().clone());
+        let res = vec![
+            Argument::Application(vec![Argument::Nothing, Argument::Nothing]),
+            Argument::Operator("\\".to_string()),
+            vars, exp
+        ];
+        return Ok(res);
+    }
+    if args[0] != Argument::Application(vec![Argument::Nothing, Argument::Nothing]) {
+        return Err(format!("Invalid format: {:?}", args).to_string());
+    }
+    if args.len() < 4+args[2].get_list().len() { return Ok(args); }
+    let mut vars: Option<Vec<(String, Argument)>> = Some(vec![("".to_string(), Argument::Nothing)]);
+        println!("{:?}", vars);
+    for (i, v) in args[2].get_list().iter().enumerate() {
+        ::set_var_local(v.get_method_name().unwrap(), &args[4+i], &mut vars);
+        println!("{:?}", vars);
+    }
+    match ::apply_with(&mut args[3], &vars) {
+        Some(a) => Ok(vec![a]),
+        None => Err("Application failed".to_string())
+    }
 }

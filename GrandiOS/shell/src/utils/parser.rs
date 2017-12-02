@@ -1,5 +1,4 @@
 use core::result::Result;
-use alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::linked_list::LinkedList;
@@ -115,7 +114,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, Str
     let cond: Vec<Box<Fn(u8) -> bool>> = vec![
         Box::new(|c| (48..58).contains(c) || (65..71).contains(c) || (97..103).contains(c)),
         Box::new(|c| c == 34), Box::new(|c| (65..91).contains(c) || (97..123).contains(c) || c == 95),
-        Box::new(|c| (33..38).contains(c) || (42..48).contains(c) || (58..65).contains(c)),
+        Box::new(|c| (33..38).contains(c) || (42..48).contains(c) || (58..65).contains(c) || c == 92),
 
     ];
     /* We currently have the following modes:
@@ -270,7 +269,7 @@ fn precedence(args: Vec<Argument>) -> Argument {
 fn opprec(args: Vec<Argument>) -> Argument {
     if args.is_empty() { return Argument::Nothing; }
     if args.len() > 4 {
-        if ["+".to_string(), "-".to_string()].contains(&args[1].get_operator().unwrap()) {
+        if ["+".to_string(), "-".to_string(), "\\".to_string()].contains(&args[1].get_operator().unwrap()) {
             Argument::Application(vec![args[0].clone(),args[1].clone(),opprec(args[2..].to_vec())])
         } else {
             Argument::Application(vec![Argument::Application(args[0..3].to_vec()),args[3].clone(),opprec(args[4..].to_vec())])
