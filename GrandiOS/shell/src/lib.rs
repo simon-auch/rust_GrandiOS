@@ -159,9 +159,7 @@ fn prompt() -> String {
 }
 
 fn set_var(name: String, arg: &Argument) {
-    unsafe {
-        set_var_local(name, arg, &mut VARS);
-    }
+    unsafe { set_var_local(name, arg, &mut VARS); }
 }
 pub fn set_var_local(name: String, arg: &Argument, vars: &mut Option<Vec<(String, Argument)>>) {
     let mut p: isize = -1;
@@ -180,18 +178,23 @@ pub fn set_var_local(name: String, arg: &Argument, vars: &mut Option<Vec<(String
 }
 
 fn get_var(name: String) -> Argument {
-    unsafe {
-        for &(ref n, ref a) in VARS.as_ref().unwrap().iter() {
-            if name == *n { return a.clone(); }
-        }
+    unsafe { get_var_local(name, &VARS) }
+}
+fn get_var_local(name: String, vars: &Option<Vec<(String, Argument)>>) -> Argument {
+    if vars.is_none() { return Argument::Nothing; }
+    for &(ref n, ref a) in vars.as_ref().unwrap().iter() {
+        if name == *n { return a.clone(); }
     }
     Argument::Nothing
 }
 
 fn is_var(name: &Argument) -> bool {
-    if !name.is_method() { return false; }
+    unsafe { is_var_local(name, &VARS) }
+}
+fn is_var_local(name: &Argument, vars: &Option<Vec<(String, Argument)>>) -> bool {
+    if !name.is_method() || vars.is_none() { return false; }
     unsafe {
-        for &(ref n, ref a) in VARS.as_ref().unwrap().iter() {
+        for &(ref n, ref a) in vars.as_ref().unwrap().iter() {
             if name.get_method_name().unwrap() == *n { return true; }
         }
     }
@@ -234,10 +237,6 @@ pub fn apply(app: &mut Argument) -> Option<Argument> {
     apply_with(app, &None)
 }
 pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) -> Option<Argument> {
-    if vars.is_some() {
-        println!("{:?}", vars);
-        return None;
-    }
     if !app.is_application() {
         println!("Unexpected call of apply without Application");
         return None;
@@ -245,10 +244,10 @@ pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) ->
     let mut args = app.get_application();
     if args.len() <= 1 || !args[1].is_operator() { unpack_args(&mut args, 2); }
     if args.len() == 1 && args[0].is_application() { return apply_with(&mut args[0], vars); }
-    if is_var(&args[0]) {
+    if is_var(&args[0]) || is_var_local(&args[0], &vars) {
         let mut t = args.clone();
         let v = t.remove(0).get_method_name().unwrap();
-        let mut res = vec![get_var(v)];
+        let mut res = vec![if is_var(&Argument::Method(v.clone())) { get_var(v) } else { get_var_local(v, &vars) }];
         res.append(&mut t);
         return apply_with(&mut Argument::Application(res), vars);
     }
@@ -267,7 +266,7 @@ pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) ->
         args[0].clone()
     };
     if command == Argument::Method("help".to_string()) {
-        if args.is_empty() {
+        if args.len() == 1 {
             unsafe {
                 for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
                     if c.is_method() {

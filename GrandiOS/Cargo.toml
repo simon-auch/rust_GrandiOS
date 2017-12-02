@@ -9,7 +9,6 @@ crate-type = ["staticlib"]
 [dependencies]
 swi = { path = "./swi" }
 aids = { path = "./aids" }
-shell = { path = "./shell" }
 vt = { path = "./vt" }
 compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
 serde = { version = "1.0.23", default-features = false, features = ["derive", "alloc"] }

@@ -113,10 +113,8 @@ pub fn lambda(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     }
     if args.len() < 4+args[2].get_list().len() { return Ok(args); }
     let mut vars: Option<Vec<(String, Argument)>> = Some(vec![("".to_string(), Argument::Nothing)]);
-        println!("{:?}", vars);
     for (i, v) in args[2].get_list().iter().enumerate() {
         ::set_var_local(v.get_method_name().unwrap(), &args[4+i], &mut vars);
-        println!("{:?}", vars);
     }
     match ::apply_with(&mut args[3], &vars) {
         Some(a) => Ok(vec![a]),
