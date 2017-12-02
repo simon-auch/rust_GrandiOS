@@ -1,4 +1,3 @@
-use core::fmt::Write;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::{String,ToString};
@@ -30,11 +29,10 @@ pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     let mut akk = args.remove(1);
     for e in args[1].get_list() {
         let mut cmd = if args[0].is_application() && args[0].get_application().len() == 2 && args[0].get_application()[1].is_operator() && !args[0].get_application()[0].is_something() {
-            vec![Argument::Application(vec![akk.clone(), args[0].get_application()[1].clone()])]
+            get_cmd(&mut vec![Argument::Application(vec![akk.clone(), args[0].get_application()[1].clone()])], e)
         } else {
-            vec![args[0].clone(), e.clone()]
+            vec![args[0].clone(), akk.clone(), e]
         };
-        cmd = get_cmd(&mut cmd, e);
         match ::apply(&mut Argument::Application(cmd.clone())) {
             Some(r) => akk = r,
             None => return Err(format!("Executing {} failed", Argument::Application(cmd).to_string()))
@@ -58,7 +56,7 @@ fn get_cmd(args: &mut Vec<Argument>, e: Argument) -> Vec<Argument> {
         if arg.len() > 2 && !arg[0].is_something() {
             arg[0] = e.clone();
             arg
-        } else if arg.len() == 2 && arg[1].is_operator() {
+        } else if arg.len() >= 2 && arg[1].is_operator() {
             arg.push(e.clone());
             arg
         } else if arg.len() == 1 {
@@ -86,37 +84,23 @@ pub fn dot(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     Ok(args)
 }
 
-/** This is a pretty hacky solution!
- * Lambda gets called by two different operators: -> and \, -> having the greater precedence.
- * We ignore that -> completely and check for what is _before_ \. Normally there is Nothing.
- * If we find Nothing, we will be called for the first time and it will not need evaluation.
- * At that point, we prepare everything to make it possible to know wether we need to eval.
- * That preparation involves changing the Nothing before \ to (Nothing Nothing).
- * Since (Nothing Nothing) shouldn't be contained in the Arguments ever, we know what to do.
- */
 pub fn lambda(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args[1].get_operator().unwrap() != "\\".to_string() { return Ok(args); }
+    if !args[0].is_something() && args.len() < 4 { return Ok(args); }
     if args.len() < 3 { return Ok(args); }
-    if !args[0].is_something() { //first call!
-        args = args[2].get_application().clone();
-        let exp = args[2].clone();
-        let vars = Argument::List(args[0].get_application().clone());
-        let res = vec![
-            Argument::Application(vec![Argument::Nothing, Argument::Nothing]),
-            Argument::Operator("\\".to_string()),
-            vars, exp
-        ];
-        return Ok(res);
+    if !args[0].is_something() { args[0] = args.remove(3); }
+    let mut arg = args[2].get_application();
+    let lv = arg[0].get_application();
+    ::set_var_local(lv[0].get_method_name().unwrap(), &args[0]);
+    let mut cmd = if lv.len() > 1 {
+        Argument::Application(vec![Argument::Nothing, Argument::Operator("\\".to_string()), Argument::Application(vec![Argument::Application(lv[1..].to_vec()), Argument::Operator("->".to_string()), arg[2].clone()])])
+    } else { arg[2].clone() };
+    if args.len() > 3 {
+        let mut cmdargs = vec![cmd];
+        cmdargs.append(&mut args[3..].to_vec());
+        cmd = Argument::Application(cmdargs);
     }
-    if args[0] != Argument::Application(vec![Argument::Nothing, Argument::Nothing]) {
-        return Err(format!("Invalid format: {:?}", args).to_string());
-    }
-    if args.len() < 4+args[2].get_list().len() { return Ok(args); }
-    let mut vars: Option<Vec<(String, Argument)>> = Some(vec![("".to_string(), Argument::Nothing)]);
-    for (i, v) in args[2].get_list().iter().enumerate() {
-        ::set_var_local(v.get_method_name().unwrap(), &args[4+i], &mut vars);
-    }
-    match ::apply_with(&mut args[3], &vars) {
+    match ::apply(&mut cmd) {
         Some(a) => Ok(vec![a]),
         None => Err("Application failed".to_string())
     }
