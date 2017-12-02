@@ -66,6 +66,8 @@ pub enum CursorControl {
     LoadPos,
     SavePosAndAtt,
     LoadPosAndAtt,
+    Hide,
+    Show,
 }
 
 #[derive(Clone)]
@@ -187,6 +189,8 @@ impl fmt::Display for CursorControl {
             &CursorControl::LoadPos             => write!(f, "\x1B[u"),
             &CursorControl::SavePosAndAtt       => write!(f, "\x1B7"),
             &CursorControl::LoadPosAndAtt       => write!(f, "\x1B8"),
+            &CursorControl::Hide                => write!(f, "\x1B[?25l"),
+            &CursorControl::Show                => write!(f, "\x1B[?25h"),
         }
     }
 }

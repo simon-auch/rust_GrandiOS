@@ -53,6 +53,7 @@ mod utils{
 mod commands{
     pub mod logo;
     pub mod cat;
+    pub mod htop;
     pub mod colors;
     pub mod edit;
     pub mod cowsay;
@@ -95,6 +96,7 @@ pub extern fn _start() {
             command!(Method, "edit", exec, edit),
             command!(Method, "cowsay", exec, cowsay),
             command!(Method, "cat", exec, cat),
+            command!(Method, "htop", exec, htop),
             command!(Method, "map", map, higher),
             command!(Method, "foldl", foldl, higher),
             command!(Operator, ".", dot, higher),
@@ -110,6 +112,7 @@ pub extern fn _start() {
     }
     let mut history = VecDeque::new();
     loop {
+        print!("{}", &vt::CursorControl::Show); // make cursor visible
         let mut raw_input = read_command(&mut history);
         history.push_back(raw_input.clone());
         match parse(&mut raw_input, 0) {
