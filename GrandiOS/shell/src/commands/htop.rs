@@ -70,13 +70,11 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         match vt::parse_input(str::from_utf8(&[c]).unwrap()) {
             vt::Input::Up => {
                 if htop_data.selected_row > 0 {
-                    //print!("{}", &vt::CursorControl::Up{count: 1});
                     htop_data.selected_row -= 1;
                 }
             },
             vt::Input::Down => {
                 if htop_data.selected_row < tcbs.len()-1 {
-                    //print!("{}", &vt::CursorControl::Down{count: 1});
                     htop_data.selected_row += 1;
                 }
             },
