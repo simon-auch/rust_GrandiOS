@@ -60,12 +60,11 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         color_selected: vt::Color{ct: vt::ColorType::Background, cc: vt::ColorCode::Bit8(033)},
         num_of_static_rows: 2,
     };
-    let mut c = 0;
-    print!("{}",&vt::CursorControl::SavePosAndAtt); //save cursor pos
+    let mut c;
     print!("{}",&vt::CursorControl::Hide);
-    while c != 4 { //4 = ^d = end of transmission
+    loop {
         draw(&htop_data, &tcbs); //draw htop (all)
-        print!("{}{}[{}A", '\r', 27 as char, tcbs.len() + htop_data.num_of_static_rows);
+        print!("{}{}", '\r', &vt::CursorControl::Up{count:(tcbs.len() + htop_data.num_of_static_rows) as u32});
         c=read!();
         match vt::parse_input(str::from_utf8(&[c]).unwrap()) {
             vt::Input::Up => {
@@ -74,15 +73,18 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
                 }
             },
             vt::Input::Down => {
+                print!("{}",c);
                 if htop_data.selected_row < tcbs.len()-1 {
                     htop_data.selected_row += 1;
                 }
             },
-            _ => {}
+            _ => {
+                    print!("{}",c);}
         }
+        if c == 4 { break; } //4 = ^d = end of transmission
     }
     print!("{}",&vt::CursorControl::Show);
-    print!("{}",&vt::CursorControl::LoadPosAndAtt);
+    print!("{}{}", '\r', &vt::CursorControl::Down{count:(tcbs.len() + htop_data.num_of_static_rows) as u32});
     Ok(vec![])
 }
 
@@ -93,8 +95,11 @@ fn draw(htop_data: &HtopData, tcbs: &Vec<TCBTestData>) {
     let c_t = if htop_data.selected_column == 3 {&htop_data.color_selected} else {&htop_data.color_};
     let c_m = if htop_data.selected_column == 4 {&htop_data.color_selected} else {&htop_data.color_};
     let c_n = if htop_data.selected_column == 5 {&htop_data.color_selected} else {&htop_data.color_};
-    println!("{}  ID  {}Priority {}State {}CPU Time {}Mem {}Name{}",
-             c_c, c_p, c_s, c_t, c_m, c_n,&vt::CB_STANDARD);
+    let headersize = "  ID  Priority State CPU Time Mem Name".len();
+    let termsize = vt::get_size();
+    let spaces = " ".repeat(termsize.0 as usize - headersize);
+    println!("{}  ID  {}Priority {}State {}CPU Time {}Mem {}Name{}{}",
+             c_c, c_p, c_s, c_t, c_m, c_n, spaces, &vt::CB_STANDARD);
     for (i,tcb) in tcbs.iter().enumerate() {
         let cb = if i == htop_data.selected_row { &htop_data.color_selected } else { &vt::CB_STANDARD };
         let cf = if i == htop_data.selected_row { &vt::CF_BLACK } else { &vt::CF_STANDARD };
