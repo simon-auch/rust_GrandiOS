@@ -43,7 +43,7 @@ mod utils{
         
         pub fn get_size() -> (u32, u32) {
             print!("\x1B7");
-            print!("\x1B[999:999H");
+            print!("\x1B[999;999H");
             let res = get_position();
             print!("\x1B8");
             res
