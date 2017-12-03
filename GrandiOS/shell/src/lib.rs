@@ -77,6 +77,9 @@ macro_rules! command {
 	( $t:tt, $o:expr, $c:tt, $m:tt ) => {
         (Argument::$t($o.to_string()), $m::$c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
 	};
+	( $t:tt, $o:expr, $c:tt ) => {
+        (Argument::$t($o.to_string()), $c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
+	};
 	//( $o:tt, $c:tt, $m:tt ) => { command!(Operator, $o, $c, $m) };
 	//( $c:tt, $m:tt ) => { command!(Method, $c, $m, $c) };
 	//( $m:tt ) => { command!(Method, $m, $m, exec) };
@@ -86,12 +89,25 @@ static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argum
 static mut VARS: Option<Vec<(String, Argument)>> = None;
 pub static mut LOCALVARS: Option<Vec<(String, Argument)>> = None;
 
+pub fn get_size(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    let (w, h) = vt::get_size();
+    args[0] = Argument::List(vec![Argument::Int(w as isize), Argument::Int(h as isize)]);
+    Ok(args)
+}
+pub fn get_position(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    let (w, h) = vt::get_position();
+    args[0] = Argument::List(vec![Argument::Int(w as isize), Argument::Int(h as isize)]);
+    Ok(args)
+}
+
 #[no_mangle]
 pub extern fn _start() {
     println!("Welcome to pfush - the perfect functional shell");
     println!("type help for command list");
     unsafe {
         COMMANDS = Some(vec![
+            command!(Method, "pos", get_position),
+            command!(Method, "size", get_size),
             command!(Method, "logo", exec, logo),
             command!(Method, "colors", exec, colors),
             command!(Method, "edit", exec, edit),
