@@ -23,6 +23,10 @@ macro_rules! SET_LED {() => {6};}
 macro_rules! GET_LED {() => {5};}
 #[macro_export]
 macro_rules! SET_LED {() => {6};}
+#[macro_export]
+macro_rules! SLEEP {() => {7}; }
+#[macro_export] //we purposely do not use swi 8!
+macro_rules! SELECT {() => {9}; }
 
 //creates the input and output structs with the given types and identifiers
 macro_rules! IO {
@@ -72,3 +76,5 @@ build_swi!(useralloc;   ALLOC  ; l:Layout; r:Option<Result<*mut u8, AllocErr>>; 
 build_swi!(userdealloc; DEALLOC; p:*mut u8, l:Layout; ; alloc::heap::Layout);
 build_swi!(get_led;     GET_LED; l:u8; s:bool);
 build_swi!(set_led;     SET_LED; l:u8, s:bool; );
+build_swi!(sleep;       SLEEP  ; t:usize; );
+build_swi!(select;      SELECT ; c:Vec<usize>, i:Vec<Vec<u8>>; c:usize; alloc::vec::Vec);
