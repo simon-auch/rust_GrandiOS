@@ -23,13 +23,12 @@ mod driver{
 	pub mod serial;
 	pub mod led;
 	pub mod memory_controller;
-    pub mod power_management;
+    pub mod rtc;
 	pub mod interrupts;
 
 	pub use serial::*;
 	pub use led::*;
 	pub use memory_controller::*;
-	pub use power_management::*;
 	pub use interrupts::*;
 }
 mod utils{
@@ -101,9 +100,6 @@ fn main(){
     //Initialisieren der Interrupts
     println!("Initialisiere Interrupts");
     utils::irq::init(&mut ic, & DEBUG_UNIT);
-
-    let mut pmc = unsafe { PowerManagementController::new(PMC_BASE_ADDRESS) } ;
-    //println!("SC: {} IRQ: {}", pmc.sc_get_raw(), 0/*pmc.interrupt_get_raw()*/);
 
     //Initialisieren des Schedulers
     println!("Initialisiere Scheduler");
