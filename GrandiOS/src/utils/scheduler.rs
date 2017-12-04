@@ -4,6 +4,7 @@ use core::mem::replace;
 use utils::thread::TCB;
 use alloc::vec_deque::VecDeque;
 use alloc::binary_heap::BinaryHeap;
+use alloc::btree_map::BTreeMap;
 use utils::exceptions::software_interrupt;
 use utils::registers;
 use alloc::string::ToString;
@@ -13,8 +14,12 @@ use driver::serial::*;
 static mut SCHEDULER: Option<Scheduler> = None;
 
 pub unsafe fn init(current_tcb: TCB){
+    let mut tcbs = BTreeMap::<u32, TCB>::new();
+    let id = current_tcb.get_order();
+    tcbs.insert(id, current_tcb);
     SCHEDULER = Some(Scheduler{
-        running: Some(current_tcb),
+        tcbs: tcbs,
+        running: id,
         queue_ready: BinaryHeap::new(),
         queue_terminate: BinaryHeap::new(),
         queue_waiting_read: BinaryHeap::new(),
@@ -63,26 +68,29 @@ impl<T> PartialEq for Priority<T> {
 }
 
 pub struct Scheduler{
-    running: Option<TCB>,
+    tcbs: BTreeMap<u32, TCB>,
+    running: u32,
     //Queues for the threads
-    queue_ready: BinaryHeap<Priority<TCB>>,
-    queue_terminate: BinaryHeap<Priority<TCB>>,
-    queue_waiting_read: BinaryHeap<Priority<TCB>>,
+    queue_ready: BinaryHeap<Priority<u32>>,
+    queue_terminate: BinaryHeap<Priority<u32>>,
+    queue_waiting_read: BinaryHeap<Priority<u32>>,
     //Queues for stuff that threads can wait for
     queue_waiting_read_input: VecDeque<u8>,
 }
 
-fn add_thread_to_queue(queue: &mut BinaryHeap<Priority<TCB>>, tcb: TCB){
-    queue.push(Priority{priority: tcb.get_priority(), data: tcb});
+fn add_thread_to_queue(queue: &mut BinaryHeap<Priority<u32>>, tcb: & TCB){
+    queue.push(Priority{priority: tcb.get_priority(), data: tcb.get_order()});
 }
 
 impl Scheduler{
     pub fn add_thread(&mut self, tcb: TCB){
-        add_thread_to_queue(&mut self.queue_ready, tcb);
+        add_thread_to_queue(&mut self.queue_ready, & tcb);
+        let id = tcb.get_order();
+        self.tcbs.insert(id, tcb);
     }
     pub fn switch(&mut self, register_stack: &mut software_interrupt::RegisterStack, new_state: State){
-        //save registers for current thread
-        let mut running = self.running.take().unwrap();
+        {//save registers for current thread and move it into the correct queue
+        let mut running = self.tcbs.get_mut(&self.running).unwrap();
         //println!("Switching from: {:?}", running);
         //println!("Current registers: {:?}", register_stack);
         running.save_registers(&register_stack);
@@ -101,11 +109,12 @@ impl Scheduler{
                     },
                 }
             },
-        }, running);
-        let mut next = self.queue_ready.pop().unwrap().data;  //muss es immer geben, da idle thread
+        }, & running);
+        }
+        let mut next = self.tcbs.get_mut(&(self.queue_ready.pop().unwrap().data)).unwrap();  //muss es immer geben, da idle thread
         //println!("Switching to: {:?}", next);
         next.load_registers(register_stack);
-        self.running = Some(next);
+        self.running = next.get_order();
     }
 
     //set of function to push something into the queue_waiting_*_input queues
@@ -115,9 +124,10 @@ impl Scheduler{
                 self.queue_waiting_read_input.push_back(c);
             },
             Some(priority) => {
-                let mut tcb = priority.data;
+                let id = priority.data;
+                let mut tcb = self.tcbs.get_mut(&id).unwrap();
                 software_interrupt::work::read(&mut tcb, c);
-                add_thread_to_queue(&mut self.queue_ready, tcb);
+                add_thread_to_queue(&mut self.queue_ready, & tcb);
             },
         }
     }

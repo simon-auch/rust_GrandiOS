@@ -2,6 +2,7 @@ use driver::serial::*;
 use alloc::vec::Vec;
 use alloc::string::String;
 use utils::exceptions::software_interrupt;
+use core::cmp::Ordering;
 
 #[derive(Debug)]
 pub struct TCB {
@@ -56,5 +57,26 @@ impl TCB {
 
     pub fn save_registers(&mut self, registers: & software_interrupt::RegisterStack) {
         self.register_stack.copy(registers);
+    }
+    pub fn get_order(&self) -> u32 {
+        self.id
+    }
+}
+
+//implements compare for the TCB, only uses the id field.
+impl Eq for TCB {}
+impl Ord for TCB {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.get_order().cmp(&other.get_order())
+    }
+}
+impl PartialOrd for TCB {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl PartialEq for TCB {
+    fn eq(&self, other: &Self) -> bool {
+        self.priority == other.priority
     }
 }
