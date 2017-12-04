@@ -71,9 +71,9 @@ macro_rules! print {
 		    write!(::PRINTER, $x).unwrap();
         }
 	};
-	( $x:expr, $( $y:expr ),* ) => {
+	( $($x:tt)* ) => {
         unsafe {
-		    write!(::PRINTER, $x, $($y),*).unwrap();
+		    write!(::PRINTER, $($x)*).unwrap();
         }
 	};
 }
@@ -83,8 +83,8 @@ macro_rules! println {
         print!($x);
         print!("\n");
 	};
-	( $x:expr, $( $y:expr ),* ) => {
-		print!($x, $($y),*);
+	( $($y:tt )* ) => {
+		print!($($y)*);
 		print!("\n");
 	};
 }
