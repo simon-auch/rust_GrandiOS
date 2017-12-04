@@ -6,13 +6,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "byteorder"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "compiler_builtins"
 version = "0.1.0"
 source = "git+https://github.com/rust-lang-nursery/compiler-builtins#200c94eebf3705fa9590451f5a9e8c3fb94d7323"
 
 [[package]]
+name = "corepack"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.23 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "rlibc"
 version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "serde"
+version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -21,6 +40,7 @@ version = "0.1.0"
 dependencies = [
  "aids 0.1.0",
  "compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
+ "corepack 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "swi 0.1.0",
  "vt 0.1.0",
@@ -35,5 +55,8 @@ name = "vt"
 version = "0.1.0"
 
 [metadata]
+"checksum byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "652805b7e73fada9d85e9a6682a4abd490cb52d96aeecc12e33a0de34dfd0d23"
 "checksum compiler_builtins 0.1.0 (git+https://github.com/rust-lang-nursery/compiler-builtins)" = "<none>"
+"checksum corepack 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "31e94ce2f7842a965791b394b27bc2b1697aec74220b51f7a25ce5e671cd80f6"
 "checksum rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
+"checksum serde 1.0.23 (registry+https://github.com/rust-lang/crates.io-index)" = "6a7c37d7f192f00041e8a613e936717923a71bc0c9051fc4425a49b104140f05"

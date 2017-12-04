@@ -6,27 +6,29 @@ extern crate alloc;
 
 //macros that give the swi number of the corresponding swi
 #[macro_export]
-macro_rules! SWITCH {() => {0};}
+macro_rules! SWITCH {() => {0}; ( name ) => {switch};}
 #[macro_export]
-macro_rules! READ   {() => {1};}
+macro_rules! READ   {() => {1}; ( name ) => {read};}
 #[macro_export]
-macro_rules! WRITE  {() => {2};}
+macro_rules! WRITE  {() => {2}; ( name ) => {write};}
 #[macro_export]
-macro_rules! ALLOC  {() => {3};}
+macro_rules! ALLOC  {() => {3}; ( name ) => {useralloc};}
+ #[macro_export]
+macro_rules! DEALLOC  {() => {4}; ( name ) => {userdealloc};}
 #[macro_export]
-macro_rules! DEALLOC  {() => {4};}
+macro_rules! GET_LED {() => {5}; ( name ) => {get_led};}
 #[macro_export]
-macro_rules! GET_LED {() => {5};}
+macro_rules! SET_LED {() => {6}; ( name ) => {set_led};}
 #[macro_export]
-macro_rules! SET_LED {() => {6};}
-#[macro_export]
-macro_rules! GET_LED {() => {5};}
-#[macro_export]
-macro_rules! SET_LED {() => {6};}
-#[macro_export]
-macro_rules! SLEEP {() => {7}; }
+macro_rules! SLEEP {() => {7}; ( name ) => {sleep};}
 #[macro_export] //we purposely do not use swi 8!
-macro_rules! SELECT {() => {9}; }
+macro_rules! SELECT {() => {9}; ( name ) => {select};}
+#[macro_export]
+macro_rules! IPC_WAIT {() => {10}; ( name ) => {ipc_wait};}
+#[macro_export]
+macro_rules! IPC_READ {() => {11}; ( name ) => {ipc_read};}
+#[macro_export]
+macro_rules! IPC_WRITE {() => {12}; ( name ) => {ipc_write};}
 
 //creates the input and output structs with the given types and identifiers
 macro_rules! IO {
@@ -69,12 +71,15 @@ macro_rules! build_swi {
     );
 }
 
-build_swi!(switch;      SWITCH ; ; );
-build_swi!(read;        READ   ; ; c:u8);
-build_swi!(write;       WRITE  ; c:u8; );
-build_swi!(useralloc;   ALLOC  ; l:Layout; r:Option<Result<*mut u8, AllocErr>>; alloc::heap::Layout, alloc::heap::AllocErr);
-build_swi!(userdealloc; DEALLOC; p:*mut u8, l:Layout; ; alloc::heap::Layout);
-build_swi!(get_led;     GET_LED; l:u8; s:bool);
-build_swi!(set_led;     SET_LED; l:u8, s:bool; );
-build_swi!(sleep;       SLEEP  ; t:usize; );
-build_swi!(select;      SELECT ; c:Vec<usize>, i:Vec<Vec<u8>>; c:usize; alloc::vec::Vec);
+build_swi!(switch ; SWITCH   ; ; );
+build_swi!(read   ; READ     ; ; c:u8);
+build_swi!(write  ; WRITE    ; c:u8; );
+build_swi!(useralloc  ; ALLOC    ; l:Layout; r:Option<Result<*mut u8, AllocErr>>; alloc::heap::Layout, alloc::heap::AllocErr);
+build_swi!(userdealloc; DEALLOC  ; p:*mut u8, l:Layout; ; alloc::heap::Layout);
+build_swi!(get_led; GET_LED  ; l:u8; s:bool);
+build_swi!(set_led; SET_LED  ; l:u8, s:bool; );
+build_swi!(sleep  ; SLEEP    ; t:usize; );
+build_swi!(select ; SELECT   ; c:Vec<usize>, i:Vec<Vec<u8>>; c:usize; alloc::vec::Vec);
+build_swi!(ipc_wait; IPC_WAIT ; c:usize; );
+build_swi!(ipc_read; IPC_READ ; c:usize; p:Vec<u8>; alloc::vec::Vec);
+build_swi!(ipc_write; IPC_WRITE; c:usize, i:Vec<u8>; ; alloc::vec::Vec);

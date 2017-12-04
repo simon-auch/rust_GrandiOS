@@ -4,6 +4,7 @@
 #![feature(asm)]
 #![feature(const_fn)]
 #![feature(alloc,allocator_api)]
+#![allow(unused_macros)]
 extern crate swi;
 extern crate alloc;
 pub mod allocator;
@@ -13,6 +14,7 @@ macro_rules! init {
         #[macro_use]
         extern crate alloc;
         extern crate swi;
+        extern crate corepack;
         use core::fmt;
         use core::fmt::Write;
         #[global_allocator]
@@ -52,12 +54,15 @@ macro_rules! init {
 }
 #[macro_export]
 macro_rules! read {
-    () => ({
+    () => {{
         let input      = ::swi::read::Input{};
         let mut output = ::swi::read::Output{c: 0};
         ::swi::read::call(& input, &mut output);
         output.c
-    });
+    }};
+    ( $t:expr ) => {
+        select!(SLEEP!(), $t; READ!(), );
+    };
 }
 #[macro_export]
 macro_rules! print {
@@ -106,5 +111,50 @@ macro_rules! set_led {
         let input      = ::swi::set_led::Input{l:$l, s:$s};
         let mut output = ::swi::set_led::Output{};
         ::swi::set_led::call(& input, &mut output);
+    }};
+}
+#[macro_export]
+macro_rules! sleep {
+    ( $t:expr ) => ({
+        let input      = ::swi::sleep::Input{t:$t};
+        let mut output = ::swi::sleep::Output{};
+        ::swi::sleep::call(& input, &mut output);
+    });
+}
+macro_rules! generate_input {
+    ( $channel:expr, $input:expr ) => {{
+        match $channe {
+            READ!() => { corepack::to_bytes(::swi::read::Input{}).unwrap() },
+            SLEEP!() => { corepack::to_bytes(::swi::sleep::Input{t:$input}).unwrap() },
+            _ => { corepack::to_bytes(::swi::ipc_read::Input{c:$channel, i:corepack::to_bytes($input).unwrap()}).unwrap() }
+        }
+    }};
+}
+#[macro_export]
+macro_rules! select {
+    ( $($c:expr, $i:expr);* ) => ({
+        let c = vec![];
+        let i = vec![];
+        $(
+            c.push($c);
+            i.push(generate_input!($c, $i));
+        )*
+        let input      = ::swi::select::Input{c:c, i:i};
+        let mut output = ::swi::select::Output{c:0};
+        ::swi::select::call(& input, &mut output);
+        output.c
+    });
+}
+#[macro_export]
+macro_rules! ipc_read {
+    ( $channel:expr ) => {{
+         let winput      = ::swi::ipc_wait::Input{c:$channel};
+         let mut woutput = ::swi::ipc_wait::Output{};
+         ::swi::ipc_wait::call(& input, &mut output);
+         let mut result = Vec::with_capacity(o.s);
+         let rinput      = ::swi::ipc_read::Input{c:$channel};
+         let mut routput = ::swi::ipc_read::Output{p:result};
+         ::swi::ipc_read::call(& rinput, &mut routput);
+         output.p
     }};
 }

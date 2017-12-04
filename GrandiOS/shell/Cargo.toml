@@ -12,3 +12,4 @@ swi = { path = "../swi" }
 vt = { path = "../vt" }
 compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
 rlibc = "1.0.0"
+corepack = { version = "~0.3.0", default-features = false, features = ["alloc"] }

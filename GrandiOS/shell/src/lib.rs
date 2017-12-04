@@ -172,7 +172,7 @@ unsafe fn load_prelude() {
 }
 
 fn prompt() -> String {
-    format!("{2} {3} {4} {0}{1}> ", &vt::ATT_RESET, &vt::CB_STANDARD,
+    format!("{1} {2} {3} {0}> ", &vt::CB_STANDARD,
             if get_led!(0) { &vt::CB_RED } else { &vt::CB_STANDARD },
             if get_led!(1) { &vt::CB_YELLOW } else { &vt::CB_STANDARD },
             if get_led!(2) { &vt::CB_GREEN } else { &vt::CB_STANDARD }
