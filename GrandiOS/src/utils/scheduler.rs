@@ -25,9 +25,6 @@ pub unsafe fn init(current_tcb: TCB){
         queue_waiting_read: BinaryHeap::new(),
         queue_waiting_read_input: VecDeque::new(),
     });
-    let scheduler = get_scheduler();
-    let mut tcb_idle = TCB::new("Idle Thread".to_string(), idle as *mut _ , 0x100, registers::CPSR_MODE_USER);
-    scheduler.add_thread(tcb_idle);
 }
 
 pub unsafe fn get_scheduler() -> &'static mut Scheduler {
@@ -134,6 +131,6 @@ impl Scheduler{
 }
 
 
-fn idle(){
+pub fn idle(){
     loop{}
 }

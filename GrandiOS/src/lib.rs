@@ -86,7 +86,7 @@ fn main(){
     DEBUG_UNIT.enable();
     
     println!("Waiting for keypress before continue");
-    read!();
+    //read!();
 
     //Initialisieren der Ausnahmen
     println!("Initialisiere Ausnahmen");
@@ -102,10 +102,16 @@ fn main(){
 
     //Initialisieren des Schedulers
     println!("Initialisiere Scheduler");
-    let mut tcb_current = utils::thread::TCB::new("Shell Thread".to_string(), 0 as *mut _, 0, 0); //function, memory, and cpsr will be set when calling the switch interrupt
-    tcb_current.set_priority(10);
+    
+    let mut tcb_idle = utils::thread::TCB::new("Idle Thread".to_string(), utils::scheduler::idle as *mut _ , 0x100, utils::registers::CPSR_MODE_USER);
+    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *mut _, 0x2000, utils::registers::CPSR_MODE_USER); //function, memory, and cpsr will be set when calling the switch interrupt
+    tcb_shell.set_priority(10);
     //Initialise scheduler
-    unsafe{ utils::scheduler::init(tcb_current) };
+    unsafe{ utils::scheduler::init(tcb_idle) };
+    //unsafe{ utils::scheduler::init(tcb_shell) };
+    let mut sched = unsafe {utils::scheduler::get_scheduler()};
+    sched.add_thread(tcb_shell);
+    //sched.add_thread(tcb_idle);
 
     //switch into user mode before starting the shell + enable interrupts, from this moment on the entire os stuff that needs privileges is done from syscalls (which might start privileged threads)
     unsafe{asm!("
@@ -115,9 +121,12 @@ fn main(){
         :
         :"volatile"
     );}
-    println!("Starte Shell");
-    corepack::to_bytes(vec![1,2,3]);
-    unsafe{_shell_start()};
+    //call switch before entering the idle thread to swich to the scheduler.
+    //let input      = swi::switch::Input{};
+    //let mut output = swi::switch::Output{};
+    //swi::switch::call(& input, &mut output);
+    utils::scheduler::idle();
+    //unsafe{ _shell_start();}
 }
 
 #[inline(always)]
