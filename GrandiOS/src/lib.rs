@@ -23,11 +23,13 @@ mod driver{
 	pub mod serial;
 	pub mod led;
 	pub mod memory_controller;
+    pub mod power_management;
 	pub mod interrupts;
 
 	pub use serial::*;
 	pub use led::*;
 	pub use memory_controller::*;
+	pub use power_management::*;
 	pub use interrupts::*;
 }
 mod utils{
@@ -100,6 +102,9 @@ fn main(){
     println!("Initialisiere Interrupts");
     utils::irq::init(&mut ic, & DEBUG_UNIT);
 
+    let mut pmc = unsafe { PowerManagementController::new(PMC_BASE_ADDRESS) } ;
+    //println!("SC: {} IRQ: {}", pmc.sc_get_raw(), 0/*pmc.interrupt_get_raw()*/);
+
     //Initialisieren des Schedulers
     println!("Initialisiere Scheduler");
     let mut tcb_current = utils::thread::TCB::new("Shell Thread".to_string(), 0 as *mut _, 0, 0); //function, memory, and cpsr will be set when calling the switch interrupt
@@ -116,7 +121,6 @@ fn main(){
         :"volatile"
     );}
     println!("Starte Shell");
-    corepack::to_bytes(vec![1,2,3]);
     unsafe{_shell_start()};
 }
 
