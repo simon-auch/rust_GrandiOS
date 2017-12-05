@@ -33,7 +33,7 @@ extern fn handler_helper_line_1(reg_sp: u32){
         },
     }
     let mut st = unsafe{ get_system_timer() };
-    if st.interrupt_pits() {
+    if st.interrupt_pits() { //das hier muss aufgerufen werden, da ansonsten der interrupt direkt wieder aufgerufen wird.
         write!(debug_unit, "!\n");
     }
     //let mut rtc = unsafe { RTCController::new(RTC_BASE_ADDRESS) } ;
