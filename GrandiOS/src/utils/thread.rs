@@ -1,7 +1,7 @@
 use driver::serial::*;
 use alloc::vec::Vec;
 use alloc::string::String;
-use utils::exceptions::software_interrupt;
+use utils::exceptions::common_code::RegisterStack;
 use core::cmp::Ordering;
 
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub struct TCB {
     pub cpu_time: u32,
     priority: u32,
     // ...
-    pub register_stack: software_interrupt::RegisterStack,
+    pub register_stack: RegisterStack,
     //memory information (should later contain mmu parameters) for now it contains a memory location that is the used for the thread stack
     memory: Vec<u8>,
 }
@@ -22,7 +22,7 @@ pub struct TCB {
 static mut NEXT_ID: u32 = 0;
 
 impl TCB {
-    pub fn new(name: String, program_ptr: *mut u32, memory_size: usize, cpsr: u32) -> Self {
+    pub fn new(name: String, program_ptr: *const (), memory_size: usize, cpsr: u32) -> Self {
         let id;
         unsafe{
             NEXT_ID+=1;
@@ -30,7 +30,7 @@ impl TCB {
         }
         println!("Created TCB with pc=\t{:p}",program_ptr);
         let memory = Vec::with_capacity(memory_size);
-        let mut regs : software_interrupt::RegisterStack = Default::default();
+        let mut regs = RegisterStack::new();
         regs.lr = program_ptr as u32; //regs[13] ist das LR und der PC wird aus dem LR geladen
         regs.sp = unsafe { memory.as_ptr().offset(memory_size as isize) as u32};
         regs.cpsr = cpsr;
@@ -51,11 +51,11 @@ impl TCB {
         self.priority
     }
 
-    pub fn load_registers(&mut self, registers: &mut software_interrupt::RegisterStack) {
-        registers.copy(&mut self.register_stack)
+    pub fn load_registers(& self, registers: &mut RegisterStack) {
+        registers.copy(& self.register_stack)
     }
 
-    pub fn save_registers(&mut self, registers: & software_interrupt::RegisterStack) {
+    pub fn save_registers(&mut self, registers: & RegisterStack) {
         self.register_stack.copy(registers);
     }
     pub fn get_order(&self) -> u32 {

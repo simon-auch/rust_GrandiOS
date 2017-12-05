@@ -5,6 +5,7 @@ use utils::thread::TCB;
 use alloc::vec_deque::VecDeque;
 use alloc::binary_heap::BinaryHeap;
 use alloc::btree_map::BTreeMap;
+use utils::exceptions::common_code::RegisterStack;
 use utils::exceptions::software_interrupt;
 use utils::registers;
 use alloc::string::ToString;
@@ -42,6 +43,7 @@ pub enum State{
 }
 
 //struct that contains a tcb and a priority which to use for scheduling
+#[derive(Debug)]
 struct Priority<T>{
     priority: u32,
     data: T,
@@ -85,22 +87,30 @@ impl Scheduler{
         let id = tcb.get_order();
         self.tcbs.insert(id, tcb);
     }
-    pub fn switch(&mut self, register_stack: &mut software_interrupt::RegisterStack, new_state: State){
+    pub fn switch(&mut self, register_stack: &mut RegisterStack, new_state: State){
         {//save registers for current thread and move it into the correct queue
         let mut running = self.tcbs.get_mut(&self.running).unwrap();
-        //println!("Switching from: {:?}", running);
-        //println!("Current registers: {:?}", register_stack);
+        //println!("Switching from: {}", running.name);
+        //println!("Current registers: {:#?}", register_stack);
         running.save_registers(&register_stack);
         //make sure the old thread gets the correct state and gets moved into the correct Queue
         add_thread_to_queue(match new_state{
-            State::Ready       => { &mut self.queue_ready },
-            State::Terminate   => { &mut self.queue_terminate },
+            State::Ready       => {
+                //println!("queue_ready");
+                &mut self.queue_ready
+            },
+            State::Terminate   => { 
+                //println!("queue_terminate"); 
+                &mut self.queue_terminate
+            },
             State::WaitingRead => {
                 match self.queue_waiting_read_input.pop_front() {
                     None => { //there is no input available, so we need to wait
+                        //println!("queue_waiting_read");
                         &mut self.queue_waiting_read
                     },
                     Some(c) => { //input is available, process it and make the thread ready
+                        //println!("queue_waiting_read -> queue_ready");
                         software_interrupt::work::read(&mut running, c);
                         &mut self.queue_ready
                     },
@@ -108,9 +118,12 @@ impl Scheduler{
             },
         }, & running);
         }
+        //println!("queue_ready: {:#?}", self.queue_ready);
         let mut next = self.tcbs.get_mut(&(self.queue_ready.pop().unwrap().data)).unwrap();  //muss es immer geben, da idle thread
-        //println!("Switching to: {:?}", next);
-        next.load_registers(register_stack);
+        //println!("Switching to: {}", next.name);
+        //println!("Loading Registers");
+        (&next).load_registers(register_stack);
+        //println!("Current registers: {:#?}", register_stack);
         self.running = next.get_order();
     }
 
@@ -131,6 +144,6 @@ impl Scheduler{
 }
 
 
-pub fn idle(){
+pub extern fn idle(){
     loop{}
 }
