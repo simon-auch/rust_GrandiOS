@@ -23,6 +23,7 @@ mod driver{
 	pub mod serial;
 	pub mod led;
 	pub mod memory_controller;
+    pub mod rtc;
 	pub mod interrupts;
 
 	pub use serial::*;

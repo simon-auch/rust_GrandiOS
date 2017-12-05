@@ -4,11 +4,14 @@ use utils::exceptions::software_interrupt::*;
 
 //imports for possible interrupt sources
 use driver::serial::*;
+use driver::rtc::*;
 
 pub fn init(ic : &mut InterruptController, debug_unit : & DebugUnitWrapper){
     ic.set_handler(1, handler_line_1); //interrupt line 1 is SYS: Debug unit, clocks, etc
     ic.enable();
     debug_unit.interrupt_set_rxrdy(true);
+    let mut rtc = unsafe { RTCController::new(RTC_BASE_ADDRESS) } ;
+    //rtc.interrupt_enable();
 }
 
 #[naked]
@@ -67,6 +70,10 @@ fn handler_helper_line_1(reg_sp: u32){
             sched.push_queue_waiting_read_input(c);
         },
     }
+    let mut rtc = unsafe { RTCController::new(RTC_BASE_ADDRESS) } ;
+    //if rtc.has_time_event() {
+        //print!("!");
+    //}
     //call switch just in case a new process was made available
     sched.switch(regs, scheduler::State::Ready);
 }

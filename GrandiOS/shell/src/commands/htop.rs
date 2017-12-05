@@ -120,6 +120,7 @@ fn draw(htop_data: &HtopData, tcbs: &Vec<TCBTestData>) -> usize {
         let cb = if i == htop_data.selected_row { &htop_data.color_selected } else { &vt::CB_STANDARD };
         let cf = if i == htop_data.selected_row { &vt::CF_BLACK } else { &vt::CF_STANDARD };
         spaces = termsize.0 as usize - headersize;
+        // TODO: namen scrollen ( <-> )
         // shorten name if needed
         let mut name = if tcb.name.len()>=spaces && spaces > 2 { [&tcb.name[0..(usize::min(tcb.name.len(),spaces)-2)], ".."].join("") } else { tcb.name[0..usize::min(tcb.name.len(),spaces)].to_string() };
 
@@ -141,7 +142,7 @@ fn draw(htop_data: &HtopData, tcbs: &Vec<TCBTestData>) -> usize {
 
 fn kill_selected(htop_data: &HtopData, tcbs: &mut Vec<TCBTestData>) {
     //TODO
-    if tcbs.len() > 0 {
+    if tcbs.len() > htop_data.selected_row {
         tcbs.remove(htop_data.selected_row);
     }
 }

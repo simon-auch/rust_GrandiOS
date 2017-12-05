@@ -132,7 +132,9 @@ pub extern fn _start() {
         print!("{}", &vt::CursorControl::Show); // make cursor visible
         unsafe { LOCALVARS = None; }
         let mut raw_input = read_command(&mut history);
-        history.push_back(raw_input.clone());
+        if history.is_empty() || *history.back().unwrap() != raw_input {
+            history.push_back(raw_input.clone());
+        }
         match parse(&mut raw_input, 0) {
             Err((s,p)) => { println!("{}^\n{}", "-".repeat(p+1), s); continue; },
             Ok(mut v) => { 
