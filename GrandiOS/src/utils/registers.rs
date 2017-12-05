@@ -22,3 +22,4 @@ pub const CPSR_INSTRUCTION_THUMB   : u32 = 0x1 << 5;
 
 pub const CPSR_IRQ : u32 = 0x1 << 7;
 pub const CPSR_FIQ : u32 = 0x1 << 6;
+pub const CPSR_IMPRECISE_ABORT : u32 = 0x1 << 8;

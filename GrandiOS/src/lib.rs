@@ -34,16 +34,18 @@ mod utils{
     pub mod spinlock;
     pub mod allocator;
     pub mod exceptions{
+        #[macro_use]
+        pub mod common_code;
         pub mod data_abort;
         pub mod undefined_instruction;
         pub mod prefetch_abort;
         pub mod software_interrupt;
+        pub mod irq;
     }
     pub mod thread;
     pub mod scheduler;
     pub mod registers;
     pub mod ring;
-    pub mod irq;
     extern crate vt;
 }
 use driver::*;
@@ -98,13 +100,14 @@ fn main(){
 
     //Initialisieren der Interrupts
     println!("Initialisiere Interrupts");
-    utils::irq::init(&mut ic, & DEBUG_UNIT);
+    utils::exceptions::irq::init(&mut ic, & DEBUG_UNIT);
 
     //Initialisieren des Schedulers
     println!("Initialisiere Scheduler");
+    println!("Adresse der switch routine ist: 0x{:x}, {}", swi::switch::call as *const () as u32, swi::switch::call as *const () as u32);
     
-    let mut tcb_idle = utils::thread::TCB::new("Idle Thread".to_string(), utils::scheduler::idle as *mut _ , 0x100, utils::registers::CPSR_MODE_USER);
-    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *mut _, 0x2000, utils::registers::CPSR_MODE_USER); //function, memory, and cpsr will be set when calling the switch interrupt
+    let mut tcb_idle = utils::thread::TCB::new("Idle Thread".to_string(), utils::scheduler::idle as *const () , 0x0, 0);
+    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x4000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
     tcb_shell.set_priority(10);
     //Initialise scheduler
     unsafe{ utils::scheduler::init(tcb_idle) };
@@ -117,8 +120,8 @@ fn main(){
     unsafe{asm!("
         msr CPSR, r0"
         :
-        :"{r0}"(utils::registers::CPSR_MODE_USER) //interrupts are enabled if the bits are 0
-        :
+        :"{r0}"(utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT) //interrupts are enabled if the bits are 0
+        :"memory"
         :"volatile"
     );}
     //call switch before entering the idle thread to swich to the scheduler.
