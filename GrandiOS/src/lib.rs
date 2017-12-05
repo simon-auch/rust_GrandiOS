@@ -19,17 +19,18 @@
 
 #[macro_use]
 mod driver{
-	#[macro_use]
-	pub mod serial;
-	pub mod led;
-	pub mod memory_controller;
+    #[macro_use]
+    pub mod serial;
+    pub mod led;
+    pub mod memory_controller;
     pub mod rtc;
-	pub mod interrupts;
+    pub mod system_timer;
+    pub mod interrupts;
 
-	pub use serial::*;
-	pub use led::*;
-	pub use memory_controller::*;
-	pub use interrupts::*;
+    pub use serial::*;
+    pub use led::*;
+    pub use memory_controller::*;
+    pub use interrupts::*;
 }
 mod utils{
     pub mod spinlock;
@@ -101,7 +102,11 @@ fn main(){
 
     //Initialisieren der Interrupts
     println!("Initialisiere Interrupts");
-    utils::exceptions::irq::init(&mut ic, & DEBUG_UNIT);
+    utils::exceptions::irq::init(&mut ic);
+    DEBUG_UNIT.interrupt_set_rxrdy(true);
+    let mut st = unsafe{ driver::system_timer::init(); driver::system_timer::get_system_timer()};
+    st.set_piv(0x8000); //0x8000 ist eine sekunde, da die slowclock 0x8000 Hz hat.
+    st.interrupt_enable_pits();
 
     //Initialisieren des Schedulers
     println!("Initialisiere Scheduler");

@@ -1,15 +1,15 @@
 use driver::interrupts::*;
 use driver::rtc::*;
+use driver::system_timer::*;
 use utils::scheduler;
 use utils::exceptions::common_code::RegisterStack;
 
 //imports for possible interrupt sources
 use driver::serial::*;
 
-pub fn init(ic : &mut InterruptController, debug_unit : & DebugUnitWrapper){
+pub fn init(ic : &mut InterruptController){
     ic.set_handler(1, handler_line_1); //interrupt line 1 is SYS: Debug unit, clocks, etc
     ic.enable();
-    debug_unit.interrupt_set_rxrdy(true);
 }
 
 #[naked]
@@ -32,7 +32,11 @@ extern fn handler_helper_line_1(reg_sp: u32){
             sched.push_queue_waiting_read_input(c);
         },
     }
-     let mut rtc = unsafe { RTCController::new(RTC_BASE_ADDRESS) } ;
+    let mut st = unsafe{ get_system_timer() };
+    if st.interrupt_pits() {
+        write!(debug_unit, "!\n");
+    }
+    //let mut rtc = unsafe { RTCController::new(RTC_BASE_ADDRESS) } ;
     //if rtc.has_time_event() {
         //print!("!");
     //}
