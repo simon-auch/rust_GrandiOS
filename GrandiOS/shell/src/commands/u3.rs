@@ -10,11 +10,11 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     let (w, _) = vt::get_size();
     println!("");
     while c != 4 { //4 = ^d = end of transmission
-        for i in 1..200 {
-            print!("{} {}", c as char, vt::CursorControl::Left{count:1});
-            if i%w==w/2 {
-                for j in 1..100 {} //do nothing, hopefully
-            }
+        for i in 0..200 {
+            print!("{}", c as char);
+            if i%w==0 { print!("\r"); }
+            print!(" {}", vt::CursorControl::Left{count:1});
+            for j in 1..(if i%w==w/2 {10} else {1} * 1000) {} //do nothing, hopefully
             if i%w==0 { print!("\r"); }
         }
         c = read!();
