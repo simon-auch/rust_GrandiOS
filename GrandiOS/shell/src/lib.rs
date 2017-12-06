@@ -58,7 +58,9 @@ mod commands{
     pub mod edit;
     pub mod cowsay;
     pub mod math;
+    pub mod bool;
     pub mod higher;
+    pub mod list;
     pub mod u3;
 }
 
@@ -118,6 +120,7 @@ pub extern fn _start() {
             command!(Method, "u3", exec, u3),
             command!(Method, "map", map, higher),
             command!(Method, "foldl", foldl, higher),
+            command!(Method, "filter", filter, list),
             command!(Operator, ".", dot, higher),
             command!(Operator, "\\", lambda, higher),
             command!(Operator, "->", lambda, higher),
@@ -125,6 +128,9 @@ pub extern fn _start() {
             command!(Operator, "-", minus, math),
             command!(Operator, "*", times, math),
             command!(Operator, "/", div, math),
+            command!(Operator, "==", eq, bool),
+            command!(Operator, "/=", neq, bool),
+            command!(Operator, "++", plusplus, list),
         ]);
         VARS = Some(vec![("it".to_string(), Argument::Nothing)]);
         load_prelude();
@@ -253,6 +259,14 @@ pub fn unpack_args(args: &mut Vec<Argument>, len: usize) {
             args[i] = args[i].get_application()[0].clone();
         }
     }
+}
+
+pub fn unpack(mut arg: Argument) -> Argument {
+    if is_var(&arg) { return unpack(get_var(arg.get_method_name().unwrap())); }
+    while arg.is_application() && arg.get_application().len() == 1 {
+        arg = arg.get_application()[0].clone();
+    }
+    arg
 }
 
 pub fn eval_args(args: &mut Vec<Argument>, len: usize) {

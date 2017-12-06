@@ -43,7 +43,7 @@ pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     Ok(args)
 }
 
-fn get_cmd(args: &mut Vec<Argument>, e: Argument) -> Vec<Argument> {
+pub fn get_cmd(args: &mut Vec<Argument>, e: Argument) -> Vec<Argument> {
     if ::is_var(&args[0]) {
         let mut t = args.clone();
         let v = t.remove(0).get_method_name().unwrap();

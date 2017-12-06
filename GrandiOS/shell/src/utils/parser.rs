@@ -7,13 +7,14 @@ use alloc::slice::SliceConcatExt;
 
 #[derive(PartialEq,Debug,Clone)]
 pub enum Argument {
-    Nothing, Int(isize), Str(String), List(Vec<Argument>),
+    Nothing, Bool(bool), Int(isize), Str(String), List(Vec<Argument>),
     Operator(String), Method(String), Application(Vec<Argument>),
 }
 
 impl ToString for Argument {
     fn to_string(&self) -> String {
         match self {
+            &Argument::Bool(b) => format!("{}",b).to_string(),
             &Argument::Int(i) => format!("{}",i).to_string(),
             &Argument::Str(ref s) => format!("\"{}\"", s).clone(),
             &Argument::Method(ref s) | &Argument::Operator(ref s) => s.clone(),
@@ -37,6 +38,12 @@ impl Argument {
     pub fn is_str(&self) -> bool {
         match self {
             &Argument::Str(_) => true,
+            _ => false
+        }
+    }
+    pub fn is_bool(&self) -> bool {
+        match self {
+            &Argument::Bool(_) => true,
             _ => false
         }
     }
@@ -73,6 +80,12 @@ impl Argument {
     pub fn get_str(&self) -> Option<String> {
         match self {
             &Argument::Str(ref s) => Some(s.clone()),
+            _ => None
+        }
+    }
+    pub fn get_bool(&self) -> Option<bool> {
+        match self {
+            &Argument::Bool(b) => Some(b),
             _ => None
         }
     }

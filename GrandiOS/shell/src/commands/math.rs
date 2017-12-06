@@ -4,22 +4,22 @@ use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 
 pub fn plus(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    operate_diad(args, "+", |x,y| x+y)
+    operate_diad(args, |x,y| x+y)
 }
 
 pub fn minus(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    operate_diad(args, "-", |x,y| x-y)
+    operate_diad(args, |x,y| x-y)
 }
 
 pub fn times(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    operate_diad(args, "*", |x,y| x*y)
+    operate_diad(args, |x,y| x*y)
 }
 
 pub fn div(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    operate_diad(args, "/", |x,y| x/y)
+    operate_diad(args, |x,y| x/y)
 }
 
-pub fn operate_diad<F>(mut args: Vec<Argument>, name: &str, f: F) -> Result<Vec<Argument>, String> where F: Fn(isize, isize) -> isize {
+pub fn operate_diad<F>(mut args: Vec<Argument>, f: F) -> Result<Vec<Argument>, String> where F: Fn(isize, isize) -> isize {
     match args.len() {
         1 | 2 => return Ok(args),
         3 => if !args[0].is_something() { return Ok(args) },
