@@ -59,6 +59,7 @@ mod commands{
     pub mod cowsay;
     pub mod math;
     pub mod higher;
+    pub mod u3;
 }
 
 extern crate rlibc;
@@ -114,6 +115,7 @@ pub extern fn _start() {
             command!(Method, "cowsay", exec, cowsay),
             command!(Method, "cat", exec, cat),
             command!(Method, "htop", exec, htop),
+            command!(Method, "u3", exec, u3),
             command!(Method, "map", map, higher),
             command!(Method, "foldl", foldl, higher),
             command!(Operator, ".", dot, higher),
