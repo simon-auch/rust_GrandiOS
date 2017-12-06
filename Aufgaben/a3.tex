@@ -27,8 +27,11 @@ zueinander ein.
         Synchronisation ist ein Mechanismus, der sicherstellt, dass mehrere Threads sich an einer definierten Stelle in ihrem Ablauf befinden.
       \item[Koordination ]
         Bei Koordination wird entschieden, wer wann worauf zugreifen kann. Bei Threads mit geteilter Ressource können dabei u.A. mehrere Threads (Leser) für die Ressource so koodiniert werden, dass diese zeitgleich drauf zugreifen können, sofern kein Schreiber für die Ressource grade aktiv ist (also anders als beim gegenseitigen Ausschluss wo je nur einer zugelassen wird).
-      \item[Kommunikation ]
+      \item[Kommunikation ] Kummunikation zwischen Threads (in Bezug auf Betriebssysteme) findet häufig über geteilten Speicher statt. Damit beim geteilten Zugriff auf die Daten keine Fehler entstehen wird für gewöhnlich ein Verfahren für gegenseitigen Ausschluss verwendet, wie das Sperren des Zugriffs auf den gemeinsamen Speicher via eines Mutex, eines Semaphors oder eines Monitors. Ggf muss den anderen Threads signalisiert werden, wenn Daten geschrieben wurden.
       \item[Kooperation ]
+        In Bezug auf das Scheduling, ist Kooperation in der Art zu finden, dass Threads sich untereinander Zeit für den Kernel zuteilen, bzw. an andere Threads abgeben, wenn sie eine gewisse (in der Regel selbst definierte) Zeit den Prozessor beansprucht haben.\\
+        In Bezug auf das Lösen von Aufgaben von Problemen, können die Threads kooperativ zusammenarbeiten indem mehrere Threads unterschiedliche Teilaufgaben eines Problems angehen und anschließend mittels Kommunikations- und Synchronisationsmechanismen, wie denen von den vorigen Punkte, die Ergebnisse zusammenführen.
+        
     \end{description}
 
 \AUFGABE{Interrupts - System Timer und serielle Schnittstelle}{15 Punkte}
