@@ -21,6 +21,18 @@ pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     Ok(args)
 }
 
+pub fn fix(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    if args.len() < 2 { return Ok(args); }
+    args.remove(0);
+    ::unpack_args(&mut args, 2);
+    let f = Argument::Application(args.clone());
+    let mut cmd = get_cmd(&mut args, f);
+    match ::apply(&mut Argument::Application(cmd.clone())) {
+        Some(r) => Ok(vec![r]),
+        None => Err(format!("Executing {}  failed", Argument::Application(cmd).to_string()))
+    }
+}
+
 pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() < 4 { return Ok(args); }
     args.remove(0);
