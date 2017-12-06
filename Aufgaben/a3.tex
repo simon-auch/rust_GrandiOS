@@ -24,7 +24,7 @@ zueinander ein.
       \item[Signalisierung ]
         Signalisierung wird benutzt um zum Beispiel bei gegenseitigen Ausschluss anderen Prozessen/Threads, die auf eine vom aktuellen Prozess/Thread beanspruchte Ressource warten, zu signalisieren, dass diese wieder zu Verfügung steht.
       \item[Synchronisation ]
-        \todo[inline]{soll sich das hier nur auf threads beziehen, also Prozesssynchronisation?}
+        Synchronisation ist ein Mechanismus, der sicherstellt, dass mehrere Threads sich an einer definierten Stelle in ihrem Ablauf befinden.
       \item[Koordination ]
         Bei Koordination wird entschieden, wer wann worauf zugreifen kann. Bei Threads mit geteilter Ressource können dabei u.A. mehrere Threads (Leser) für die Ressource so koodiniert werden, dass diese zeitgleich drauf zugreifen können, sofern kein Schreiber für die Ressource grade aktiv ist (also anders als beim gegenseitigen Ausschluss wo je nur einer zugelassen wird).
       \item[Kommunikation ]
@@ -56,7 +56,6 @@ geben.
 
 \pagebreak
 \textbf{Lösung:}
-    \todo[inline]{folgendes ist copy-paste (von zettel2)}
 Anleitung zum erstellen eines mit qemu benutzbaren Kernels:
 \begin{enumerate}
 	\item Wechseln in den Ordner \texttt{GrandiOS}
@@ -73,32 +72,17 @@ Anleitung zum erstellen eines mit qemu benutzbaren Kernels:
 \end{enumerate}
 Das vorbereiten der Toolchain mittels \texttt{setup\_env.sh} ist nur einmal notwendig.
 
-Für den unwahrscheinlichen Fall, dass aus irgend einem Grund das bauen des Kernels fehlschlägt, ist unter {\texttt{GrandiOS/kernels/kernel\_02}} noch ein von uns gebauter Kernel vorhanden.
+Für den unwahrscheinlichen Fall, dass aus irgend einem Grund das bauen des Kernels fehlschlägt, ist unter {\texttt{GrandiOS/kernels/kernel\_03}} noch ein von uns gebauter Kernel vorhanden.
 
 Für diese Aufgabe kann der Parameter \texttt{-piotelnet} in Schritt 4 sowie das Starten von telnet in Schritt 5 ausgelassen werden.
 
 Eine kleine Übersicht wo die für diese Aufgabe relevanten Codesegmente zu finden sind:
 \begin{itemize}
-	\item Remap Befehl: \texttt{GrandiOS/src/lib.rs::init}
-	\item Stack pointer konfigurieren: \texttt{GrandiOS/src/lib.rs::init}
-	\item Aktivieren der IRQ und FIQ im Prozessor: \texttt{Grandios/src/lib.rs::init}
-	\item Zugriff auf die IVT sowie den AIC: \texttt{GrandiOS/src/driver/interrupts.rs}
-	\item Zum registrieren der einzelnen interrupt/exception Handler können nun die folgenden Befehle benutzt werden (der Code ist in src/commands/test.rs):
-	\begin{itemize}
-		\item \texttt{test interrupts\_undefined\_instruction} hinterlegt einen Handler für undefined instruction Ausnahmen
-		\item \texttt{test interrupts\_software\_interrupt} hinterlegt einen Handler für software interrupt Ausnahmen
-		\item \texttt{test interrupts\_prefetch\_abort} hinterlegt einen Handler für prefetch abort Ausnahmen
-		\item \texttt{test interrupts\_data\_abort} hinterlegt einen Handler für data abort Ausnahmen
-		\item \texttt{test interrupts\_aic} hinterlegt einen Handler für die IRQ Leitung und konfiguriert den AIC sowie die DebugUnit einen Interrupt für das empfangen eines Zeichens zu erzeugen. Diese Funktion geht in eine Endlosschleife, da durch den Interrupthandler zurzeit die Tastendrücke abgefangen werden und die \texttt{pfush} damit unbrauchbar wird.
-	\end{itemize}
-	\item Zum Betrachten was in die IVT geschrieben wurde, kann der Befehl \texttt{edit 0x0 0x40} genutzt werden. Wie der name nahelegt können hiermit auch Daten geschrieben werden, verlassen geht mit der Tastenkombination \texttt{strg-D}
-        \item Zum Auslösen der einzelnen interrupts/exceptions können die folgenden Befehle benutzt werden:
-	\begin{itemize}
-		\item \texttt{test undefined\_instruction}
-		\item \texttt{test software\_interrupt}
-		\item \texttt{test prefetch\_abort} (noch nicht funktionsfähig da nur mit MMU möglich)
-		\item \texttt{test data\_abort}
-	\end{itemize}
+	\item \texttt{GrandiOS/src/driver/system\_timer.rs}
+	\item \texttt{GrandiOS/src/utils/exceptions/irq.rs}
+	\item \texttt{Grandios/src/lib.rs::init}
+	\item \texttt{GrandiOS/src/driver/interrupts.rs}
+	\item Die Funktionalität ist in dem Programm u3 zu betrachten, welches von der Shell aus gestartet werden kann. Die Ausgabe der Ausrufezeichen erfolgt aus Bequemlichkeit auch außerhalb dessen.
 \end{itemize}
 
 \end{description}
