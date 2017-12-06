@@ -84,7 +84,7 @@ Eine kleine Übersicht wo die für diese Aufgabe relevanten Codesegmente zu find
 	\item \texttt{GrandiOS/src/driver/interrupts.rs}
         \item Die Funktionalität ist in dem Programm u3 zu betrachten, welches von der Shell aus gestartet werden kann. Die Ausgabe der Ausrufezeichen erfolgt aus Bequemlichkeit auch außerhalb dessen. Der entsprechende Code hierfür liegt in \texttt{GrandiOS/shell/src/commands/u3.rs}.
           
-          Hierbei ist zu bemerken, dass das read!-Makro nicht wie im zweiten Zettel aus dem Code der DebugUnit verwendet wird, sondern dass unsere STD-lib (\textt{GrandiOS/aids/src/lib.rs}) einen Softwareinterrupt mittels eines für den Kernel und das Userland geteilten Interfaces (\texttt{GrandiOS/swi/src/lib.rs}) auslöst, der dann das von dem Interrupt der DebugUnit gelieferte Zeichen erhält und wieder aufgeweckt wird.
+          Hierbei ist zu bemerken, dass das read!-Makro nicht wie im zweiten Zettel aus dem Code der DebugUnit verwendet wird, sondern dass unsere STD-lib (\texttt{GrandiOS/aids/src/lib.rs}) einen Softwareinterrupt mittels eines für den Kernel und das Userland geteilten Interfaces (\texttt{GrandiOS/swi/src/lib.rs}) auslöst, der dann das von dem Interrupt der DebugUnit gelieferte Zeichen erhält und wieder aufgeweckt wird.
 \end{itemize}
 
 \end{description}
