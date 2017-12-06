@@ -121,6 +121,7 @@ pub extern fn _start() {
             command!(Method, "map", map, higher),
             command!(Method, "foldl", foldl, higher),
             command!(Method, "filter", filter, list),
+            command!(Method, "not", not, bool),
             command!(Operator, ".", dot, higher),
             command!(Operator, "\\", lambda, higher),
             command!(Operator, "->", lambda, higher),
@@ -130,6 +131,8 @@ pub extern fn _start() {
             command!(Operator, "/", div, math),
             command!(Operator, "==", eq, bool),
             command!(Operator, "/=", neq, bool),
+            command!(Operator, "&&", band, bool),
+            command!(Operator, "||", bor, bool),
             command!(Operator, "++", plusplus, list),
         ]);
         VARS = Some(vec![("it".to_string(), Argument::Nothing)]);
