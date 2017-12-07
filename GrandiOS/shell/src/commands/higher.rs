@@ -4,6 +4,8 @@ use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 use core::fmt::Write;
 
+//( (fix ( \ ((x) -> (x)))) \ ((x) -> (x)) 1)
+
 pub fn populate(commands: &mut Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) {
     commands.push(command!(Method, "map", map));
     commands.push(command!(Method, "foldl", foldl));
