@@ -3,6 +3,13 @@ use core::result::Result;
 use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 
+pub fn populate(commands: &mut Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) {
+    commands.push(command!(Operator, "+", plus));
+    commands.push(command!(Operator, "-", minus));
+    commands.push(command!(Operator, "*", times));
+    commands.push(command!(Operator, "/", div));
+}
+
 pub fn plus(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     operate_diad(args, |x,y| x+y)
 }

@@ -5,12 +5,41 @@ use alloc::vec::Vec;
 use alloc::boxed::Box;
 use core::fmt::Write;
 
+pub fn populate(commands: &mut Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) {
+    commands.push(command!(Method, "not", not));
+    commands.push(command!(Method, "if", bif));
+    commands.push(command!(Operator, "==", eq));
+    commands.push(command!(Operator, "/=", neq));
+    commands.push(command!(Operator, "&&", band));
+    commands.push(command!(Operator, "||", bor));
+    commands.push(command!(Operator, "<", lesser));
+    commands.push(command!(Operator, ">", greater));
+    commands.push(command!(Operator, "<=", leq));
+    commands.push(command!(Operator, ">=", geq));
+}
+
 pub fn eq(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     operate_diad(args, |x,y| x==y, None::<fn(_,_)->_>)
 }
 
 pub fn neq(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     operate_diad(args, |x,y| x!=y, None::<fn(_,_)->_>)
+}
+
+pub fn lesser(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    operate_diad(args, |x,y| x<y, None::<fn(_,_)->_>)
+}
+
+pub fn greater(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    operate_diad(args, |x,y| x>y, None::<fn(_,_)->_>)
+}
+
+pub fn leq(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    operate_diad(args, |x,y| x<=y, None::<fn(_,_)->_>)
+}
+
+pub fn geq(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    operate_diad(args, |x,y| x>=y, None::<fn(_,_)->_>)
 }
 
 pub fn band(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {

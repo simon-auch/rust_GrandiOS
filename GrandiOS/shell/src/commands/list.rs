@@ -4,6 +4,13 @@ use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 use commands::higher;
 
+pub fn populate(commands: &mut Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) {
+    commands.push(command!(Method, "filter", filter));
+    commands.push(command!(Method, "head", head));
+    commands.push(command!(Method, "tail", tail));
+    commands.push(command!(Operator, "++", plusplus));
+}
+
 pub fn filter(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() < 3 { return Ok(args); }
     args.remove(0);

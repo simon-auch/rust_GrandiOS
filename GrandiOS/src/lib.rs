@@ -113,7 +113,7 @@ fn main(){
     println!("Adresse der switch routine ist: 0x{:x}, {}", swi::switch::call as *const () as u32, swi::switch::call as *const () as u32);
     
     let mut tcb_idle = utils::thread::TCB::new("Idle Thread".to_string(), utils::scheduler::idle as *const () , 0x0, 0);
-    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x4000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
+    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x8000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
     tcb_shell.set_priority(10);
     //Initialise scheduler
     unsafe{ utils::scheduler::init(tcb_idle) };

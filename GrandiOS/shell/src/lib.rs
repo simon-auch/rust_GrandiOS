@@ -50,6 +50,17 @@ mod utils{
         }
     }
 }
+
+#[macro_export]
+macro_rules! command {
+	( $t:tt, $o:expr, $c:tt, $m:tt ) => {
+        (Argument::$t($o.to_string()), $m::$c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
+	};
+	( $t:tt, $o:expr, $c:tt ) => {
+        (Argument::$t($o.to_string()), $c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
+	};
+}
+
 mod commands{
     pub mod logo;
     pub mod cat;
@@ -75,18 +86,6 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
-
-macro_rules! command {
-	( $t:tt, $o:expr, $c:tt, $m:tt ) => {
-        (Argument::$t($o.to_string()), $m::$c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
-	};
-	( $t:tt, $o:expr, $c:tt ) => {
-        (Argument::$t($o.to_string()), $c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
-	};
-	//( $o:tt, $c:tt, $m:tt ) => { command!(Operator, $o, $c, $m) };
-	//( $c:tt, $m:tt ) => { command!(Method, $c, $m, $c) };
-	//( $m:tt ) => { command!(Method, $m, $m, exec) };
-}
 
 static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>> = None;
 static mut VARS: Option<Vec<(String, Argument)>> = None;
@@ -118,27 +117,11 @@ pub extern fn _start() {
             command!(Method, "cat", exec, cat),
             command!(Method, "htop", exec, htop),
             command!(Method, "u3", exec, u3),
-            command!(Method, "map", map, higher),
-            command!(Method, "foldl", foldl, higher),
-            command!(Method, "fix", fix, higher),
-            command!(Method, "filter", filter, list),
-            command!(Method, "head", head, list),
-            command!(Method, "tail", tail, list),
-            command!(Method, "not", not, bool),
-            command!(Method, "if", bif, bool),
-            command!(Operator, ".", dot, higher),
-            command!(Operator, "\\", lambda, higher),
-            command!(Operator, "->", lambda, higher),
-            command!(Operator, "+", plus, math),
-            command!(Operator, "-", minus, math),
-            command!(Operator, "*", times, math),
-            command!(Operator, "/", div, math),
-            command!(Operator, "==", eq, bool),
-            command!(Operator, "/=", neq, bool),
-            command!(Operator, "&&", band, bool),
-            command!(Operator, "||", bor, bool),
-            command!(Operator, "++", plusplus, list),
         ]);
+        bool::populate(COMMANDS.as_mut().unwrap());
+        math::populate(COMMANDS.as_mut().unwrap());
+        list::populate(COMMANDS.as_mut().unwrap());
+        higher::populate(COMMANDS.as_mut().unwrap());
         VARS = Some(vec![("it".to_string(), Argument::Nothing)]);
         load_prelude();
     }

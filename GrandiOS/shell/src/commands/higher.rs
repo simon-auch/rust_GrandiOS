@@ -2,6 +2,17 @@ use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::{String,ToString};
 use alloc::vec::Vec;
+use core::fmt::Write;
+
+pub fn populate(commands: &mut Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) {
+    commands.push(command!(Method, "map", map));
+    commands.push(command!(Method, "foldl", foldl));
+    commands.push(command!(Method, "fix", fix));
+    commands.push(command!(Method, "test", test));
+    commands.push(command!(Operator, ".", dot));
+    commands.push(command!(Operator, "\\", lambda));
+    commands.push(command!(Operator, "->", lambda));
+}
 
 pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() < 3 { return Ok(args); }
@@ -21,15 +32,32 @@ pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     Ok(args)
 }
 
-pub fn fix(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    if args.len() < 2 { return Ok(args); }
+pub fn test(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    println!("got: {}", Argument::Application(args.clone()).to_string());
+    if args.len() < 3 { return Ok(args); }
+    args.remove(2);
     args.remove(0);
-    ::unpack_args(&mut args, 2);
-    let f = Argument::Application(args.clone());
-    let mut cmd = get_cmd(&mut args, f);
-    match ::apply(&mut Argument::Application(cmd.clone())) {
+    println!("run: {}", Argument::Application(args.clone()).to_string());
+    match ::apply(&mut Argument::Application(args)) {
         Some(r) => Ok(vec![r]),
-        None => Err(format!("Executing {}  failed", Argument::Application(cmd).to_string()))
+        None => Err("test failed".to_string())
+    }
+}
+
+pub fn fix(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+    if args.len() < 3 { return Ok(args); }
+    println!("fix 1");
+    let f = args.remove(0);
+    ::unpack_args(&mut args, 1);
+    if !args[0].is_application() { args[0] = Argument::Application(vec![args[0].clone()]); }
+    let mut arg = args[0].get_application();
+    arg.insert(1, Argument::Application(vec![f, args[0].clone()]));
+    arg.append(&mut args[1..].to_vec());
+    let cmd = Argument::Application(arg.clone());
+    println!("fix 2 {}", cmd.to_string());
+    match ::apply(&mut cmd.clone()) {
+        Some(r) => Ok(vec![r]),
+        None => Err(format!("Executing {}  failed", cmd.to_string()))
     }
 }
 
