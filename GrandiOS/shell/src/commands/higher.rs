@@ -2,9 +2,6 @@ use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::{String,ToString};
 use alloc::vec::Vec;
-use core::fmt::Write;
-
-//( (fix ( \ ((x) -> (x)))) \ ((x) -> (x)) 1)
 
 pub fn populate(commands: &mut Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) {
     commands.push(command!(Method, "map", map));
@@ -23,7 +20,7 @@ pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if !args[1].is_list() { return Err("Arg2: List expected".to_string()); }
     let mut res = vec![];
     for e in args[1].get_list() {
-        let mut cmd = get_cmd(&mut args, e);
+        let mut cmd = get_cmd(&mut args, e, false);
         match ::apply(&mut Argument::Application(cmd.clone())) {
             Some(r) => res.push(r),
             None => return Err(format!("Executing {}  failed", Argument::Application(cmd).to_string()))
@@ -35,11 +32,9 @@ pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
 }
 
 pub fn test(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    println!("got: {}", Argument::Application(args.clone()).to_string());
     if args.len() < 3 { return Ok(args); }
     args.remove(2);
     args.remove(0);
-    println!("run: {}", Argument::Application(args.clone()).to_string());
     match ::apply(&mut Argument::Application(args)) {
         Some(r) => Ok(vec![r]),
         None => Err("test failed".to_string())
@@ -48,15 +43,13 @@ pub fn test(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
 
 pub fn fix(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if args.len() < 3 { return Ok(args); }
-    println!("fix 1");
     let f = args.remove(0);
     ::unpack_args(&mut args, 1);
     if !args[0].is_application() { args[0] = Argument::Application(vec![args[0].clone()]); }
     let mut arg = args[0].get_application();
-    arg.insert(1, Argument::Application(vec![f, args[0].clone()]));
+    arg = get_cmd(&mut arg, Argument::Application(vec![f, args[0].clone()]), true);
     arg.append(&mut args[1..].to_vec());
     let cmd = Argument::Application(arg.clone());
-    println!("fix 2 {}", cmd.to_string());
     match ::apply(&mut cmd.clone()) {
         Some(r) => Ok(vec![r]),
         None => Err(format!("Executing {}  failed", cmd.to_string()))
@@ -71,7 +64,7 @@ pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     let mut akk = args.remove(1);
     for e in args[1].get_list() {
         let mut cmd = if args[0].is_application() && args[0].get_application().len() == 2 && args[0].get_application()[1].is_operator() && !args[0].get_application()[0].is_something() {
-            get_cmd(&mut vec![Argument::Application(vec![akk.clone(), args[0].get_application()[1].clone()])], e)
+            get_cmd(&mut vec![Argument::Application(vec![akk.clone(), args[0].get_application()[1].clone()])], e, false)
         } else {
             vec![args[0].clone(), akk.clone(), e]
         };
@@ -85,13 +78,13 @@ pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     Ok(args)
 }
 
-pub fn get_cmd(args: &mut Vec<Argument>, e: Argument) -> Vec<Argument> {
+pub fn get_cmd(args: &mut Vec<Argument>, e: Argument, second: bool) -> Vec<Argument> {
     if ::is_var(&args[0]) {
         let mut t = args.clone();
         let v = t.remove(0).get_method_name().unwrap();
         let mut res = vec![::get_var(v)];
         res.append(&mut t);
-        return get_cmd(&mut res, e);
+        return get_cmd(&mut res, e, second);
     }
     if args[0].is_application() {
         let mut arg = args[0].get_application();
@@ -99,13 +92,20 @@ pub fn get_cmd(args: &mut Vec<Argument>, e: Argument) -> Vec<Argument> {
             arg[0] = e.clone();
             arg
         } else if arg.len() >= 2 && arg[1].is_operator() {
-            arg.push(e.clone());
+            if second {
+                arg.insert(1, e.clone());
+            } else {
+                arg.push(e.clone());
+            }
             arg
         } else if arg.len() == 1 {
             vec![e.clone(), args[0].clone()]
         } else {
             vec![args[0].clone(), e.clone()]
         }
+    } else if !args[0].is_something() && second {
+        args[0] = e.clone();
+        args.clone()
     } else {
         vec![args[0].clone(), e.clone()]
     }

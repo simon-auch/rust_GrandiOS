@@ -148,6 +148,7 @@ impl Scheduler{
     }
     pub fn exit(&mut self) {
         let r = self.running;
+        //TODO: send parent result of thread
         self.kill(r);
         self.running = 0; //switch to idle thread to not care about registers
     }
