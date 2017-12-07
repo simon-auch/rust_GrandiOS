@@ -61,23 +61,14 @@ geben.
 \textbf{Lösung:}
 Anleitung zum erstellen eines mit qemu benutzbaren Kernels:
 \begin{enumerate}
-	\item Wechseln in den Ordner \texttt{GrandiOS}
-        \item Einen von beiden Optionen ausführen:
-          \begin{itemize}
-            \item Ausführen von \texttt{make}. Falls schon eine Rust-Umgebung vorhanden ist, stattdessen \texttt{make build}.
-            \item \begin{enumerate}
-              \item Zunächst wird mit dem Script \texttt{setup\_env.sh} die Toolchain von Rust vorbereitet. Unter Umständen sind Benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
-              \item Durch starten von \texttt{kernel\_build.sh} kann nun der Kernel \texttt{kernel} erzeugt werden.
-              \item Starten von qemu mit dem Kernel: \texttt{qemu-bsprak -piotelnet -kernel kernel}
-              \item Starten einer telnet Verbindung zu qemu: \texttt{telnet localhost 44444}
-            \end{enumerate}
-          \end{itemize}
+  \item Wechseln in den Ordner \texttt{GrandiOS}
+  \item Falls die Rust-Umgebung bereits installiert wurde diese mittels \texttt{rustup update} aktualisieren.
+  \item Zunächst wird mit dem Script \texttt{setup\_env.sh} die Toolchain von Rust vorbereitet. Unter Umständen sind Benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
+  \item Ausführen von \texttt{make run} zum erstellen eines Kernels und starten von Qemu mit diesem.
 \end{enumerate}
 Das vorbereiten der Toolchain mittels \texttt{setup\_env.sh} ist nur einmal notwendig.
 
 Für den unwahrscheinlichen Fall, dass aus irgend einem Grund das bauen des Kernels fehlschlägt, ist unter {\texttt{GrandiOS/kernels/kernel\_03}} noch ein von uns gebauter Kernel vorhanden.
-
-Für diese Aufgabe kann der Parameter \texttt{-piotelnet} in Schritt 4 sowie das Starten von telnet in Schritt 5 ausgelassen werden.
 
 Eine kleine Übersicht wo die für diese Aufgabe relevanten Codesegmente zu finden sind:
 \begin{itemize}
