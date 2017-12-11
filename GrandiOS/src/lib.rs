@@ -118,10 +118,8 @@ fn main(){
     tcb_shell.set_priority(10);
     //Initialise scheduler
     unsafe{ utils::scheduler::init(tcb_idle) };
-    //unsafe{ utils::scheduler::init(tcb_shell) };
     let mut sched = unsafe {utils::scheduler::get_scheduler()};
     sched.add_thread(tcb_shell);
-    //sched.add_thread(tcb_idle);
 
     //switch into user mode before starting the shell + enable interrupts, from this moment on the entire os stuff that needs privileges is done from syscalls (which might start privileged threads)
     unsafe{asm!("
@@ -132,11 +130,10 @@ fn main(){
         :"volatile"
     );}
     //call switch before entering the idle thread to swich to the scheduler.
-    //let input      = swi::switch::Input{};
-    //let mut output = swi::switch::Output{};
-    //swi::switch::call(& input, &mut output);
+    let input      = swi::switch::Input{};
+    let mut output = swi::switch::Output{};
+    swi::switch::call(& input, &mut output);
     utils::scheduler::idle();
-    //unsafe{ _shell_start();}
 }
 
 #[inline(always)]

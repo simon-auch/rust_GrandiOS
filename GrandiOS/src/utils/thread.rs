@@ -33,7 +33,7 @@ impl TCB {
         println!("Created TCB with pc=\t{:p}",program_ptr);
         let memory = Vec::with_capacity(memory_size);
         let mut regs = RegisterStack::new();
-        regs.lr = program_ptr as u32; //regs[13] ist das LR und der PC wird aus dem LR geladen
+        regs.lr_irq = program_ptr as u32; //regs[13] ist das LR und der PC wird aus dem LR geladen
         regs.sp = unsafe { memory.as_ptr().offset(memory_size as isize) as u32};
         regs.cpsr = cpsr;
         TCB {
