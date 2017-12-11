@@ -91,16 +91,24 @@ struct TabState {
     pressed: bool,
     tab: bool,
     clear: bool,
+    removed: usize,
 }
 impl TabState {
     pub fn new() -> TabState {
         TabState{
-            index: 0, start: vec![], found: vec![], pressed: false, tab: false, clear: false
+            index: 0, start: vec![], found: vec![],
+            pressed: false, tab: false, clear: false,
+            removed: 0
         }
     }
     pub fn clear(&mut self) {
         self.index = 0; self.start = vec![]; self.found = vec![];
         self.pressed = false; self.tab = false; self.clear = false;
+        self.removed = 0;
+    }
+    pub fn get_completion(&self) -> Option<String> {
+        if self.found.is_empty() { return None; }
+        Some(self.found[self.index][self.start.len()..].to_string())
     }
 }
 
@@ -210,7 +218,6 @@ fn clear_prompt(s: usize) {
                 let cpos = vt::get_position();
                 print!("{}", &vt::CursorControl::Up{count: 1+(x/width) as u32});
                 move_to(cpos.0 as usize, opos.0 as usize);
-                TABSTATE.as_mut().unwrap().pressed = true;
             }
         }
     }
@@ -233,6 +240,17 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, stringpos: usize, left: bool,
     if left { print!("{}", &vt::CursorControl::Left{count: 1}); }
 }
 
+fn complete(ln: &mut LinkedList<u8>, other: String) {
+    for c in other.as_bytes().iter() { ln.push_back(*c); }
+}
+fn remove_word(ln: &mut LinkedList<u8>) {
+    match ln.back() {
+        None => { return; }, Some(c) => { if *c == 32 { return; } }
+    }
+    unsafe { TABSTATE.as_mut().unwrap().removed += 1; }
+    ln.pop_back(); remove_word(ln);
+}
+
 pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
     print!("{}", prompt());
     let mut ln = LinkedList::new();
@@ -248,6 +266,13 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
         let c = read!();
         match c {
             10 | 13 => { //newline
+                unsafe {
+                    if TABSTATE.as_ref().unwrap().pressed {
+                        TABSTATE.as_mut().unwrap().clear = true;
+                        TABSTATE.as_mut().unwrap().tab = true;
+                        print_split_command(&mut ln, stringpos, false, |ln|{;});
+                    }
+                }
                 println!("");
                 ln.push_back(32); //make life easier for the parser
                 unsafe { TABSTATE = None; }
@@ -257,7 +282,7 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
             },
             9 => { //tab
                 unsafe {
-                    if TABSTATE.as_ref().unwrap().start.is_empty() {
+                    if TABSTATE.as_ref().unwrap().start.is_empty() && !TABSTATE.as_ref().unwrap().pressed {
                         let mut tw = vec![];
                         for (i, b) in ln.iter().enumerate() {
                             if i == stringpos { break; }
@@ -268,6 +293,24 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
                     }
                     TABSTATE.as_mut().unwrap().tab = true;
                     print_split_command(&mut ln, stringpos, false, |ln|{;});
+                    match TABSTATE.as_ref().unwrap().get_completion() {
+                        None => {}, Some(s) => {
+                            let inc = s.len();
+                            if TABSTATE.as_mut().unwrap().pressed {
+                                let start = String::from_utf8(TABSTATE.as_ref().unwrap().start.clone()).unwrap();
+                                print_split_command(&mut ln, stringpos, false, |ln|{remove_word(ln);complete(ln,start.clone())});
+                                //print!("{}{}{}START:{}{}{}", &vt::CursorControl::SavePos, &vt::CursorControl::Up{count: 4+TABSTATE.as_ref().unwrap().index as u32}, &vt::CF_RED, start, &vt::CF_STANDARD, &vt::CursorControl::LoadPos);
+                                stringpos -= TABSTATE.as_ref().unwrap().removed - start.len();
+                                TABSTATE.as_mut().unwrap().removed  = 0;
+                            }
+                            TABSTATE.as_mut().unwrap().pressed = true;
+                            TABSTATE.as_mut().unwrap().tab = false;
+                            print_split_command(&mut ln, stringpos, false, |ln|complete(ln,s.clone()));
+                            stringpos += inc;
+                        }
+                    }
+                    TABSTATE.as_mut().unwrap().pressed = true;
+                    TABSTATE.as_mut().unwrap().tab = false;
                     TABSTATE.as_mut().unwrap().index += 1;
                 }
             },
@@ -275,6 +318,7 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
                 unsafe {
                     if TABSTATE.as_ref().unwrap().pressed {
                         TABSTATE.as_mut().unwrap().clear = true;
+                        TABSTATE.as_mut().unwrap().tab = true;
                         print_split_command(&mut ln, stringpos, false, |ln|{;});
                     }
                     TABSTATE.as_mut().unwrap().clear();
@@ -291,6 +335,7 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
                 unsafe {
                     if TABSTATE.as_ref().unwrap().pressed {
                         TABSTATE.as_mut().unwrap().clear = true;
+                        TABSTATE.as_mut().unwrap().tab = true;
                         print_split_command(&mut ln, stringpos, false, |ln|{;});
                     }
                     TABSTATE.as_mut().unwrap().clear();
