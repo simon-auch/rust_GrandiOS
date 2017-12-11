@@ -164,7 +164,7 @@ impl fmt::Display for Color {
 
 impl fmt::Display for DisplayAttribute {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\x1B{}", match self{
+        write!(f, "\x1B[{}m", match self{
             &DisplayAttribute::Reset      => 0,
             &DisplayAttribute::Bright     => 1,
             &DisplayAttribute::Dim        => 2,

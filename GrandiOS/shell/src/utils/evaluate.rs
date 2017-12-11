@@ -44,10 +44,10 @@ pub fn populate_commands() {
             command!(Method, "cat", exec, cat),
             command!(Method, "htop", exec, htop),
         ]);
+        higher::populate(COMMANDS.as_mut().unwrap());
         bool::populate(COMMANDS.as_mut().unwrap());
         math::populate(COMMANDS.as_mut().unwrap());
         list::populate(COMMANDS.as_mut().unwrap());
-        higher::populate(COMMANDS.as_mut().unwrap());
         VARS = Some(vec![("it".to_string(), Argument::Nothing)]);
         load_prelude();
     }

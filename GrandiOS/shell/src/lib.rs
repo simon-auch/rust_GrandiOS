@@ -25,7 +25,7 @@ mod utils{
         pub use self::vt_lib::*;
         //These two function currently cannot be implemented in vt, since they require a read makro (and we dont have input streams, or any kind of abstraction for this).
         pub fn get_position() -> (u32, u32) {
-            print!("\x1B[6n");
+            print!("{}", &vt_lib::DeviceStatus::QueryCursorPosition);
             //we expect a response in the form <Esc>[h;wR
             let mut h: u32 = 0;
             let mut w: u32 = 0;
@@ -43,8 +43,9 @@ mod utils{
             }
             (w, h)
         }
-        pub fn save_pos() { print!("\x1B7"); }
-        pub fn restore_pos() { print!("\x1B8"); }
+        pub fn set_position(p: (u32, u32)) { print!("{}", &vt_lib::CursorControl::Home{row: p.1, col: p.0}); }
+        pub fn save_pos() { print!("{}", &vt_lib::CursorControl::SavePos); }
+        pub fn restore_pos() { print!("{}", &vt_lib::CursorControl::LoadPos); }
         pub fn get_size() -> (u32, u32) {
             save_pos();
             print!("\x1B[999;999H");
@@ -84,8 +85,23 @@ use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
 
 struct TabState {
-    index: i32,
-    start: LinkedList<u8>,
+    index: usize,
+    start: Vec<u8>,
+    found: Vec<String>,
+    pressed: bool,
+    tab: bool,
+    clear: bool,
+}
+impl TabState {
+    pub fn new() -> TabState {
+        TabState{
+            index: 0, start: vec![], found: vec![], pressed: false, tab: false, clear: false
+        }
+    }
+    pub fn clear(&mut self) {
+        self.index = 0; self.start = vec![]; self.found = vec![];
+        self.pressed = false; self.tab = false; self.clear = false;
+    }
 }
 
 static mut TABSTATE: Option<TabState> = None;
@@ -137,16 +153,68 @@ pub fn move_to(pos: usize, dest: usize) {
 }
 
 fn clear_prompt(s: usize) {
-    print!("\r{}{}\r{}", prompt(), " ".repeat(s), prompt());
     unsafe {
-        if TABSTATE.is_some() {
-            unsafe {
-                for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
-                    //if c starts with ln, do stuff
+        if TABSTATE.as_ref().unwrap().tab {
+            let len = TABSTATE.as_ref().unwrap().start.len();
+            if TABSTATE.as_ref().unwrap().found.is_empty() {
+                for &(ref cmd, m) in COMMANDS.as_ref().unwrap().iter() {
+                    if !cmd.is_method() { continue; }
+                    let s = cmd.get_method_name().unwrap();
+                    let mut starts = true;
+                    for (i, c) in s.clone().as_bytes().iter().enumerate() {
+                        if i == len { break; }
+                        if *c != TABSTATE.as_ref().unwrap().start[i] {
+                            starts = false;
+                            break;
+                        }
+                    }
+                    if starts {
+                        TABSTATE.as_mut().unwrap().found.push(s.clone());
+                    }
                 }
+                for &(ref s, ref m) in VARS.as_ref().unwrap().iter() {
+                    let mut starts = true;
+                    for (i, c) in s.clone().as_bytes().iter().enumerate() {
+                        if i == len { break; }
+                        if *c != TABSTATE.as_ref().unwrap().start[i] {
+                            starts = false;
+                            break;
+                        }
+                    }
+                    if starts {
+                        TABSTATE.as_mut().unwrap().found.push(s.clone());
+                    }
+                }
+            }
+            if !TABSTATE.as_ref().unwrap().found.is_empty() {
+                let clear = TABSTATE.as_ref().unwrap().clear;
+                TABSTATE.as_mut().unwrap().index %= TABSTATE.as_ref().unwrap().found.len(); 
+                let p = TABSTATE.as_ref().unwrap().index;
+                let opos = vt::get_position();
+                let width = vt::get_size().0 as usize;
+                let mut x = 0;
+                print!("\r");
+                if TABSTATE.as_ref().unwrap().pressed { print!("{}", &vt::CursorControl::Down{count: 1}); } else { print!("\n"); }
+                print!("{}", &vt::DisplayAttribute::Reset);
+                for (i, s) in TABSTATE.as_ref().unwrap().found.iter().enumerate() {
+                    if i == p && !clear { print!("{}", &vt::DisplayAttribute::Reverse); }
+                    if clear {
+                        print!("{}", " ".repeat(s.len()));
+                    } else {
+                        print!("{}", s);
+                    }
+                    x += s.len()+1;
+                    if i == p && !clear { print!("{}", &vt::DisplayAttribute::Reset); }
+                    print!(" ");
+                }
+                let cpos = vt::get_position();
+                print!("{}", &vt::CursorControl::Up{count: 1+(x/width) as u32});
+                move_to(cpos.0 as usize, opos.0 as usize);
+                TABSTATE.as_mut().unwrap().pressed = true;
             }
         }
     }
+    print!("\r{}{}\r{}", prompt(), " ".repeat(s), prompt());
 }
 
 fn print_command(ln: &LinkedList<u8>) {
@@ -173,6 +241,9 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
     let mut sequence = vec!();
     let mut histpos = history.len();
     let mut stringpos = 0;
+    unsafe {
+        if TABSTATE.is_none() { TABSTATE = Some(TabState::new()); }
+    }
     loop {
         let c = read!();
         match c {
@@ -185,16 +256,29 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
             12 => { // ^L
             },
             9 => { //tab
-                if ln.contains(&32) { continue; } //we currently only complete first words
                 unsafe {
-                    if TABSTATE.is_none() {
-                        TABSTATE = Some(TabState{index: -1, start: ln.clone()});
+                    if TABSTATE.as_ref().unwrap().start.is_empty() {
+                        let mut tw = vec![];
+                        for (i, b) in ln.iter().enumerate() {
+                            if i == stringpos { break; }
+                            if *b == 32 { tw.clear(); continue; }
+                            tw.push(*b);
+                        }
+                        TABSTATE.as_mut().unwrap().start = tw;
                     }
+                    TABSTATE.as_mut().unwrap().tab = true;
+                    print_split_command(&mut ln, stringpos, false, |ln|{;});
                     TABSTATE.as_mut().unwrap().index += 1;
                 }
-                print_split_command(&mut ln, stringpos, false, |ln|{;});
             },
             127 => { //backspace
+                unsafe {
+                    if TABSTATE.as_ref().unwrap().pressed {
+                        TABSTATE.as_mut().unwrap().clear = true;
+                        print_split_command(&mut ln, stringpos, false, |ln|{;});
+                    }
+                    TABSTATE.as_mut().unwrap().clear();
+                }
                 if stringpos > 0 {
                     print_split_command(&mut ln, stringpos, false, |ln: &mut LinkedList<u8>| {ln.pop_back();});
                     stringpos -= 1;
@@ -204,6 +288,13 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
                 escape = true;
             },
             _ => {
+                unsafe {
+                    if TABSTATE.as_ref().unwrap().pressed {
+                        TABSTATE.as_mut().unwrap().clear = true;
+                        print_split_command(&mut ln, stringpos, false, |ln|{;});
+                    }
+                    TABSTATE.as_mut().unwrap().clear();
+                }
                 if escape {
                     if c != 91 { sequence.push(c); }
                 } else {
