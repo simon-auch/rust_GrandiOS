@@ -1,7 +1,5 @@
 use driver::serial::*;
 use driver::interrupts::InterruptController;
-use core::ptr::read_volatile;
-use utils::registers;
 use utils::vt;
 
 pub fn init(ic : &mut InterruptController){

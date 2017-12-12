@@ -1,6 +1,5 @@
 //Contains functions for the scheduler.
 
-use core::mem::replace;
 use utils::thread::TCB;
 use alloc::heap::{Alloc, Layout};
 use alloc::vec_deque::VecDeque;
@@ -8,10 +7,8 @@ use alloc::binary_heap::BinaryHeap;
 use alloc::btree_map::BTreeMap;
 use utils::exceptions::common_code::RegisterStack;
 use utils::exceptions::software_interrupt;
-use utils::registers;
-use alloc::string::ToString;
 use core::cmp::Ordering;
-use driver::serial::*;
+//use driver::serial::*;
 use driver::system_timer::*;
 
 static mut SCHEDULER: Option<Scheduler> = None;

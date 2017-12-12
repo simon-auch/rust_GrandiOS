@@ -70,9 +70,9 @@ impl STController {
         if crtr_current < self.crtr_last {
             //the counter wrapped around
             self.crtr_count += crtr_current;
-            self.crtr_count += (0xFFFFF - self.crtr_last);
+            self.crtr_count += 0xFFFFF - self.crtr_last;
         } else {
-            self.crtr_count += (crtr_current - self.crtr_last);
+            self.crtr_count += crtr_current - self.crtr_last;
         }
         self.crtr_last = crtr_current;
         return crtr_current;

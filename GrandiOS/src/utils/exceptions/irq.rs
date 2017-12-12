@@ -1,5 +1,4 @@
 use driver::interrupts::*;
-use driver::rtc::*;
 use driver::system_timer::*;
 use utils::scheduler;
 use utils::exceptions::common_code::RegisterStack;

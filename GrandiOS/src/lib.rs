@@ -58,6 +58,7 @@ pub static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::ne
 #[macro_use]
 extern crate alloc;
 extern crate serde;
+#[allow(unused_imports)]
 #[macro_use]
 extern crate serde_derive;
 extern crate corepack;

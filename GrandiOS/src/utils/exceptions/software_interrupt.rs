@@ -18,10 +18,7 @@ use driver::serial::*;
 use driver::led::*;
 use utils::vt;
 use utils::scheduler;
-use utils::thread::TCB;
-use utils::allocator::*;
 use alloc::allocator::Alloc;
-use core::fmt;
 use utils::exceptions::common_code::RegisterStack;
 
 pub fn init(ic: &mut InterruptController) {
