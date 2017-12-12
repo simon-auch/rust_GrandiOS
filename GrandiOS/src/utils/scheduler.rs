@@ -119,6 +119,11 @@ impl Scheduler{
             },
         }, & running);
         }
+        {//free resources of threads in the terminate queue (this could also only be done when switching to idle thread or so, but that would be an perf. improvement)
+        while let Some(priority) = self.queue_terminate.pop() {
+            self.terminate(priority.data);
+        }
+        }
         //println!("queue_ready: {:#?}", self.queue_ready);
         let mut next = self.tcbs.get_mut(&(self.queue_ready.pop().unwrap().data)).unwrap();  //muss es immer geben, da idle thread
         //println!("Switching to: {}", next.name);
@@ -146,13 +151,7 @@ impl Scheduler{
         let mut running = self.tcbs.get_mut(&self.running).unwrap();
         running.allocs.push((ptr, layout));
     }
-    pub fn exit(&mut self) {
-        let r = self.running;
-        //TODO: send parent result of thread
-        self.kill(r);
-        self.running = 0; //switch to idle thread to not care about registers
-    }
-    pub fn kill(&mut self, id: u32) {
+    fn terminate(&mut self, id: u32) {
         if id == 0 { return; } //We do NOT kill the idle thread!
         if !self.tcbs.contains_key(&id) { return; }
         let mut tcb = self.tcbs.remove(&id).unwrap();
