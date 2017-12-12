@@ -41,7 +41,7 @@ macro_rules! trampolin {
             mov    r0, sp    //move the stackpointer to r0 to know where r0-r12,r14 is stored
             sub    sp, 0x40" //make a bit of space on the stack for rust, since rust creates code like: "str r0, [pc, #4]" it expects the sp to be decremented before once. The 0x40 is a random guess and provides space for a few var$
         ):"={r0}"(reg_sp)
-        :::"volatile");
+        ::"memory":"volatile");
         {
             $handler(reg_sp);
         }
@@ -60,7 +60,7 @@ macro_rules! trampolin {
             pop    {r0-r12}
             pop    {r14}
             movs   pc, r14"
-            ::::"volatile"
+            :::"memory":"volatile"
         );
     );
 }

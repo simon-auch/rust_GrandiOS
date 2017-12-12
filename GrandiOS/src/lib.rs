@@ -80,6 +80,7 @@ pub extern fn _start() {
     main();//call another function to make sure rust correctly does its stack stuff
     loop{};
 }
+#[inline(never)]
 fn main(){
     //make interupt table writable
     let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
@@ -105,7 +106,7 @@ fn main(){
     utils::exceptions::irq::init(&mut ic);
     DEBUG_UNIT.interrupt_set_rxrdy(true);
     let mut st = unsafe{ driver::system_timer::init(); driver::system_timer::get_system_timer()};
-    st.set_piv(0x8000); //0x8000 ist eine sekunde, da die slowclock 0x8000 Hz hat.
+    st.set_piv(0x0800); //0x8000 ist eine sekunde, da die slowclock 0x8000 Hz hat.
     st.interrupt_enable_pits();
 
     //Initialisieren des Schedulers
