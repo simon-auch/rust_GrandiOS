@@ -154,7 +154,7 @@ impl Scheduler{
             if priority.priority < current_time {
                 let id  = priority.data;
                 let tcb = self.tcbs.get(&id).unwrap();
-            	add_thread_to_queue(&mut self.queue_ready, & tcb);
+                add_thread_to_queue(&mut self.queue_ready, & tcb);
             } else {
                 self.queue_sleep.push(ReverseOrder{data: priority});
                 break;
