@@ -33,7 +33,9 @@ extern fn handler_helper_line_1(reg_sp: u32){
         },
     }
     let mut st = unsafe{ get_system_timer() };
-    if st.interrupt_pits() { //das hier muss aufgerufen werden, da ansonsten der interrupt direkt wieder aufgerufen wird.
+    let (pits, wdovf, rttinc, alms) = st.check_timers();//muss aufgerufen werden, da der interrupt ansonste ndirekt nochmal ausgeführt wird.
+    if pits {
+        //timer interrupt
     }
 
     //call switch just in case a new process was made available

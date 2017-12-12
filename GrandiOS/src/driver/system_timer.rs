@@ -33,23 +33,22 @@ struct STMemoryMap{
 
 pub struct STController{
     st: *mut STMemoryMap,
-    pits: bool,   //did the period interval timer overflow?
-    wdovf: bool,  //did the watchdog overflow?
-    rttinc: bool, //did the real time timer increment?
-    alms: bool,   //something with alarms
+    crtr_count: u32, //counter for he real-time timer with bigger capacity
+    crtr_last: u32,
 }
 
 impl STController {
     //Marked unsafe because is only safe assuming the base_adress is correct
     pub unsafe fn new(base_address: u32) -> Self{
-        STController{
+        let mut st = STController{
             st: base_address as *mut STMemoryMap,
-            pits:   false,
-            wdovf:  false,
-            rttinc: false,
-            alms:   false,
-        }
+            crtr_count: 0,
+            crtr_last: 0,
+        };
+        st.set_rtpres(0x1001); //sets the real time clock prescaler to 0x1000 ticks = 125ms
+        return st;
     }
+    //pits stuff
     pub fn set_piv(&mut self, val: u16) { //0x8000 entspricht mit default slowclock einstellungen einer sekunde.
         unsafe{ write_volatile(&mut (*(self.st)).pimr, val as u32); }
     }
@@ -62,17 +61,29 @@ impl STController {
     pub fn interrupt_get_pits(&mut self) -> bool {
         unsafe{ (read_volatile(&mut (*(self.st)).imr)&(1<<0))==(1<<0) }
     }
-    fn check_timers(&mut self) {
-        let reg = unsafe{read_volatile(&mut (*(self.st)).sr)};
-        self.pits   = self.pits   | ((reg & (1<<0)) > 0);
-        self.wdovf  = self.wdovf  | ((reg & (1<<1)) > 0);
-        self.rttinc = self.rttinc | ((reg & (1<<2)) > 0);
-        self.alms   = self.alms   | ((reg & (1<<3)) > 0);
+    //real time suff
+    pub fn set_rtpres(&mut self, val: u16){
+        unsafe{ write_volatile(&mut (*(self.st)).rtmr, val as u32); }
     }
-    pub fn interrupt_pits(&mut self) -> bool {
-        self.check_timers();
-        let ret = self.pits;
-        self.pits = false;
-        return ret;
+    pub fn get_current_time(&mut self) -> u32 { //returns the current time in ticks, defaults to 125ms
+        let crtr_current = unsafe{read_volatile(&mut (*(self.st)).crtr)};
+        if crtr_current < self.crtr_last {
+            //the counter wrapped around
+            self.crtr_count += crtr_current;
+            self.crtr_count += (0xFFFFF - self.crtr_last);
+        } else {
+            self.crtr_count += (crtr_current - self.crtr_last);
+        }
+        self.crtr_last = crtr_current;
+        return crtr_current;
+    }
+    //general stuff
+    pub fn check_timers(&mut self) -> (bool, bool, bool, bool){
+        let reg = unsafe{read_volatile(&mut (*(self.st)).sr)};
+        let pits   = (reg & (1<<0)) > 0;
+        let wdovf  = (reg & (1<<1)) > 0;
+        let rttinc = (reg & (1<<2)) > 0;
+        let alms   = (reg & (1<<3)) > 0;
+        return (pits, wdovf, rttinc, alms)
     }
 }

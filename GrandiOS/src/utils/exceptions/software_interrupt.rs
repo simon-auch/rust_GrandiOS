@@ -88,7 +88,10 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
                 2 => unsafe{ PIO::new(PIO_LED_GREEN).set(input.s) },
                 _ => {}
             };
-        }
+        },
+        SLEEP!() => {
+            sched.switch(regs, scheduler::State::Sleep);
+        },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
             write!(debug_unit, "{}Exception{} software_interrupt at: 0x{:x}, instruction: 0x{:x}, swi value: 0x{:x}, registers:{:?}\n", &vt::CF_YELLOW, &vt::CF_STANDARD, regs.lr_irq - 0x4, instruction, immed, regs).unwrap();
@@ -107,5 +110,9 @@ pub mod work {
     pub fn read(tcb: &mut  TCB, c: u8){
         let mut output : &mut swi::read::Output = unsafe{ &mut *(tcb.register_stack.r0 as *mut _) };
         output.c = c;
+    }
+    pub fn sleep(tcb: &mut  TCB) -> u32{
+        let input : &mut swi::sleep::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
+        return input.t;
     }
 }

@@ -78,7 +78,7 @@ build_swi!(useralloc  ; ALLOC    ; l:Layout; r:Option<Result<*mut u8, AllocErr>>
 build_swi!(userdealloc; DEALLOC  ; p:*mut u8, l:Layout; ; alloc::heap::Layout);
 build_swi!(get_led; GET_LED  ; l:u8; s:bool);
 build_swi!(set_led; SET_LED  ; l:u8, s:bool; );
-build_swi!(sleep  ; SLEEP    ; t:usize; );
+build_swi!(sleep  ; SLEEP    ; t:u32; );
 build_swi!(select ; SELECT   ; c:Vec<usize>, i:Vec<Vec<u8>>; c:usize; alloc::vec::Vec);
 build_swi!(ipc_wait; IPC_WAIT ; c:usize; );
 build_swi!(ipc_read; IPC_READ ; c:usize; p:Vec<u8>; alloc::vec::Vec);

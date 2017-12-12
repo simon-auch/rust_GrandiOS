@@ -12,6 +12,7 @@ use utils::registers;
 use alloc::string::ToString;
 use core::cmp::Ordering;
 use driver::serial::*;
+use driver::system_timer::*;
 
 static mut SCHEDULER: Option<Scheduler> = None;
 
@@ -26,6 +27,7 @@ pub unsafe fn init(current_tcb: TCB){
         queue_terminate: BinaryHeap::new(),
         queue_waiting_read: BinaryHeap::new(),
         queue_waiting_read_input: VecDeque::new(),
+        queue_sleep: BinaryHeap::new(),
     });
 }
 
@@ -41,6 +43,7 @@ pub enum State{
     Ready,
     Terminate,
     WaitingRead,
+    Sleep,
 }
 
 //struct that contains a tcb and a priority which to use for scheduling
@@ -67,6 +70,24 @@ impl<T> PartialEq for Priority<T> {
     }
 }
 
+//Wraper to revrse the order of something
+#[derive(PartialEq)]
+struct ReverseOrder<T: Ord> {
+    data: T,
+}
+impl<T: Ord> Eq for ReverseOrder<T> {}
+impl<T: Ord> PartialOrd for ReverseOrder<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        other.data.partial_cmp(&self.data)
+    }
+}
+impl<T: Ord> Ord for ReverseOrder<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+
 pub struct Scheduler{
     tcbs: BTreeMap<u32, TCB>,
     running: u32,
@@ -74,6 +95,7 @@ pub struct Scheduler{
     queue_ready: BinaryHeap<Priority<u32>>,
     queue_terminate: BinaryHeap<Priority<u32>>,
     queue_waiting_read: BinaryHeap<Priority<u32>>,
+    queue_sleep: BinaryHeap<ReverseOrder<Priority<u32>>>,
     //Queues for stuff that threads can wait for
     queue_waiting_read_input: VecDeque<u8>,
 }
@@ -89,39 +111,57 @@ impl Scheduler{
         self.tcbs.insert(id, tcb);
     }
     pub fn switch(&mut self, register_stack: &mut RegisterStack, new_state: State){
+        let mut st =  unsafe{ get_system_timer() };
+        let mut current_time = st.get_current_time();//returns ticks, default to 125ms
         {//save registers for current thread and move it into the correct queue
         let mut running = self.tcbs.get_mut(&self.running).unwrap();
         //println!("Switching from: {}", running.name);
         //println!("Current registers: {:#?}", register_stack);
         running.save_registers(&register_stack);
         //make sure the old thread gets the correct state and gets moved into the correct Queue
-        add_thread_to_queue(match new_state{
+        match new_state{
             State::Ready       => {
                 //println!("queue_ready");
-                &mut self.queue_ready
+                add_thread_to_queue(&mut self.queue_ready, & running);
             },
             State::Terminate   => { 
                 //println!("queue_terminate"); 
-                &mut self.queue_terminate
+                add_thread_to_queue(&mut self.queue_terminate, & running);
             },
             State::WaitingRead => {
                 match self.queue_waiting_read_input.pop_front() {
                     None => { //there is no input available, so we need to wait
                         //println!("queue_waiting_read");
-                        &mut self.queue_waiting_read
+                        add_thread_to_queue(&mut self.queue_waiting_read, & running);
                     },
                     Some(c) => { //input is available, process it and make the thread ready
                         //println!("queue_waiting_read -> queue_ready");
                         software_interrupt::work::read(&mut running, c);
-                        &mut self.queue_ready
+                        add_thread_to_queue(&mut self.queue_ready, & running);
                     },
                 }
             },
-        }, & running);
+            State::Sleep => {
+                //add thread to sleeping queue, with priority set to the time it wants o sleep
+                let t = software_interrupt::work::sleep(&mut running);
+                self.queue_sleep.push(ReverseOrder{data: Priority{priority: current_time+t, data: running.get_order()}});
+            }
+        }
         }
         {//free resources of threads in the terminate queue (this could also only be done when switching to idle thread or so, but that would be an perf. improvement)
         while let Some(priority) = self.queue_terminate.pop() {
             self.terminate(priority.data);
+        }
+        while let Some(rev_ord) = self.queue_sleep.pop() {
+            let mut priority = rev_ord.data;
+            if priority.priority < current_time {
+                let id  = priority.data;
+                let tcb = self.tcbs.get(&id).unwrap();
+            	add_thread_to_queue(&mut self.queue_ready, & tcb);
+            } else {
+                self.queue_sleep.push(ReverseOrder{data: priority});
+                break;
+            }
         }
         }
         //println!("queue_ready: {:#?}", self.queue_ready);
