@@ -1,4 +1,5 @@
 use core::result::Result;
+use core::cmp::Ordering;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::linked_list::LinkedList;
@@ -9,6 +10,17 @@ use alloc::slice::SliceConcatExt;
 pub enum Argument {
     Nothing, Bool(bool), Int(isize), Str(String), List(Vec<Argument>),
     Operator(String), Method(String), Application(Vec<Argument>),
+}
+
+impl PartialOrd for Argument {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match self {
+            &Argument::Int(i) => if !other.is_int() { None } else {
+                Some(i.cmp(&other.get_int().unwrap()))
+            },
+            _ => None
+        }
+    }
 }
 
 impl ToString for Argument {

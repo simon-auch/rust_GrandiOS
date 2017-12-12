@@ -80,6 +80,7 @@ pub extern fn _start() {
     main();//call another function to make sure rust correctly does its stack stuff
     loop{};
 }
+#[inline(never)]
 fn main(){
     //make interupt table writable
     let mut mc = unsafe { MemoryController::new(MC_BASE_ADRESS) } ;
@@ -105,22 +106,21 @@ fn main(){
     utils::exceptions::irq::init(&mut ic);
     DEBUG_UNIT.interrupt_set_rxrdy(true);
     let mut st = unsafe{ driver::system_timer::init(); driver::system_timer::get_system_timer()};
-    st.set_piv(0x8000); //0x8000 ist eine sekunde, da die slowclock 0x8000 Hz hat.
+    st.set_piv(0x0800); //0x8000 ist eine sekunde, da die slowclock 0x8000 Hz hat.
     st.interrupt_enable_pits();
 
     //Initialisieren des Schedulers
     println!("Initialisiere Scheduler");
     println!("Adresse der switch routine ist: 0x{:x}, {}", swi::switch::call as *const () as u32, swi::switch::call as *const () as u32);
     
+    //We assume that the idle thread is always the first one created!
     let mut tcb_idle = utils::thread::TCB::new("Idle Thread".to_string(), utils::scheduler::idle as *const () , 0x0, 0);
-    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x4000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
+    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x8000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
     tcb_shell.set_priority(10);
     //Initialise scheduler
     unsafe{ utils::scheduler::init(tcb_idle) };
-    //unsafe{ utils::scheduler::init(tcb_shell) };
     let mut sched = unsafe {utils::scheduler::get_scheduler()};
     sched.add_thread(tcb_shell);
-    //sched.add_thread(tcb_idle);
 
     //switch into user mode before starting the shell + enable interrupts, from this moment on the entire os stuff that needs privileges is done from syscalls (which might start privileged threads)
     unsafe{asm!("
@@ -131,11 +131,10 @@ fn main(){
         :"volatile"
     );}
     //call switch before entering the idle thread to swich to the scheduler.
-    //let input      = swi::switch::Input{};
-    //let mut output = swi::switch::Output{};
-    //swi::switch::call(& input, &mut output);
+    let input      = swi::switch::Input{};
+    let mut output = swi::switch::Output{};
+    swi::switch::call(& input, &mut output);
     utils::scheduler::idle();
-    //unsafe{ _shell_start();}
 }
 
 #[inline(always)]

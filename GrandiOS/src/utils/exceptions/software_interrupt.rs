@@ -27,6 +27,7 @@ use utils::exceptions::common_code::RegisterStack;
 pub fn init(ic: &mut InterruptController) {
     //set the handler for the software interrupt
     ic.set_handler_software_interrupt(handler_software_interrupt);
+    println!("Exception handler swi: 0x{:x}", handler_software_interrupt as u32);
 }
 
 #[naked]
@@ -39,7 +40,7 @@ extern fn handler_software_interrupt(){
 #[inline(never)]
 extern fn handler_software_interrupt_helper(reg_sp: u32){
     let regs = unsafe{ &mut(*(reg_sp as *mut RegisterStack)) };
-    let instruction = unsafe { read_volatile((regs.lr - 0x4) as *mut u32) };
+    let instruction = unsafe { read_volatile((regs.lr_irq - 0x4) as *mut u32) };
     let immed = instruction & 0xFFFFFF;
     let mut sched = unsafe {scheduler::get_scheduler()};
     match immed {
@@ -58,9 +59,9 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
             let mut input : &mut swi::useralloc::Input = unsafe{ &mut *(regs.r1 as *mut _) };
             let mut output: &mut swi::useralloc::Output = unsafe{ &mut *(regs.r0 as *mut _) };
             let layout = input.l.clone();
-            unsafe {
-                output.r = Some((&mut &::GLOBAL).alloc(layout));
-            }
+            let ptr = unsafe { Some((&mut &::GLOBAL).alloc(layout)) };
+            output.r = ptr.clone();
+            sched.alloc(ptr.unwrap().unwrap(), input.l.clone());
         },
         DEALLOC!() => {
             let mut input : &mut swi::userdealloc::Input = unsafe{ &mut *(regs.r1 as *mut _) };
@@ -90,7 +91,7 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
         }
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
-            write!(debug_unit, "{}Exception{} software_interrupt at: 0x{:x}, instruction: 0x{:x}, swi value: 0x{:x}, registers:{:?}\n", &vt::CF_YELLOW, &vt::CF_STANDARD, regs.lr - 0x4, instruction, immed, regs).unwrap();
+            write!(debug_unit, "{}Exception{} software_interrupt at: 0x{:x}, instruction: 0x{:x}, swi value: 0x{:x}, registers:{:?}\n", &vt::CF_YELLOW, &vt::CF_STANDARD, regs.lr_irq - 0x4, instruction, immed, regs).unwrap();
             write!(debug_unit, "{}Unknown SWI{}", &vt::CF_RED, &vt::CF_STANDARD).unwrap();
         }
     }

@@ -14,7 +14,10 @@
 extern crate aids;
 init!();
 
+#[macro_use]
 mod utils{
+    #[macro_use]
+    pub mod evaluate;
     pub mod parser;
     pub mod vt {
         use core::fmt::Write;
@@ -22,7 +25,7 @@ mod utils{
         pub use self::vt_lib::*;
         //These two function currently cannot be implemented in vt, since they require a read makro (and we dont have input streams, or any kind of abstraction for this).
         pub fn get_position() -> (u32, u32) {
-            print!("\x1B[6n");
+            print!("{}", &vt_lib::DeviceStatus::QueryCursorPosition);
             //we expect a response in the form <Esc>[h;wR
             let mut h: u32 = 0;
             let mut w: u32 = 0;
@@ -40,16 +43,21 @@ mod utils{
             }
             (w, h)
         }
-        
+        pub fn set_position(p: (u32, u32)) { print!("{}", &vt_lib::CursorControl::Home{row: p.1, col: p.0}); }
+        pub fn save_pos() { print!("{}", &vt_lib::CursorControl::SavePos); }
+        pub fn restore_pos() { print!("{}", &vt_lib::CursorControl::LoadPos); }
         pub fn get_size() -> (u32, u32) {
-            print!("\x1B7");
+            save_pos();
             print!("\x1B[999;999H");
             let res = get_position();
-            print!("\x1B8");
+            restore_pos();
             res
         }
     }
 }
+
+use utils::evaluate::*;
+
 mod commands{
     pub mod logo;
     pub mod cat;
@@ -76,72 +84,41 @@ use alloc::string::{String, ToString};
 use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
 
-macro_rules! command {
-	( $t:tt, $o:expr, $c:tt, $m:tt ) => {
-        (Argument::$t($o.to_string()), $m::$c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
-	};
-	( $t:tt, $o:expr, $c:tt ) => {
-        (Argument::$t($o.to_string()), $c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
-	};
-	//( $o:tt, $c:tt, $m:tt ) => { command!(Operator, $o, $c, $m) };
-	//( $c:tt, $m:tt ) => { command!(Method, $c, $m, $c) };
-	//( $m:tt ) => { command!(Method, $m, $m, exec) };
+struct TabState {
+    index: usize,
+    start: Vec<u8>,
+    found: Vec<String>,
+    pressed: bool,
+    tab: bool,
+    clear: bool,
+    removed: usize,
+}
+impl TabState {
+    pub fn new() -> TabState {
+        TabState{
+            index: 0, start: vec![], found: vec![],
+            pressed: false, tab: false, clear: false,
+            removed: 0
+        }
+    }
+    pub fn clear(&mut self) {
+        self.index = 0; self.start = vec![]; self.found = vec![];
+        self.pressed = false; self.tab = false; self.clear = false;
+        self.removed = 0;
+    }
+    pub fn get_completion(&self) -> Option<String> {
+        if self.found.is_empty() { return None; }
+        Some(self.found[self.index][self.start.len()..].to_string())
+    }
 }
 
-static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>> = None;
-static mut VARS: Option<Vec<(String, Argument)>> = None;
-pub static mut LOCALVARS: Option<Vec<(String, Argument)>> = None;
-
-pub fn get_size(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    let (w, h) = vt::get_size();
-    args[0] = Argument::List(vec![Argument::Int(w as isize), Argument::Int(h as isize)]);
-    Ok(args)
-}
-pub fn get_position(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    let (w, h) = vt::get_position();
-    args[0] = Argument::List(vec![Argument::Int(w as isize), Argument::Int(h as isize)]);
-    Ok(args)
-}
+static mut TABSTATE: Option<TabState> = None;
 
 #[no_mangle]
 pub extern fn _start() {
     println!("Welcome to pfush - the perfect functional shell");
     println!("type help for command list");
-    unsafe {
-        COMMANDS = Some(vec![
-            command!(Method, "pos", get_position),
-            command!(Method, "size", get_size),
-            command!(Method, "logo", exec, logo),
-            command!(Method, "colors", exec, colors),
-            command!(Method, "edit", exec, edit),
-            command!(Method, "cowsay", exec, cowsay),
-            command!(Method, "cat", exec, cat),
-            command!(Method, "htop", exec, htop),
-            command!(Method, "u3", exec, u3),
-            command!(Method, "map", map, higher),
-            command!(Method, "foldl", foldl, higher),
-            command!(Method, "fix", fix, higher),
-            command!(Method, "filter", filter, list),
-            command!(Method, "head", head, list),
-            command!(Method, "tail", tail, list),
-            command!(Method, "not", not, bool),
-            command!(Method, "if", bif, bool),
-            command!(Operator, ".", dot, higher),
-            command!(Operator, "\\", lambda, higher),
-            command!(Operator, "->", lambda, higher),
-            command!(Operator, "+", plus, math),
-            command!(Operator, "-", minus, math),
-            command!(Operator, "*", times, math),
-            command!(Operator, "/", div, math),
-            command!(Operator, "==", eq, bool),
-            command!(Operator, "/=", neq, bool),
-            command!(Operator, "&&", band, bool),
-            command!(Operator, "||", bor, bool),
-            command!(Operator, "++", plusplus, list),
-        ]);
-        VARS = Some(vec![("it".to_string(), Argument::Nothing)]);
-        load_prelude();
-    }
+    populate_commands();
     let mut history = VecDeque::new();
     loop {
         print!("{}", &vt::CursorControl::Show); // make cursor visible
@@ -167,195 +144,12 @@ pub extern fn _start() {
     }
 }
 
-unsafe fn load_prelude() {
-    let d = include_str!("utils/prelude.txt").split('\n');
-    for l in d {
-        let mut raw_input = LinkedList::new();
-        for c in l.chars() {
-            raw_input.push_back(c as u8);
-        }
-        if raw_input.is_empty() { continue; }
-        raw_input.push_back(32);
-        match parse(&mut raw_input, 0) {
-            Err((s,p)) => { println!("{}^\n{}", "-".repeat(p+1), s); continue; },
-            Ok(mut v) => { 
-                match apply(&mut v.0[0]) {
-                    Some(arg) => { set_var(v.1, &arg); }
-                    None => {}
-                }
-            }
-        }
-    }
-}
-
 fn prompt() -> String {
     format!("{1} {2} {3} {0}> ", &vt::CB_STANDARD,
             if get_led!(0) { &vt::CB_RED } else { &vt::CB_STANDARD },
             if get_led!(1) { &vt::CB_YELLOW } else { &vt::CB_STANDARD },
             if get_led!(2) { &vt::CB_GREEN } else { &vt::CB_STANDARD }
     ).to_string()
-}
-
-fn set_var(name: String, arg: &Argument) {
-    unsafe { set_var_on(name, arg, &mut VARS); }
-}
-pub fn set_var_local(name: String, arg: &Argument) {
-    unsafe {
-        if LOCALVARS.is_none() { LOCALVARS = Some(vec![("".to_string(), Argument::Nothing)]); }
-        set_var_on(name, arg, &mut LOCALVARS);
-    }
-}
-pub fn set_var_on(name: String, arg: &Argument, vars: &mut Option<Vec<(String, Argument)>>) {
-    let mut p: isize = -1;
-    for (i, &(ref n, ref a)) in vars.as_ref().unwrap().iter().enumerate() {
-        if name == *n {
-            p = i as isize;
-            break;
-        }
-    }
-    if p >= 0 {
-        let x = vars.as_mut().unwrap();
-        x[p as usize] = (name, arg.clone());
-    } else {
-        vars.as_mut().unwrap().push((name, arg.clone()));
-    }
-}
-
-fn get_var(name: String) -> Argument {
-    let r = unsafe { get_var_local(name.clone(), &VARS) };
-    if r == Argument::Nothing {
-        unsafe { get_var_local(name, &LOCALVARS) }
-    } else { r }
-}
-fn get_var_local(name: String, vars: &Option<Vec<(String, Argument)>>) -> Argument {
-    if vars.is_none() { return Argument::Nothing; }
-    for &(ref n, ref a) in vars.as_ref().unwrap().iter() {
-        if name == *n { return a.clone(); }
-    }
-    Argument::Nothing
-}
-
-fn is_var(name: &Argument) -> bool {
-    unsafe { is_var_local(name, &VARS) || is_var_local(name, &LOCALVARS) }
-}
-fn is_var_local(name: &Argument, vars: &Option<Vec<(String, Argument)>>) -> bool {
-    if !name.is_method() || vars.is_none() { return false; }
-    unsafe {
-        for &(ref n, ref a) in vars.as_ref().unwrap().iter() {
-            if name.get_method_name().unwrap() == *n { return true; }
-        }
-    }
-    false
-}
-
-pub fn get_function(command: Argument) -> Option<fn(Vec<Argument>) -> Result<Vec<Argument>,String>> {
-    unsafe {
-        for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
-            if command == *c {
-                return Some(m);
-            }
-        }
-    }
-    None
-}
-
-pub fn unpack_args(args: &mut Vec<Argument>, len: usize) {
-    for i in 0..(if len > 0 && len <= args.len() { len } else { args.len() }) {
-        if is_var(&args[i]) { args[i] = get_var(args[i].get_method_name().unwrap()); }
-        while args[i].is_application() && args[i].get_application().len() == 1 {
-            args[i] = args[i].get_application()[0].clone();
-        }
-    }
-}
-
-pub fn unpack(mut arg: Argument) -> Argument {
-    if is_var(&arg) { return unpack(get_var(arg.get_method_name().unwrap())); }
-    while arg.is_application() && arg.get_application().len() == 1 {
-        arg = arg.get_application()[0].clone();
-    }
-    arg
-}
-
-pub fn eval_args(args: &mut Vec<Argument>, len: usize) {
-    for i in 0..(if len > 0 && len <= args.len() { len } else { args.len() }) {
-        while args[i].is_application() {
-            match apply(&mut args[i]) {
-                Some(s) => { 
-                    if args[i] == s { break; }
-                    args[i] = s;
-                } , None => { return; }
-            };
-        }
-    }
-}
-
-pub fn apply(app: &mut Argument) -> Option<Argument> {
-    apply_with(app, unsafe{&LOCALVARS})
-}
-pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) -> Option<Argument> {
-    if !app.is_application() {
-        println!("Unexpected call of apply without Application");
-        return None;
-    }
-    if vars.is_some() { unsafe { LOCALVARS=vars.clone(); } }
-    let mut args = app.get_application();
-    if args.len() <= 1 || !args[1].is_operator() { unpack_args(&mut args, 2); }
-    if args.len() == 1 && args[0].is_application() { return apply(&mut args[0]); }
-    if is_var(&args[0]) || is_var_local(&args[0], &vars) {
-        let mut t = args.clone();
-        let v = t.remove(0).get_method_name().unwrap();
-        let mut res = vec![if is_var(&Argument::Method(v.clone())) { get_var(v) } else { get_var_local(v, &vars) }];
-        res.append(&mut t);
-        return apply(&mut Argument::Application(res));
-    }
-    if args.len() == 1 && !args[0].is_method() { return Some(args[0].clone()); }
-    if args.is_empty() { return None; }
-    if args[0].is_application() && (args.len() <= 1 || !args[1].is_operator()) {
-        args = {
-            let mut t = args.remove(0).get_application();
-            t.append(&mut args);
-            t
-        };
-    }
-    let mut command = if args.len() > 1 && args[1].is_operator() {
-        args[1].clone()
-    } else {
-        args[0].clone()
-    };
-    if command == Argument::Method("help".to_string()) {
-        if args.len() == 1 {
-            unsafe {
-                for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
-                    if c.is_method() {
-                        print!("{} ", c.to_string());
-                    }
-                }
-            }
-            println!("");
-            return None;
-        } else {
-            command = args[1].clone();
-            args[1] = Argument::Method("help".to_string());
-        }
-    }
-    unsafe {
-        if command.is_method() {
-            if is_var(&command) { return Some(get_var(command.get_method_name().unwrap())); }
-        }
-        for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
-            if command == *c {
-                match m(args) {
-                    Err(msg) => { println!("Error: {}", msg); return None; },
-                    Ok(res) => {
-                        if res.len() == 1 { return Some(res[0].clone()); }
-                        return Some(if res.is_empty() { Argument::Nothing } else { Argument::Application(res) });
-                    }
-                }
-            }
-        }
-    }
-    println!("Unknown command: {}", command.to_string());
-    return None;
 }
 
 pub fn move_to(pos: usize, dest: usize) {
@@ -367,6 +161,66 @@ pub fn move_to(pos: usize, dest: usize) {
 }
 
 fn clear_prompt(s: usize) {
+    unsafe {
+        if TABSTATE.as_ref().unwrap().tab {
+            let len = TABSTATE.as_ref().unwrap().start.len();
+            if TABSTATE.as_ref().unwrap().found.is_empty() {
+                for &(ref cmd, m) in COMMANDS.as_ref().unwrap().iter() {
+                    if !cmd.is_method() { continue; }
+                    let s = cmd.get_method_name().unwrap();
+                    let mut starts = true;
+                    for (i, c) in s.clone().as_bytes().iter().enumerate() {
+                        if i == len { break; }
+                        if *c != TABSTATE.as_ref().unwrap().start[i] {
+                            starts = false;
+                            break;
+                        }
+                    }
+                    if starts {
+                        TABSTATE.as_mut().unwrap().found.push(s.clone());
+                    }
+                }
+                for &(ref s, ref m) in VARS.as_ref().unwrap().iter() {
+                    let mut starts = true;
+                    for (i, c) in s.clone().as_bytes().iter().enumerate() {
+                        if i == len { break; }
+                        if *c != TABSTATE.as_ref().unwrap().start[i] {
+                            starts = false;
+                            break;
+                        }
+                    }
+                    if starts {
+                        TABSTATE.as_mut().unwrap().found.push(s.clone());
+                    }
+                }
+            }
+            if !TABSTATE.as_ref().unwrap().found.is_empty() {
+                let clear = TABSTATE.as_ref().unwrap().clear;
+                TABSTATE.as_mut().unwrap().index %= TABSTATE.as_ref().unwrap().found.len(); 
+                let p = TABSTATE.as_ref().unwrap().index;
+                let opos = vt::get_position();
+                let width = vt::get_size().0 as usize;
+                let mut x = 0;
+                print!("\r");
+                if TABSTATE.as_ref().unwrap().pressed { print!("{}", &vt::CursorControl::Down{count: 1}); } else { print!("\n"); }
+                print!("{}", &vt::DisplayAttribute::Reset);
+                for (i, s) in TABSTATE.as_ref().unwrap().found.iter().enumerate() {
+                    if i == p && !clear { print!("{}", &vt::DisplayAttribute::Reverse); }
+                    if clear {
+                        print!("{}", " ".repeat(s.len()));
+                    } else {
+                        print!("{}", s);
+                    }
+                    x += s.len()+1;
+                    if i == p && !clear { print!("{}", &vt::DisplayAttribute::Reset); }
+                    print!(" ");
+                }
+                let cpos = vt::get_position();
+                print!("{}", &vt::CursorControl::Up{count: 1+(x/width) as u32});
+                move_to(cpos.0 as usize, opos.0 as usize);
+            }
+        }
+    }
     print!("\r{}{}\r{}", prompt(), " ".repeat(s), prompt());
 }
 
@@ -386,6 +240,17 @@ fn print_split_command<F>(ln: &mut LinkedList<u8>, stringpos: usize, left: bool,
     if left { print!("{}", &vt::CursorControl::Left{count: 1}); }
 }
 
+fn complete(ln: &mut LinkedList<u8>, other: String) {
+    for c in other.as_bytes().iter() { ln.push_back(*c); }
+}
+fn remove_word(ln: &mut LinkedList<u8>) {
+    match ln.back() {
+        None => { return; }, Some(c) => { if *c == 32 { return; } }
+    }
+    unsafe { TABSTATE.as_mut().unwrap().removed += 1; }
+    ln.pop_back(); remove_word(ln);
+}
+
 pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
     print!("{}", prompt());
     let mut ln = LinkedList::new();
@@ -394,26 +259,70 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
     let mut sequence = vec!();
     let mut histpos = history.len();
     let mut stringpos = 0;
+    unsafe {
+        if TABSTATE.is_none() { TABSTATE = Some(TabState::new()); }
+    }
     loop {
         let c = read!();
         match c {
             10 | 13 => { //newline
+                unsafe {
+                    if TABSTATE.as_ref().unwrap().pressed {
+                        TABSTATE.as_mut().unwrap().clear = true;
+                        TABSTATE.as_mut().unwrap().tab = true;
+                        print_split_command(&mut ln, stringpos, false, |ln|{;});
+                    }
+                }
                 println!("");
                 ln.push_back(32); //make life easier for the parser
+                unsafe { TABSTATE = None; }
                 return ln;
             },
             12 => { // ^L
             },
             9 => { //tab
-                if !(ln.contains(&32)) { //we did not have a space yet
-                    unsafe {
-                        for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
-                            //if c starts with ln, do stuff
+                unsafe {
+                    if TABSTATE.as_ref().unwrap().start.is_empty() && !TABSTATE.as_ref().unwrap().pressed {
+                        let mut tw = vec![];
+                        for (i, b) in ln.iter().enumerate() {
+                            if i == stringpos { break; }
+                            if *b == 32 { tw.clear(); continue; }
+                            tw.push(*b);
+                        }
+                        TABSTATE.as_mut().unwrap().start = tw;
+                    }
+                    TABSTATE.as_mut().unwrap().tab = true;
+                    print_split_command(&mut ln, stringpos, false, |ln|{;});
+                    match TABSTATE.as_ref().unwrap().get_completion() {
+                        None => {}, Some(s) => {
+                            let inc = s.len();
+                            if TABSTATE.as_mut().unwrap().pressed {
+                                let start = String::from_utf8(TABSTATE.as_ref().unwrap().start.clone()).unwrap();
+                                print_split_command(&mut ln, stringpos, false, |ln|{remove_word(ln);complete(ln,start.clone())});
+                                //print!("{}{}{}START:{}{}{}", &vt::CursorControl::SavePos, &vt::CursorControl::Up{count: 4+TABSTATE.as_ref().unwrap().index as u32}, &vt::CF_RED, start, &vt::CF_STANDARD, &vt::CursorControl::LoadPos);
+                                stringpos -= TABSTATE.as_ref().unwrap().removed - start.len();
+                                TABSTATE.as_mut().unwrap().removed  = 0;
+                            }
+                            TABSTATE.as_mut().unwrap().pressed = true;
+                            TABSTATE.as_mut().unwrap().tab = false;
+                            print_split_command(&mut ln, stringpos, false, |ln|complete(ln,s.clone()));
+                            stringpos += inc;
                         }
                     }
+                    TABSTATE.as_mut().unwrap().pressed = true;
+                    TABSTATE.as_mut().unwrap().tab = false;
+                    TABSTATE.as_mut().unwrap().index += 1;
                 }
             },
             127 => { //backspace
+                unsafe {
+                    if TABSTATE.as_ref().unwrap().pressed {
+                        TABSTATE.as_mut().unwrap().clear = true;
+                        TABSTATE.as_mut().unwrap().tab = true;
+                        print_split_command(&mut ln, stringpos, false, |ln|{;});
+                    }
+                    TABSTATE.as_mut().unwrap().clear();
+                }
                 if stringpos > 0 {
                     print_split_command(&mut ln, stringpos, false, |ln: &mut LinkedList<u8>| {ln.pop_back();});
                     stringpos -= 1;
@@ -423,6 +332,14 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
                 escape = true;
             },
             _ => {
+                unsafe {
+                    if TABSTATE.as_ref().unwrap().pressed {
+                        TABSTATE.as_mut().unwrap().clear = true;
+                        TABSTATE.as_mut().unwrap().tab = true;
+                        print_split_command(&mut ln, stringpos, false, |ln|{;});
+                    }
+                    TABSTATE.as_mut().unwrap().clear();
+                }
                 if escape {
                     if c != 91 { sequence.push(c); }
                 } else {
