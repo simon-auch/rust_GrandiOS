@@ -1,6 +1,7 @@
 //Dokumentation: S.305
 
 use core::ptr::{read_volatile, write_volatile};
+use core::u16;
 
 pub const ST_BASE_ADDRESS : u32 = 0xFFFF_FD00;
 
@@ -33,6 +34,7 @@ struct STMemoryMap{
 
 pub struct STController{
     st: *mut STMemoryMap,
+    crtr_divider: u16,
     crtr_count: u32, //counter for he real-time timer with bigger capacity
     crtr_last: u32,
 }
@@ -42,15 +44,24 @@ impl STController {
     pub unsafe fn new(base_address: u32) -> Self{
         let mut st = STController{
             st: base_address as *mut STMemoryMap,
+            crtr_divider: 0,
             crtr_count: 0,
             crtr_last: 0,
         };
-        st.set_rtpres(0x1001); //sets the real time clock prescaler to 0x1000 ticks = 125ms
+        st.set_rtpres(0x22); //sets the real time clock prescaler to 0x1000 ticks = 125ms, 0x22 roughly 1ms
         return st;
     }
     //pits stuff
     pub fn set_piv(&mut self, val: u16) { //0x8000 entspricht mit default slowclock einstellungen einer sekunde.
         unsafe{ write_volatile(&mut (*(self.st)).pimr, val as u32); }
+    }
+    pub fn ticks_to_piv(& self, t: u16) -> u16 { //t must be u16 to make shure the multiplication does not overflow. (if t is bigger than an u16 we could also trivially return 0)
+        let slow_clock_cycles_per_tick : u32 = if self.crtr_divider == 0 { 0x10000 } else { (self.crtr_divider - 1) as u32 };
+        let mut piv = (t as u32) * slow_clock_cycles_per_tick;
+        if piv > u16::MAX as u32{
+            piv = 0; //piv set to 0x0 corresponds to a timer interrupt set to 2 seconds
+        }
+        return piv as u16;
     }
     pub fn interrupt_enable_pits(&mut self) {
         unsafe{ write_volatile(&mut (*(self.st)).ier, 1<<0); }
@@ -63,9 +74,10 @@ impl STController {
     }
     //real time suff
     pub fn set_rtpres(&mut self, val: u16){
+        self.crtr_divider = val;
         unsafe{ write_volatile(&mut (*(self.st)).rtmr, val as u32); }
     }
-    pub fn get_current_time(&mut self) -> u32 { //returns the current time in ticks, defaults to 125ms
+    pub fn get_current_ticks(&mut self) -> u32 { //returns the current time in ticks, defaults to rougly 1ms
         let crtr_current = unsafe{read_volatile(&mut (*(self.st)).crtr)};
         if crtr_current < self.crtr_last {
             //the counter wrapped around

@@ -8,7 +8,8 @@ use alloc::btree_map::BTreeMap;
 use utils::exceptions::common_code::RegisterStack;
 use utils::exceptions::software_interrupt;
 use core::cmp::Ordering;
-//use driver::serial::*;
+use core::u16;
+use driver::serial::*;
 use driver::system_timer::*;
 
 static mut SCHEDULER: Option<Scheduler> = None;
@@ -109,7 +110,8 @@ impl Scheduler{
     }
     pub fn switch(&mut self, register_stack: &mut RegisterStack, new_state: State){
         let mut st =  unsafe{ get_system_timer() };
-        let mut current_time = st.get_current_time();//returns ticks, default to 125ms
+        let mut current_time = st.get_current_ticks();//returns ticks, default to roughly 1ms
+        let mut next_wanted_wakeup : u16 = 0xFFFF; //if the st.piv is set to 0xFFFF the next system timer interrupt happens in (a bit less then) 2seconds
         {//save registers for current thread and move it into the correct queue
         let mut running = self.tcbs.get_mut(&self.running).unwrap();
         //println!("Switching from: {}", running.name);
@@ -151,11 +153,18 @@ impl Scheduler{
         }
         while let Some(rev_ord) = self.queue_sleep.pop() {
             let mut priority = rev_ord.data;
-            if priority.priority < current_time {
+            if priority.priority <= current_time {
                 let id  = priority.data;
                 let tcb = self.tcbs.get(&id).unwrap();
                 add_thread_to_queue(&mut self.queue_ready, & tcb);
             } else {
+                let delta_ticks = priority.priority - current_time;
+                let delta_ticks : u16 = if delta_ticks > u16::MAX as u32 { 0xFFFF } else { delta_ticks as u16 };
+                let next_wanted_wakeup_temp = st.ticks_to_piv(delta_ticks);
+                if next_wanted_wakeup_temp < next_wanted_wakeup {
+                    //next_wanted_wakeup_temp cant be zero, because that would imply that delta_ticks was zero, but then we would have taken the other branch of the if.
+                    next_wanted_wakeup = next_wanted_wakeup_temp;
+                }
                 self.queue_sleep.push(ReverseOrder{data: priority});
                 break;
             }
@@ -168,6 +177,10 @@ impl Scheduler{
         (&next).load_registers(register_stack);
         //println!("Current registers: {:#?}", register_stack);
         self.running = next.get_order();
+        
+        //configure the st to wake us up when we need it.
+        //println!("Setting piv to: 0x{:x}", next_wanted_wakeup);
+        st.set_piv(next_wanted_wakeup);
     }
 
     //set of function to push something into the queue_waiting_*_input queues

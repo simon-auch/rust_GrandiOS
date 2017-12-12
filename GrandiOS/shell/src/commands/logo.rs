@@ -66,9 +66,7 @@ fn draw_logo_at(offset: i32, x: i32, y: i32, d: &Vec<&str>) {
     if x as usize >= d[y as usize].as_bytes().len() { return; }
     let c = d[y as usize].as_bytes()[x as usize] as char;
     if c == ' ' { return; }
-    for i in 0..1000 {
-        unsafe { asm!("nop" :::: "volatile"); }
-    }
+    sleep!(2);
     draw_at((x+offset) as u32, y as u32+1, c);
 }
 

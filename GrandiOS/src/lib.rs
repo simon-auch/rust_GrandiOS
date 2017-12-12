@@ -144,7 +144,7 @@ fn main(){
 /*
 extern fn p_sleep(){
     loop {
-        let input      = swi::sleep::Input{t: 4};
+        let input      = swi::sleep::Input{t: 50};
         let mut output = swi::sleep::Output{};
         swi::sleep::call(& input, &mut output);
         let input      = swi::write::Input{c: 'p' as u8};
