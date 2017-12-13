@@ -116,14 +116,18 @@ fn main(){
     
     //We assume that the idle thread is always the first one created!
     let mut tcb_idle = utils::thread::TCB::new("Idle Thread".to_string(), utils::scheduler::idle as *const () , 0x0, 0);
-    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x8000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
-    //let mut tcb_sleep = utils::thread::TCB::new("Sleep Thread".to_string(), p_sleep as *const (), 0x800, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT);
-    tcb_shell.set_priority(10);
-    //tcb_sleep.set_priority(15);
-    //Initialise scheduler
+    tcb_idle.set_priority(0);
+    //Anlegen des Schedulers
     unsafe{ utils::scheduler::init(tcb_idle) };
     let mut sched = unsafe {utils::scheduler::get_scheduler()};
+    
+    //Add shell
+    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x8000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
+    tcb_shell.set_priority(10);
     sched.add_thread(tcb_shell);
+    //Add small thread that 
+    //let mut tcb_sleep = utils::thread::TCB::new("Sleep Thread".to_string(), p_sleep as *const (), 0x800, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT);
+    //tcb_sleep.set_priority(15);
     //sched.add_thread(tcb_sleep);
 
     //switch into user mode before starting the shell + enable interrupts, from this moment on the entire os stuff that needs privileges is done from syscalls (which might start privileged threads)
@@ -144,7 +148,7 @@ fn main(){
 /*
 extern fn p_sleep(){
     loop {
-        let input      = swi::sleep::Input{t: 50};
+        let input      = swi::sleep::Input{t: 1000};
         let mut output = swi::sleep::Output{};
         swi::sleep::call(& input, &mut output);
         let input      = swi::write::Input{c: 'p' as u8};
