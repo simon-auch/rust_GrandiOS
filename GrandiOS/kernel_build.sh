@@ -2,14 +2,21 @@
 ARGS=""
 CMD=""
 TARGET="debug"
-if [[ "$@" != "" && "$1" = '--'* ]]; then
-  ARGS=$1
-  CMD="${@:2}"
-  if [[ $ARGS = '--release' ]]; then
-    TARGET="release"
-  fi
-else
-  CMD="$@"
+CLEAN=false
+ARGS_COUNT=$((${#@}))
+CMD=""
+if [[ "${@: -1}" != '--'* ]]; then
+  #the last argument is the path to qemu
+  CMD=${@: -1}
+  ARGS_COUNT=$((${ARGS_COUNT}-1))
+fi
+TEMP_ARGS=${@:1:$ARGS_COUNT}
+if [[ $TEMP_ARGS = *'--release'* ]]; then
+  TARGET="release"
+  ARGS=$ARGS"--release "
+fi
+if [[ $TEMP_ARGS = *'--clean'* ]]; then
+  CLEAN=true
 fi
 
 LINKER_SIMON="arm-none-eabi-ld"
@@ -55,7 +62,9 @@ fi
 #First we build the shell
 cd shell
 cp ../armv4t-none-eabi.json armv4t-none-eabi.json #Ja das muss sein, sonst gibts kryptische fehlermeldungen von xargo
-#xargo clean
+if [[ "$CLEAN" = true ]]; then #ja das ist bescheuert = true zu machen, aber es ist bash und sonst kann man das kaput machen
+  xargo clean
+fi
 xargo build --target armv4t-none-eabi $ARGS
 if [ $? -ne 0 ]; then exit; fi
 rm armv4t-none-eabi.json
@@ -64,7 +73,9 @@ $OBJCOPY --prefix-symbols=_shell target/armv4t-none-eabi/$TARGET/libshell.a shel
 cd ..
 
 #Now we build the kernel. the binarys of the programs will be statically linked into the kernel
-#xargo clean
+if [[ "$CLEAN" = true ]]; then #ja das ist bescheuert = true zu machen, aber es ist bash und sonst kann man das kaput machen
+  xargo clean
+fi
 xargo build --target armv4t-none-eabi $ARGS
 if [ $? -ne 0 ]; then exit; fi
 $OBJCOPY target/armv4t-none-eabi/$TARGET/libGrandiOS.a kernel.a
