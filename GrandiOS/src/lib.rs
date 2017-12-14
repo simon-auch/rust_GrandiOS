@@ -134,7 +134,7 @@ fn main(){
     unsafe{asm!("
         msr CPSR, r0"
         :
-        :"{r0}"(utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT) //interrupts are enabled if the bits are 0
+        :"{r0}"(utils::registers::CPSR_MODE_SYS | utils::registers::CPSR_IMPRECISE_ABORT) //interrupts are enabled if the bits are 0
         :"memory"
         :"volatile"
     );}

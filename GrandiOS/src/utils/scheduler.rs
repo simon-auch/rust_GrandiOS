@@ -215,5 +215,11 @@ impl Scheduler{
 
 
 pub extern fn idle(){
-    loop{}
+    loop{
+        //This asm makes the cpu idle until an interrupt occurs. see ARM920T_TRM1_S.pdf page 42 (2-18)
+        unsafe{asm!("
+            mcr p15,0,r0,c7,c0,4"
+            :::"memory","r0":"volatile"
+        );}
+    }
 }
