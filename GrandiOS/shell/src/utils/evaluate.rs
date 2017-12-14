@@ -178,6 +178,7 @@ pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) ->
     }
     if vars.is_some() { unsafe { LOCALVARS=vars.clone(); } }
     let varsbkp = unsafe { LOCALVARS.clone() };
+    //println!("{}", app.to_string());
     let mut args = app.get_application();
     if args.len() <= 1 || !args[1].is_operator() { unpack_args(&mut args, 2); }
     if args.len() == 1 && args[0].is_application() { return apply(&mut args[0]); }
