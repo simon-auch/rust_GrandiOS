@@ -5,3 +5,4 @@ let True = 1==1
 let False = 1/=1
 let id = \x -> x
 let foo = (\x -> (if (x == 1) then (True) else (foo (x-1))))
+let bar x = if (x == 1) then (True) else (bar (x-1))

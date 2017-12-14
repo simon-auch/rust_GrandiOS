@@ -42,88 +42,46 @@ impl Argument {
         match self { &Argument::Nothing => false, _ => true }
     }
     pub fn is_list(&self) -> bool {
-        match self {
-            &Argument::List(_) => true,
-            _ => false
-        }
+        match self { &Argument::List(_) => true, _ => false }
     }
     pub fn is_str(&self) -> bool {
-        match self {
-            &Argument::Str(_) => true,
-            _ => false
-        }
+        match self { &Argument::Str(_) => true, _ => false }
     }
     pub fn is_bool(&self) -> bool {
-        match self {
-            &Argument::Bool(_) => true,
-            _ => false
-        }
+        match self { &Argument::Bool(_) => true, _ => false }
     }
     pub fn is_int(&self) -> bool {
-        match self {
-            &Argument::Int(_) => true,
-            _ => false
-        }
+        match self { &Argument::Int(_) => true, _ => false }
     }
     pub fn is_method(&self) -> bool {
-        match self {
-            &Argument::Method(_) => true,
-            _ => false
-        }
+        match self { &Argument::Method(_) => true, _ => false }
     }
     pub fn is_operator(&self) -> bool {
-        match self {
-            &Argument::Operator(_) => true,
-            _ => false
-        }
+        match self { &Argument::Operator(_) => true, _ => false }
     }
     pub fn is_application(&self) -> bool {
-        match self {
-            &Argument::Application(_) => true,
-            _ => false
-        }
+        match self { &Argument::Application(_) => true, _ => false }
     }
     pub fn get_list(&self) -> Vec<Argument> {
-        match self {
-            &Argument::List(ref s) => s.clone(),
-            _ => vec![]
-        }
+        match self { &Argument::List(ref s) => s.clone(), _ => vec![] }
     }
     pub fn get_str(&self) -> Option<String> {
-        match self {
-            &Argument::Str(ref s) => Some(s.clone()),
-            _ => None
-        }
+        match self { &Argument::Str(ref s) => Some(s.clone()), _ => None }
     }
     pub fn get_bool(&self) -> Option<bool> {
-        match self {
-            &Argument::Bool(b) => Some(b),
-            _ => None
-        }
+        match self { &Argument::Bool(b) => Some(b), _ => None }
     }
     pub fn get_int(&self) -> Option<isize> {
-        match self {
-            &Argument::Int(i) => Some(i),
-            _ => None
-        }
+        match self { &Argument::Int(i) => Some(i), _ => None }
     }
     pub fn get_method_name(&self) -> Option<String> {
-        match self {
-            &Argument::Method(ref s) => Some(s.clone()),
-            _ => None
-        }
+        match self { &Argument::Method(ref s) => Some(s.clone()), _ => None }
     }
     pub fn get_operator(&self) -> Option<String> {
-        match self {
-            &Argument::Operator(ref s) => Some(s.clone()),
-            _ => None
-        }
+        match self { &Argument::Operator(ref s) => Some(s.clone()), _ => None }
     }
     pub fn get_application(&self) -> Vec<Argument> {
-        match self {
-            &Argument::Application(ref s) => s.clone(),
-            _ => vec![]
-        }
+        match self { &Argument::Application(ref s) => s.clone(), _ => vec![] }
     }
 }
 
@@ -135,6 +93,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, Str
     let mut sign = 1;
     let mut base = 10;
     let mut name = "it".to_string();
+    let mut args = vec![];
     //conditions for mode switching in the same order as the modes
     let cond: Vec<Box<Fn(u8) -> bool>> = vec![
         Box::new(|c| (48..58).contains(c) || (65..71).contains(c) || (97..103).contains(c)),
@@ -182,10 +141,18 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, Str
                         name = "".to_string();
                     } else if name == "".to_string() {
                         name = w;
+                        akk = vec![];
                         loop {
                             pos += 1;
                             match s.pop_front() {
-                                Some(c) => if c == 61 { break; },
+                                Some(c) => {
+                                    if (c == 32 || c == 61) && !akk.is_empty() {
+                                        args.push(Argument::Method(String::from_utf8(akk).unwrap()));
+                                        akk = vec![];
+                                    }
+                                    if c == 61 { break; }
+                                    if c != 32 { akk.push(c); }
+                                },
                                 None => {return Err(("Missing =".to_string(), pos));}
                             }
                         }
@@ -266,7 +233,11 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, Str
     if start != 0 {
         return Err(("Unbalanced parantheses or brackets!".to_string(), pos));
     }
-    Ok((vec![precedence(res)], name, pos))
+    let prec = vec![precedence(res)];
+    let lambda = if args.is_empty() { prec } else {
+        vec![Argument::Application(vec![Argument::Nothing, Argument::Operator("\\".to_string()), Argument::Application(vec![Argument::Application(args), Argument::Operator("->".to_string()), Argument::Application(prec)])])]
+    };
+    Ok((lambda, name, pos))
 }
 
 fn precedence(args: Vec<Argument>) -> Argument {
