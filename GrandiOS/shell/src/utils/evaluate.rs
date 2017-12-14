@@ -177,6 +177,7 @@ pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) ->
         return None;
     }
     if vars.is_some() { unsafe { LOCALVARS=vars.clone(); } }
+    let varsbkp = unsafe { LOCALVARS.clone() };
     let mut args = app.get_application();
     if args.len() <= 1 || !args[1].is_operator() { unpack_args(&mut args, 2); }
     if args.len() == 1 && args[0].is_application() { return apply(&mut args[0]); }
@@ -226,7 +227,11 @@ pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) ->
                 match m(args) {
                     Err(msg) => { println!("Error: {}", msg); return None; },
                     Ok(res) => {
-                        if res.len() == 1 { return Some(res[0].clone()); }
+                        if res.len() == 1 {
+                            unsafe { LOCALVARS = varsbkp; }
+                            return Some(res[0].clone());
+                        }
+                        unsafe { LOCALVARS = varsbkp; }
                         return Some(if res.is_empty() { Argument::Nothing } else { Argument::Application(res) });
                     }
                 }
