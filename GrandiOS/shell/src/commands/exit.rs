@@ -1,5 +1,3 @@
-use core::fmt::Write;
-use utils::vt;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::String;
