@@ -67,6 +67,9 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
                 (&mut &::GLOBAL).dealloc(input.p, layout);
             }
         },
+        EXIT!() => {
+            sched.switch(regs, scheduler::State::Terminate);
+        },
         GET_LED!() => {
             let mut input : &mut swi::get_led::Input = unsafe{ &mut *(regs.r1 as *mut _) };
             let mut output: &mut swi::get_led::Output = unsafe{ &mut *(regs.r0 as *mut _) };

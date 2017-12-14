@@ -147,7 +147,7 @@ fn main(){
 
 /*
 extern fn p_sleep(){
-    loop {
+    for i in 0..10 {
         let input      = swi::sleep::Input{t: 1000};
         let mut output = swi::sleep::Output{};
         swi::sleep::call(& input, &mut output);
@@ -155,6 +155,9 @@ extern fn p_sleep(){
         let mut output = swi::write::Output{};
         swi::write::call(& input, &mut output);
     }
+    let input = swi::exit::Input{};
+    let mut output = swi::exit::Output{};
+    swi::exit::call(& input, &mut output);
 }
 */
 

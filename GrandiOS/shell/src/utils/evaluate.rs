@@ -43,6 +43,7 @@ pub fn populate_commands() {
             command!(Method, "cowsay", exec, cowsay),
             command!(Method, "cat", exec, cat),
             command!(Method, "htop", exec, htop),
+            command!(Method, "exit", exec, exit),
         ]);
         higher::populate(COMMANDS.as_mut().unwrap());
         bool::populate(COMMANDS.as_mut().unwrap());

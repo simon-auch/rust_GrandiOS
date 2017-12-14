@@ -121,6 +121,15 @@ macro_rules! sleep {
         ::swi::sleep::call(& input, &mut output);
     });
 }
+#[macro_export]
+macro_rules! exit {
+    () => ({
+        let input      = ::swi::exit::Input{};
+        let mut output = ::swi::exit::Output{};
+        ::swi::exit::call(& input, &mut output);
+    });
+}
+
 macro_rules! generate_input {
     ( $channel:expr, $input:expr ) => {{
         match $channe {

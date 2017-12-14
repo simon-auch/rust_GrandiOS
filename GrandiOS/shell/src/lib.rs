@@ -70,6 +70,7 @@ mod commands{
     pub mod higher;
     pub mod list;
     pub mod u3;
+    pub mod exit;
 }
 
 extern crate rlibc;

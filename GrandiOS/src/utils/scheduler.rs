@@ -1,7 +1,7 @@
 //Contains functions for the scheduler.
 
 use utils::thread::TCB;
-use alloc::heap::{Alloc, Layout};
+use alloc::heap::Layout;
 use alloc::vec_deque::VecDeque;
 use alloc::binary_heap::BinaryHeap;
 use alloc::btree_map::BTreeMap;
@@ -9,7 +9,7 @@ use utils::exceptions::common_code::RegisterStack;
 use utils::exceptions::software_interrupt;
 use core::cmp::Ordering;
 use core::u16;
-use driver::serial::*;
+//use driver::serial::*;
 use driver::system_timer::*;
 
 static mut SCHEDULER: Option<Scheduler> = None;
@@ -203,12 +203,19 @@ impl Scheduler{
     }
     fn terminate(&mut self, id: u32) {
         if id == 0 { return; } //We do NOT kill the idle thread!
-        if !self.tcbs.contains_key(&id) { return; }
-        let mut tcb = self.tcbs.remove(&id).unwrap();
-        for (ptr, layout) in tcb.allocs.into_iter() {
-            unsafe {
-                (&mut &::GLOBAL).dealloc(ptr, layout);
-            }
+        match self.tcbs.remove(&id){
+            None => { //No thread with the given id exists 
+            },
+            Some(tcb) => {
+                //TODO this does not yet work, since we do not remove the deallocations from the users allocations and would therefore double free memory.
+                /*
+                for (ptr, layout) in tcb.allocs.into_iter() {
+                    unsafe {
+                        (&mut &::GLOBAL).dealloc(ptr, layout);
+                    }
+                }
+                */
+            },
         }
     }
 }

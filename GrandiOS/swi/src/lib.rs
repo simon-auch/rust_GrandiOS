@@ -21,7 +21,9 @@ macro_rules! GET_LED {() => {5}; ( name ) => {get_led};}
 macro_rules! SET_LED {() => {6}; ( name ) => {set_led};}
 #[macro_export]
 macro_rules! SLEEP {() => {7}; ( name ) => {sleep};}
-#[macro_export] //we purposely do not use swi 8!
+#[macro_export]
+macro_rules! EXIT {() => {8}; ( name ) => {exit};}
+#[macro_export]
 macro_rules! SELECT {() => {9}; ( name ) => {select};}
 #[macro_export]
 macro_rules! IPC_WAIT {() => {10}; ( name ) => {ipc_wait};}
@@ -79,6 +81,7 @@ build_swi!(userdealloc; DEALLOC  ; p:*mut u8, l:Layout; ; alloc::heap::Layout);
 build_swi!(get_led; GET_LED  ; l:u8; s:bool);
 build_swi!(set_led; SET_LED  ; l:u8, s:bool; );
 build_swi!(sleep  ; SLEEP    ; t:u32; );
+build_swi!(exit   ; EXIT     ; ; ;);
 build_swi!(select ; SELECT   ; c:Vec<usize>, i:Vec<Vec<u8>>; c:usize; alloc::vec::Vec);
 build_swi!(ipc_wait; IPC_WAIT ; c:usize; );
 build_swi!(ipc_read; IPC_READ ; c:usize; p:Vec<u8>; alloc::vec::Vec);
