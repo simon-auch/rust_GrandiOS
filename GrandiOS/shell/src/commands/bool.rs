@@ -61,7 +61,7 @@ pub fn bif(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     args.remove(4);
     args.remove(2);
     args.remove(0);
-    eval_args(&mut args, 3);
+    eval_args(&mut args, 1);
     if !args[0].is_application() { args[0] = Argument::Application(vec![args[0].clone()]); }
     match apply(&mut args[0]) {
         Some(s) => {
@@ -73,6 +73,7 @@ pub fn bif(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     //since we only return 1 argument, we need to shrink our array
     args.remove(0);
     args.remove(0);
+    eval_args(&mut args, 1);
     Ok(args)
 }
 

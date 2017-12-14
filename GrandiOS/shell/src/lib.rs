@@ -131,14 +131,16 @@ pub extern fn _start() {
         match parse(&mut raw_input, 0) {
             Err((s,p)) => { println!("{}^\n{}", "-".repeat(p+1), s); continue; },
             Ok(mut v) => { 
-                match apply(&mut v.0[0]) {
-                    Some(arg) => {
-                        set_var(v.1, &arg);
-                        if arg.is_something() {
-                            println!("{}", arg.to_string());
+                if v.1 != "it" { set_var(v.1, &v.0[0]); } else {
+                    match apply(&mut v.0[0]) {
+                        Some(arg) => {
+                            set_var(v.1, &arg);
+                            if arg.is_something() {
+                                println!("{}", arg.to_string());
+                            }
                         }
+                        None => {}
                     }
-                    None => {}
                 }
             }
         }

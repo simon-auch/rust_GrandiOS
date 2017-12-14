@@ -134,6 +134,7 @@ pub fn lambda(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     if !args[0].is_something() { args[0] = args.remove(3); }
     let mut arg = args[2].get_application();
     let lv = arg[0].get_application();
+    eval_args(&mut args, 1);
     set_var_local(lv[0].get_method_name().unwrap(), &args[0]);
     let mut cmd = if lv.len() > 1 {
         Argument::Application(vec![Argument::Nothing, Argument::Operator("\\".to_string()), Argument::Application(vec![Argument::Application(lv[1..].to_vec()), Argument::Operator("->".to_string()), arg[2].clone()])])
