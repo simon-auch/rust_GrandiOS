@@ -4,10 +4,10 @@ use utils::evaluate::*;
 use utils::vt;
 use core::result::Result;
 use alloc::string::{String,ToString};
-use alloc::vec::Vec;
+use alloc::vec_deque::VecDeque;
 
-pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    args.remove(0);
+pub fn exec(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    args.pop_front();
     eval_args(&mut args, 0);
     if args.len() == 0 { return Err("Arguments expected".to_string()); }
     print!("{}", "\n".repeat(8));
@@ -27,5 +27,5 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     print!("     (__)\\       )\\/\\\r{}", &vt::CursorControl::Down{count: 1});
     print!("         ||----w |\r{}", &vt::CursorControl::Down{count: 1});
     print!("         ||     ||\r\n");
-    Ok(vec![])
+    Ok(VecDeque::new())
 }

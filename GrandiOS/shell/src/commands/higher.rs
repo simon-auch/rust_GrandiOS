@@ -3,20 +3,20 @@ use utils::evaluate::*;
 use core::result::Result;
 use alloc::string::{String,ToString};
 use alloc::vec::Vec;
+use alloc::vec_deque::VecDeque;
 
-pub fn populate(commands: &mut Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>) {
+pub fn populate(commands: &mut Vec<(Argument, fn(VecDeque<Argument>) -> Result<VecDeque<Argument>,String>)>) {
     commands.push(command!(Method, "map", map));
     commands.push(command!(Method, "foldl", foldl));
     commands.push(command!(Method, "fix", fix));
-    commands.push(command!(Method, "test", test));
     commands.push(command!(Operator, ".", dot));
     commands.push(command!(Operator, "\\", lambda));
     commands.push(command!(Operator, "->", lambda));
 }
 
-pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn map(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     if args.len() < 3 { return Ok(args); }
-    args.remove(0);
+    args.pop_front();
     unpack_args(&mut args, 2);
     if !args[1].is_list() { return Err("Arg2: List expected".to_string()); }
     let mut res = vec![];
@@ -27,63 +27,53 @@ pub fn map(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
             None => return Err(format!("Executing {}  failed", Argument::Application(cmd).to_string()))
         }
     }
-    args.remove(0);
+    args.pop_front();
     args[0] = Argument::List(res);
     Ok(args)
 }
 
-pub fn test(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn fix(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     if args.len() < 3 { return Ok(args); }
-    args.remove(2);
-    args.remove(0);
-    match apply(&mut Argument::Application(args)) {
-        Some(r) => Ok(vec![r]),
-        None => Err("test failed".to_string())
-    }
-}
-
-pub fn fix(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    if args.len() < 3 { return Ok(args); }
-    let f = args.remove(0);
+    let f = args.pop_front().unwrap();
     unpack_args(&mut args, 1);
-    if !args[0].is_application() { args[0] = Argument::Application(vec![args[0].clone()]); }
+    if !args[0].is_application() { args[0] = Argument::Application(VecDeque::from(vec![args[0].clone()])); }
     let mut arg = args[0].get_application();
-    arg = get_cmd(&mut arg, Argument::Application(vec![f, args[0].clone()]), true);
-    arg.append(&mut args[1..].to_vec());
+    arg = get_cmd(&mut arg, Argument::Application(VecDeque::from(vec![f, args[0].clone()])), true);
+    arg.append(&mut args.split_off(1));
     let cmd = Argument::Application(arg.clone());
     match apply(&mut cmd.clone()) {
-        Some(r) => Ok(vec![r]),
+        Some(r) => Ok(VecDeque::from(vec![r])),
         None => Err(format!("Executing {}  failed", cmd.to_string()))
     }
 }
 
-pub fn foldl(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn foldl(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     if args.len() < 4 { return Ok(args); }
-    args.remove(0);
+    args.pop_front();
     unpack_args(&mut args, 3);
     if !args[2].is_list() { return Err("Arg3: List expected".to_string()); }
-    let mut akk = args.remove(1);
+    let mut akk = args.swap_remove_front(1).unwrap();
     for e in args[1].get_list() {
         let mut cmd = if args[0].is_application() && args[0].get_application().len() == 2 && args[0].get_application()[1].is_operator() && !args[0].get_application()[0].is_something() {
-            get_cmd(&mut vec![Argument::Application(vec![akk.clone(), args[0].get_application()[1].clone()])], e, false)
+            get_cmd(&mut VecDeque::from(vec![Argument::Application(VecDeque::from(vec![akk.clone(), args[0].get_application()[1].clone()]))]), e, false)
         } else {
-            vec![args[0].clone(), akk.clone(), e]
+            VecDeque::from(vec![args[0].clone(), akk.clone(), e])
         };
         match apply(&mut Argument::Application(cmd.clone())) {
             Some(r) => akk = r,
             None => return Err(format!("Executing {} failed", Argument::Application(cmd).to_string()))
         }
     }
-    args.remove(0);
+    args.pop_front();
     args[0] = akk;
     Ok(args)
 }
 
-pub fn get_cmd(args: &mut Vec<Argument>, e: Argument, second: bool) -> Vec<Argument> {
+pub fn get_cmd(args: &mut VecDeque<Argument>, e: Argument, second: bool) -> VecDeque<Argument> {
     if is_var(&args[0]) {
         let mut t = args.clone();
-        let v = t.remove(0).get_method_name().unwrap();
-        let mut res = vec![get_var(v)];
+        let v = t.pop_front().unwrap().get_method_name().unwrap();
+        let mut res = VecDeque::from(vec![get_var(v)]);
         res.append(&mut t);
         return get_cmd(&mut res, e, second);
     }
@@ -96,29 +86,29 @@ pub fn get_cmd(args: &mut Vec<Argument>, e: Argument, second: bool) -> Vec<Argum
             if second {
                 arg.insert(1, e.clone());
             } else {
-                arg.push(e.clone());
+                arg.push_back(e.clone());
             }
             arg
         } else if arg.len() == 1 {
-            vec![e.clone(), args[0].clone()]
+            VecDeque::from(vec![e.clone(), args[0].clone()])
         } else {
-            vec![args[0].clone(), e.clone()]
+            VecDeque::from(vec![args[0].clone(), e.clone()])
         }
     } else if !args[0].is_something() && second {
         args[0] = e.clone();
         args.clone()
     } else {
-        vec![args[0].clone(), e.clone()]
+        VecDeque::from(vec![args[0].clone(), e.clone()])
     }
 }
 
-pub fn dot(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn dot(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     if args.len() < 4 { return Ok(args); }
-    args.remove(1);
+    args.swap_remove_front(1);
     unpack_args(&mut args, 3);
-    let f1 = args.remove(0);
-    let f2 = args.remove(0);
-    let mut cmd = vec![f1, Argument::Application(vec![f2, args[0].clone()])];
+    let f1 = args.pop_front().unwrap();
+    let f2 = args.pop_front().unwrap();
+    let mut cmd = VecDeque::from(vec![f1, Argument::Application(VecDeque::from(vec![f2, args[0].clone()]))]);
     unpack_args(&mut cmd, 0);
     match apply(&mut Argument::Application(cmd.clone())) {
         Some(r) => args[0] = r,
@@ -127,25 +117,25 @@ pub fn dot(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     Ok(args)
 }
 
-pub fn lambda(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn lambda(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     if args[1].get_operator().unwrap() != "\\".to_string() { return Ok(args); }
     if !args[0].is_something() && args.len() < 4 { return Ok(args); }
     if args.len() < 3 { return Ok(args); }
-    if !args[0].is_something() { args[0] = args.remove(3); }
+    if !args[0].is_something() { args[0] = args.remove(3).unwrap(); }
     let mut arg = args[2].get_application();
-    let lv = arg[0].get_application();
+    let mut lv = arg[0].get_application();
     eval_args(&mut args, 1);
     set_var_local(lv[0].get_method_name().unwrap(), &args[0]);
     let mut cmd = if lv.len() > 1 {
-        Argument::Application(vec![Argument::Nothing, Argument::Operator("\\".to_string()), Argument::Application(vec![Argument::Application(lv[1..].to_vec()), Argument::Operator("->".to_string()), arg[2].clone()])])
+        Argument::Application(VecDeque::from(vec![Argument::Nothing, Argument::Operator("\\".to_string()), Argument::Application(VecDeque::from(vec![Argument::Application(lv.split_off(1)), Argument::Operator("->".to_string()), arg[2].clone()]))]))
     } else { arg[2].clone() };
     if args.len() > 3 {
-        let mut cmdargs = vec![cmd];
-        cmdargs.append(&mut args[3..].to_vec());
+        let mut cmdargs = VecDeque::from(vec![cmd]);
+        cmdargs.append(&mut args.split_off(3));
         cmd = Argument::Application(cmdargs);
     }
     match apply(&mut cmd) {
-        Some(a) => Ok(vec![a]),
+        Some(a) => Ok(VecDeque::from(vec![a])),
         None => Err("Application failed".to_string())
     }
 }

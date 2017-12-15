@@ -6,6 +6,7 @@ use core::str;
 use alloc::slice::SliceConcatExt;
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use alloc::vec_deque::VecDeque;
 
 pub struct TCBTestData {
     pub id: u32,
@@ -41,7 +42,7 @@ struct HtopData {
     num_of_static_rows: usize,
 }
 
-pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn exec(args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     //create test data
     let mut tcbs = vec!(
         TCBTestData::new("I".to_string(),1024),
@@ -96,7 +97,7 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
     }
     print!("{}",&vt::CursorControl::Show);
     print!("{}{}", '\r', &vt::CursorControl::Down{count:(tcbs.len() + htop_data.num_of_static_rows + num_of_dynamic_rows) as u32});
-    Ok(vec![])
+    Ok(VecDeque::new())
 }
 
 fn draw(htop_data: &HtopData, tcbs: &Vec<TCBTestData>) -> usize {

@@ -2,9 +2,9 @@ use core::fmt::Write;
 use utils::parser::Argument;
 use core::result::Result;
 use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::vec_deque::VecDeque;
 
-pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn exec(args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     let mut c = read!();
     while c != 4 { //4 = ^d = end of transmission
         if args.len() == 0 {
@@ -14,5 +14,5 @@ pub fn exec(args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         }
         c = read!();
     }
-    Ok(vec![])
+    Ok(VecDeque::new())
 }

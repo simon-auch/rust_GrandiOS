@@ -4,7 +4,7 @@ use utils::evaluate::*;
 use utils::vt;
 use core::str;
 use core::result::Result;
-use alloc::vec::Vec;
+use alloc::vec_deque::VecDeque;
 use alloc::string::{String, ToString};
 use core::ptr::{write_volatile, read_volatile};
 
@@ -34,8 +34,8 @@ fn print_line(i: isize) {
     println!("");
 }
 
-pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
-    args.remove(0);
+pub fn exec(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    args.pop_front();
     eval_args(&mut args, 0);
     if args.len() < 1 {
         return Err("Start address and an optional length needed!".to_string());
@@ -127,5 +127,5 @@ pub fn exec(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
         c = read!();
     }
     print!("{}", "\n".repeat((lines-linepos) as usize));
-    Ok(vec![])
+    Ok(VecDeque::new())
 }

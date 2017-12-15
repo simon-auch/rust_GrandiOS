@@ -2,6 +2,7 @@ use core::result::Result;
 use core::cmp::Ordering;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use alloc::vec_deque::VecDeque;
 use alloc::linked_list::LinkedList;
 use alloc::string::{String,ToString};
 use alloc::slice::SliceConcatExt;
@@ -9,7 +10,7 @@ use alloc::slice::SliceConcatExt;
 #[derive(PartialEq,Debug,Clone)]
 pub enum Argument {
     Nothing, Bool(bool), Int(isize), Str(String), List(Vec<Argument>),
-    Operator(String), Method(String), Application(Vec<Argument>),
+    Operator(String), Method(String), Application(VecDeque<Argument>),
 }
 
 impl PartialOrd for Argument {
@@ -80,12 +81,13 @@ impl Argument {
     pub fn get_operator(&self) -> Option<String> {
         match self { &Argument::Operator(ref s) => Some(s.clone()), _ => None }
     }
-    pub fn get_application(&self) -> Vec<Argument> {
-        match self { &Argument::Application(ref s) => s.clone(), _ => vec![] }
+    pub fn get_application(&self) -> VecDeque<Argument> {
+        match self { &Argument::Application(ref s) => s.clone(), _ => VecDeque::new() }
     }
 }
 
-pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, String, usize), (String, usize)> {
+//TODO: change it to actually build VecDeque instead of converting Vec
+pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(VecDeque<Argument>, String, usize), (String, usize)> {
     let mut res = vec![];
     let mut akk = vec![];
     let mut pos = start;
@@ -206,7 +208,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, Str
             },
             55 => {
                 if start != 0 {
-                    return Ok((vec![precedence(res)], name, pos));
+                    return Ok((VecDeque::from(vec![precedence(res)]), name, pos));
                 } else {
                     return Err(("Unbalanced parantheses!".to_string(), pos));
                 }
@@ -214,7 +216,7 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, Str
             61 => { mode = 0; },
             65 => {
                 if start != 0 {
-                    return Ok((vec![Argument::List(res)], name, pos));
+                    return Ok((VecDeque::from(vec![Argument::List(res)]), name, pos));
                 } else {
                     return Err(("Unbalanced brackets!".to_string(), pos));
                 }
@@ -224,7 +226,8 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, Str
         if mode == 50 || mode == 60 {
             match parse(s, pos) {
                 Err(x) => { return Err(x); },
-                Ok((mut e, _, p)) => { res.append(&mut e); pos = p; }
+                //TODO: on changing that to something less stupid, remove that copy
+                Ok((mut e, _, p)) => { res.append(&mut (e.into_iter().collect::<Vec<Argument>>())); pos = p; }
             }
             mode = 0;
         }
@@ -233,9 +236,9 @@ pub fn parse(s: &mut LinkedList<u8>, start: usize) -> Result<(Vec<Argument>, Str
     if start != 0 {
         return Err(("Unbalanced parantheses or brackets!".to_string(), pos));
     }
-    let prec = vec![precedence(res)];
+    let prec = VecDeque::from(vec![precedence(res)]);
     let lambda = if args.is_empty() { prec } else {
-        vec![Argument::Application(vec![Argument::Nothing, Argument::Operator("\\".to_string()), Argument::Application(vec![Argument::Application(args), Argument::Operator("->".to_string()), Argument::Application(prec)])])]
+        VecDeque::from(vec![Argument::Application(VecDeque::from(vec![Argument::Nothing, Argument::Operator("\\".to_string()), Argument::Application(VecDeque::from(vec![Argument::Application(VecDeque::from(args)), Argument::Operator("->".to_string()), Argument::Application(prec)]))]))])
     };
     Ok((lambda, name, pos))
 }
@@ -248,7 +251,7 @@ fn precedence(args: Vec<Argument>) -> Argument {
         if arg.is_operator() {
             res.push(match akk.len() {
                 0 => Argument::Nothing,
-                _ => Argument::Application(akk)
+                _ => Argument::Application(VecDeque::from(akk))
             });
             res.push(arg);
             akk = vec![];
@@ -257,7 +260,7 @@ fn precedence(args: Vec<Argument>) -> Argument {
         }
     }
     if !akk.is_empty() {
-        res.push(Argument::Application(akk));
+        res.push(Argument::Application(VecDeque::from(akk)));
     }
     opprec(res)
 }
@@ -266,11 +269,11 @@ fn opprec(args: Vec<Argument>) -> Argument {
     if args.is_empty() { return Argument::Nothing; }
     if args.len() > 4 {
         if ["+".to_string(), "-".to_string(), "\\".to_string()].contains(&args[1].get_operator().unwrap()) {
-            Argument::Application(vec![args[0].clone(),args[1].clone(),opprec(args[2..].to_vec())])
+            Argument::Application(VecDeque::from(vec![args[0].clone(),args[1].clone(),opprec(args[2..].to_vec())]))
         } else {
-            Argument::Application(vec![Argument::Application(args[0..3].to_vec()),args[3].clone(),opprec(args[4..].to_vec())])
+            Argument::Application(VecDeque::from(vec![Argument::Application(VecDeque::from(args[0..3].to_vec())),args[3].clone(),opprec(args[4..].to_vec())]))
         }
     } else {
-        Argument::Application(args)
+        Argument::Application(VecDeque::from(args))
     }
 }

@@ -2,31 +2,32 @@ use utils::parser::*;
 use utils::vt;
 use commands::*;
 use alloc::vec::Vec;
+use alloc::vec_deque::VecDeque;
 use alloc::string::{String, ToString};
 use alloc::linked_list::LinkedList;
 use core::result::Result;
 use core::fmt::Write;
 
-pub static mut COMMANDS: Option<Vec<(Argument, fn(Vec<Argument>) -> Result<Vec<Argument>,String>)>> = None;
+pub static mut COMMANDS: Option<Vec<(Argument, fn(VecDeque<Argument>) -> Result<VecDeque<Argument>,String>)>> = None;
 pub static mut VARS: Option<Vec<(String, Argument)>> = None;
 pub static mut LOCALVARS: Option<Vec<(String, Argument)>> = None;
 
 #[macro_export]
 macro_rules! command {
 	( $t:tt, $o:expr, $c:tt, $m:tt ) => {
-        (Argument::$t($o.to_string()), $m::$c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
+        (Argument::$t($o.to_string()), $m::$c as fn(VecDeque<Argument>) -> Result<VecDeque<Argument>, String>)
 	};
 	( $t:tt, $o:expr, $c:tt ) => {
-        (Argument::$t($o.to_string()), $c as fn(Vec<Argument>) -> Result<Vec<Argument>, String>)
+        (Argument::$t($o.to_string()), $c as fn(VecDeque<Argument>) -> Result<VecDeque<Argument>, String>)
 	};
 }
 
-pub fn get_size(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn get_size(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     let (w, h) = vt::get_size();
     args[0] = Argument::List(vec![Argument::Int(w as isize), Argument::Int(h as isize)]);
     Ok(args)
 }
-pub fn get_position(mut args: Vec<Argument>) -> Result<Vec<Argument>, String> {
+pub fn get_position(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     let (w, h) = vt::get_position();
     args[0] = Argument::List(vec![Argument::Int(w as isize), Argument::Int(h as isize)]);
     Ok(args)
@@ -128,7 +129,7 @@ fn is_var_local(name: &Argument, vars: &Option<Vec<(String, Argument)>>) -> bool
     false
 }
 
-pub fn get_function(command: Argument) -> Option<fn(Vec<Argument>) -> Result<Vec<Argument>,String>> {
+pub fn get_function(command: Argument) -> Option<fn(VecDeque<Argument>) -> Result<VecDeque<Argument>,String>> {
     unsafe {
         for &(ref c, m) in COMMANDS.as_ref().unwrap().iter() {
             if command == *c {
@@ -139,7 +140,7 @@ pub fn get_function(command: Argument) -> Option<fn(Vec<Argument>) -> Result<Vec
     None
 }
 
-pub fn unpack_args(args: &mut Vec<Argument>, len: usize) {
+pub fn unpack_args(args: &mut VecDeque<Argument>, len: usize) {
     for i in 0..(if len > 0 && len <= args.len() { len } else { args.len() }) {
         if is_var(&args[i]) { args[i] = get_var(args[i].get_method_name().unwrap()); }
         while args[i].is_application() && args[i].get_application().len() == 1 {
@@ -156,7 +157,7 @@ pub fn unpack(mut arg: Argument) -> Argument {
     arg
 }
 
-pub fn eval_args(args: &mut Vec<Argument>, len: usize) {
+pub fn eval_args(args: &mut VecDeque<Argument>, len: usize) {
     for i in 0..(if len > 0 && len <= args.len() { len } else { args.len() }) {
         while args[i].is_application() {
             match apply(&mut args[i]) {
@@ -185,8 +186,8 @@ pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) ->
     if args.len() == 1 && args[0].is_application() { return apply(&mut args[0]); }
     if is_var(&args[0]) || is_var_local(&args[0], &vars) {
         let mut t = args.clone();
-        let v = t.remove(0).get_method_name().unwrap();
-        let mut res = vec![if is_var(&Argument::Method(v.clone())) { get_var(v) } else { get_var_local(v, &vars) }];
+        let v = t.pop_front().unwrap().get_method_name().unwrap();
+        let mut res = VecDeque::from(vec![if is_var(&Argument::Method(v.clone())) { get_var(v) } else { get_var_local(v, &vars) }]);
         res.append(&mut t);
         return apply(&mut Argument::Application(res));
     }
@@ -194,7 +195,7 @@ pub fn apply_with(app: &mut Argument, vars: &Option<Vec<(String, Argument)>>) ->
     if args.is_empty() { return None; }
     if args[0].is_application() && (args.len() <= 1 || !args[1].is_operator()) {
         args = {
-            let mut t = args.remove(0).get_application();
+            let mut t = args.pop_front().unwrap().get_application();
             t.append(&mut args);
             t
         };
