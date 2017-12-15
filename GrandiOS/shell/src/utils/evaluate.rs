@@ -37,6 +37,7 @@ pub fn populate_commands() {
         COMMANDS = Some(vec![
             command!(Method, "pos", get_position),
             command!(Method, "size", get_size),
+            command!(Method, "cache", exec, cache),
             command!(Method, "logo", exec, logo),
             command!(Method, "colors", exec, colors),
             command!(Method, "edit", exec, edit),

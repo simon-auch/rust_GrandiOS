@@ -4,5 +4,6 @@ let length = foldl (\x y->(1+x)) 0
 let True = 1==1
 let False = 1/=1
 let id = \x -> x
-let fib x = if (x < 2) then (1) else (fib (x-1) + fib (x-2))
-let bar x = if (x == 1) then (True) else (bar (x-1))
+let min x y = if (x < y) then x else y
+let max x y = if (x > y) then x else y
+let fib x = if (x < 2) then 1 else (cache fib (x-1) + cache fib (x-2))

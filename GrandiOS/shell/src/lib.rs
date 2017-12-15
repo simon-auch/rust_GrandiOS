@@ -63,6 +63,7 @@ mod commands{
     pub mod cat;
     pub mod htop;
     pub mod colors;
+    pub mod cache;
     pub mod edit;
     pub mod cowsay;
     pub mod math;
