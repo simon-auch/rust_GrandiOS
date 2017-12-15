@@ -35,8 +35,8 @@ pub fn operate_diad<F>(mut args: VecDeque<Argument>, f: F) -> Result<VecDeque<Ar
         _ => {}
     }
     args.swap_remove_front(1);
-    eval_args(&mut args, 2);
     if !args[0].is_something() { args[0] = args.remove(2).unwrap(); }
+    eval_args(&mut args, 2);
     if args[0].is_method() { args[0] = Argument::Application(VecDeque::from(vec![args[0].clone()])); }
     eval_args(&mut args, 1);
     if !args[0].is_int() || !args[1].is_int() { return Err("Ints expected".to_string()); }

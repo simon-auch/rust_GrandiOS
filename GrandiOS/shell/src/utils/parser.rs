@@ -1,5 +1,6 @@
 use core::result::Result;
 use core::cmp::Ordering;
+use core::fmt;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::vec_deque::VecDeque;

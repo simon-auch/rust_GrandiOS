@@ -4,6 +4,7 @@ use core::result::Result;
 use alloc::string::{String,ToString};
 use alloc::vec::Vec;
 use alloc::vec_deque::VecDeque;
+use core::fmt::Write;
 
 static mut CACHE: Option<Vec<(VecDeque<Argument>, VecDeque<Argument>)>> = None;
 

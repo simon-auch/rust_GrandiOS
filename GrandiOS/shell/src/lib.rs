@@ -115,6 +115,10 @@ impl TabState {
 }
 
 static mut TABSTATE: Option<TabState> = None;
+static mut DEBUG: bool = false;
+pub fn set_debug() { unsafe { DEBUG = true; } }
+pub fn unset_debug() { unsafe { DEBUG = false; } }
+pub fn is_debug() -> bool { unsafe { DEBUG } }
 
 #[no_mangle]
 pub extern fn _start() {
