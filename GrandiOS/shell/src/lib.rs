@@ -61,7 +61,7 @@ use utils::evaluate::*;
 mod commands{
     pub mod logo;
     pub mod cat;
-    pub mod htop;
+    pub mod spot;
     pub mod colors;
     pub mod cache;
     pub mod edit;

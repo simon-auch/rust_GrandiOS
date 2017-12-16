@@ -44,7 +44,7 @@ pub fn populate_commands() {
             command!(Method, "edit", exec, edit),
             command!(Method, "cowsay", exec, cowsay),
             command!(Method, "cat", exec, cat),
-            command!(Method, "htop", exec, htop),
+            command!(Method, "spot", exec, spot),
             command!(Method, "exit", exec, exit),
         ]);
         higher::populate(COMMANDS.as_mut().unwrap());

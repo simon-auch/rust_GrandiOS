@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use alloc::vec_deque::VecDeque;
 use swi::TCBStatistics;
 
-struct HtopData {
+struct SpotData {
     selected_row: usize,
     selected_column: usize,
     color_selected: vt::Color,
@@ -18,7 +18,7 @@ struct HtopData {
 }
 
 pub fn exec(args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
-    let mut htop_data = HtopData{
+    let mut spot_data = SpotData{
         selected_row:0,
         selected_column:0,
         color_: vt::Color{ct: vt::ColorType::Background, cc: vt::ColorCode::Bit8(019)},
@@ -30,24 +30,24 @@ pub fn exec(args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     let mut num_of_dynamic_rows;
     let mut tcbs = tcbs_statistics!();
     loop {
-        num_of_dynamic_rows = draw(&htop_data, &tcbs); //draw htop (all)
-        print!("{}{}", '\r', &vt::CursorControl::Up{count:(tcbs.len() + htop_data.num_of_static_rows + num_of_dynamic_rows) as u32});
+        num_of_dynamic_rows = draw(&spot_data, &tcbs); //draw spot (all)
+        print!("{}{}", '\r', &vt::CursorControl::Up{count:(tcbs.len() + spot_data.num_of_static_rows + num_of_dynamic_rows) as u32});
         c = read!();
         if c == 27 { // Escape
             read!(); // [
             c=read!(); // Up/Down/etc
         } else if c == 11 {
-            kill_selected(&htop_data, &mut tcbs);
+            kill_selected(&spot_data, &mut tcbs);
         }
         match vt::parse_input(str::from_utf8(&[c]).unwrap()) {
             vt::Input::Up => {
-                if htop_data.selected_row > 0 {
-                    htop_data.selected_row -= 1;
+                if spot_data.selected_row > 0 {
+                    spot_data.selected_row -= 1;
                 }
             },
             vt::Input::Down => {
-                if htop_data.selected_row < tcbs.len()-1 {
-                    htop_data.selected_row += 1;
+                if spot_data.selected_row < tcbs.len()-1 {
+                    spot_data.selected_row += 1;
                 }
             },
             _ => {}
@@ -55,19 +55,19 @@ pub fn exec(args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
         if c == 4 { break; } //4 = ^d = end of transmission
     }
     print!("{}",&vt::CursorControl::Show);
-    print!("{}{}", '\r', &vt::CursorControl::Down{count:(tcbs.len() + htop_data.num_of_static_rows + num_of_dynamic_rows) as u32});
+    print!("{}{}", '\r', &vt::CursorControl::Down{count:(tcbs.len() + spot_data.num_of_static_rows + num_of_dynamic_rows) as u32});
     Ok(VecDeque::new())
 }
 
-fn draw(htop_data: &HtopData, tcbs: &Vec<TCBStatistics>) -> usize {
+fn draw(spot_data: &SpotData, tcbs: &Vec<TCBStatistics>) -> usize {
     // cpu time  unfegähr so?  00[e] 00[e]
     // table header colors
-    let c_i = if htop_data.selected_column == 0 {&htop_data.color_selected} else {&htop_data.color_};
-    let c_p = if htop_data.selected_column == 1 {&htop_data.color_selected} else {&htop_data.color_};
-    let c_s = if htop_data.selected_column == 2 {&htop_data.color_selected} else {&htop_data.color_};
-    let c_t = if htop_data.selected_column == 3 {&htop_data.color_selected} else {&htop_data.color_};
-    let c_m = if htop_data.selected_column == 4 {&htop_data.color_selected} else {&htop_data.color_};
-    let c_n = if htop_data.selected_column == 5 {&htop_data.color_selected} else {&htop_data.color_};
+    let c_i = if spot_data.selected_column == 0 {&spot_data.color_selected} else {&spot_data.color_};
+    let c_p = if spot_data.selected_column == 1 {&spot_data.color_selected} else {&spot_data.color_};
+    let c_s = if spot_data.selected_column == 2 {&spot_data.color_selected} else {&spot_data.color_};
+    let c_t = if spot_data.selected_column == 3 {&spot_data.color_selected} else {&spot_data.color_};
+    let c_m = if spot_data.selected_column == 4 {&spot_data.color_selected} else {&spot_data.color_};
+    let c_n = if spot_data.selected_column == 5 {&spot_data.color_selected} else {&spot_data.color_};
     let headersize = 34; // table header size without "Name"-column
     let termsize = vt::get_size();
     let mut spaces = termsize.0 as usize - (headersize + 4);
@@ -77,8 +77,8 @@ fn draw(htop_data: &HtopData, tcbs: &Vec<TCBStatistics>) -> usize {
              name_width=(4+spaces)); // named arguments
     for (i,tcb) in tcbs.iter().enumerate() {
         // row colors
-        let cb = if i == htop_data.selected_row { &htop_data.color_selected } else { &vt::CB_STANDARD };
-        let cf = if i == htop_data.selected_row { &vt::CF_BLACK } else { &vt::CF_STANDARD };
+        let cb = if i == spot_data.selected_row { &spot_data.color_selected } else { &vt::CB_STANDARD };
+        let cf = if i == spot_data.selected_row { &vt::CF_BLACK } else { &vt::CF_STANDARD };
         spaces = termsize.0 as usize - headersize;
         // TODO: namen scrollen ( <-> )
         // shorten name if needed
@@ -90,20 +90,20 @@ fn draw(htop_data: &HtopData, tcbs: &Vec<TCBStatistics>) -> usize {
                cf, cb, tcb.id, tcb.priority,"TODO", tcb.cpu_time, mem.0, mem.1, name, &vt::CB_STANDARD, &vt::CF_STANDARD,
                name_width=(spaces)); // named arguments
     }
-    let num_of_dynamic_rows=(u32::min(termsize.1,256) as usize)-(tcbs.len()+htop_data.num_of_static_rows+1);
+    let num_of_dynamic_rows=(u32::min(termsize.1,256) as usize)-(tcbs.len()+spot_data.num_of_static_rows+1);
     for i in 0..num_of_dynamic_rows {
         println!("{:termsize$}","",termsize=(termsize.0 as usize));
     }
     // print controls menu
     println!("^k{0}{1}Kill{2}{3}^d{0}{1}Quit{2}{3}",
-             &htop_data.color_selected, &vt::CF_BLACK, &vt::CB_STANDARD, &vt::CF_STANDARD);
+             &spot_data.color_selected, &vt::CF_BLACK, &vt::CB_STANDARD, &vt::CF_STANDARD);
     num_of_dynamic_rows
 }
 
-fn kill_selected(htop_data: &HtopData, tcbs: &mut Vec<TCBStatistics>) {
+fn kill_selected(spot_data: &SpotData, tcbs: &mut Vec<TCBStatistics>) {
     //TODO
-    if tcbs.len() > htop_data.selected_row {
-        tcbs.remove(htop_data.selected_row);
+    if tcbs.len() > spot_data.selected_row {
+        tcbs.remove(spot_data.selected_row);
     }
 }
 
