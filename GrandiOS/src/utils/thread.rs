@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 use alloc::string::String;
 use utils::exceptions::common_code::RegisterStack;
 use core::cmp::Ordering;
+use swi::TCBStatistics;
 
 #[derive(Debug)]
 pub struct TCB {
@@ -63,6 +64,16 @@ impl TCB {
     }
     pub fn get_order(&self) -> u32 {
         self.id
+    }
+    pub fn get_statistics(&self) -> TCBStatistics {
+        TCBStatistics {
+            id: self.id,
+            name: self.name.clone(),
+            cpu_time: self.cpu_time,
+            priority: self.priority,
+            memory_allocated: (self.memory.capacity() as u32),
+            memory_used: (self.memory.len() as u32),
+        }
     }
 }
 

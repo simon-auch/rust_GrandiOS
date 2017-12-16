@@ -167,3 +167,12 @@ macro_rules! ipc_read {
          output.p
     }};
 }
+#[macro_export]
+macro_rules! tcbs_statistics {
+    () => {{
+        let input = ::swi::tcbs_statistics::Input{};
+        let mut output = ::swi::tcbs_statistics::Output{c:vec!()};
+        ::swi::tcbs_statistics::call(&input,&mut output);
+        output.c
+    }};
+}

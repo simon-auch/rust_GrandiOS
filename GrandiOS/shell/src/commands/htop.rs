@@ -7,32 +7,7 @@ use alloc::slice::SliceConcatExt;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::vec_deque::VecDeque;
-
-pub struct TCBTestData {
-    pub id: u32,
-    pub name: String,
-    pub cpu_time: u32,
-    pub priority: u32,
-    pub memory: Vec<u8>,
-}
-static mut NEXT_ID: u32 = 0;
-impl TCBTestData {
-    pub fn new(name: String, memory_size: usize) -> Self {
-        let id;
-        unsafe{
-            NEXT_ID+=1;
-            id=NEXT_ID;
-        }
-        let memory = Vec::with_capacity(memory_size);
-        TCBTestData {
-            id: id,
-            name: name,
-            cpu_time: 0,
-            priority: 0,
-            memory: memory,
-        }
-    }
-}
+use swi::TCBStatistics;
 
 struct HtopData {
     selected_row: usize,
@@ -43,23 +18,6 @@ struct HtopData {
 }
 
 pub fn exec(args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
-    //create test data
-    let mut tcbs = vec!(
-        TCBTestData::new("I".to_string(),1024),
-        TCBTestData::new("find".to_string(),1024),
-        TCBTestData::new("your".to_string(),1024),
-        TCBTestData::new("lack".to_string(),1024),
-        TCBTestData::new("of".to_string(),1024),
-        TCBTestData::new("faith".to_string(),8),
-        TCBTestData::new("disturbing".to_string(),1024),
-        TCBTestData::new(".".to_string(),1024),
-        TCBTestData::new("- Darth Vader".to_string(),1024),
-        TCBTestData::new("ultra langer total bekloppter nicht viel sinnmachender name der hoffentlich lang genug ist um verkürzt zu werden".to_string(),24)
-        );
-        tcbs[0].memory.push(4);
-        for i in 0..1024 {
-            tcbs[6].memory.push((i%256)as u8);
-        }
     let mut htop_data = HtopData{
         selected_row:0,
         selected_column:0,
@@ -70,6 +28,7 @@ pub fn exec(args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     let mut c;
     print!("{}",&vt::CursorControl::Hide);
     let mut num_of_dynamic_rows;
+    let mut tcbs = tcbs_statistics!();
     loop {
         num_of_dynamic_rows = draw(&htop_data, &tcbs); //draw htop (all)
         print!("{}{}", '\r', &vt::CursorControl::Up{count:(tcbs.len() + htop_data.num_of_static_rows + num_of_dynamic_rows) as u32});
@@ -100,7 +59,7 @@ pub fn exec(args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     Ok(VecDeque::new())
 }
 
-fn draw(htop_data: &HtopData, tcbs: &Vec<TCBTestData>) -> usize {
+fn draw(htop_data: &HtopData, tcbs: &Vec<TCBStatistics>) -> usize {
     // cpu time  unfegähr so?  00[e] 00[e]
     // table header colors
     let c_i = if htop_data.selected_column == 0 {&htop_data.color_selected} else {&htop_data.color_};
@@ -141,21 +100,33 @@ fn draw(htop_data: &HtopData, tcbs: &Vec<TCBTestData>) -> usize {
     num_of_dynamic_rows
 }
 
-fn kill_selected(htop_data: &HtopData, tcbs: &mut Vec<TCBTestData>) {
+fn kill_selected(htop_data: &HtopData, tcbs: &mut Vec<TCBStatistics>) {
     //TODO
     if tcbs.len() > htop_data.selected_row {
         tcbs.remove(htop_data.selected_row);
     }
 }
 
-fn get_memory(tcb: &TCBTestData) -> (usize,char) {
+fn get_memory(tcb: &TCBStatistics) -> (u32,char) {
     //TODO
-    let mut mem = tcb.memory.len()*8;
-    let mut e = 'b';
+    let mut mem = tcb.memory_allocated;
+    let mut e = 'B';
 
     if mem/1024 >= 1 {
         mem /= 1024;
+        e = 'K';
+    }
+    if mem/1024 >= 1 {
+        mem /= 1024;
         e = 'M';
+    }
+    if mem/1024 >= 1 {
+        mem /= 1024;
+        e = 'G';
+    }
+    if mem/1024 >= 1 {
+        mem /= 1024;
+        e = 'T';
     }
 
     (mem, e)

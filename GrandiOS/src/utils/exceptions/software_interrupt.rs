@@ -92,6 +92,10 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
         SLEEP!() => {
             sched.switch(regs, scheduler::State::Sleep);
         },
+        TCBS_STATISTICS!() => {
+            let mut output: &mut swi::tcbs_statistics::Output = unsafe{ &mut *(regs.r0 as *mut _) };
+            output.c = sched.get_all_tcb_statistics();
+        },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
             write!(debug_unit, "{}Exception{} software_interrupt at: 0x{:x}, instruction: 0x{:x}, swi value: 0x{:x}, registers:{:?}\n", &vt::CF_YELLOW, &vt::CF_STANDARD, regs.lr_irq - 0x4, instruction, immed, regs).unwrap();

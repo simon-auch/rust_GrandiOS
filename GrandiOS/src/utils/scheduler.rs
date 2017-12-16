@@ -1,6 +1,8 @@
 //Contains functions for the scheduler.
 
 use utils::thread::TCB;
+use swi::TCBStatistics;
+use alloc::vec::Vec;
 use alloc::heap::Layout;
 use alloc::vec_deque::VecDeque;
 use alloc::binary_heap::BinaryHeap;
@@ -217,6 +219,14 @@ impl Scheduler{
                 */
             },
         }
+    }
+    pub extern fn get_all_tcb_statistics(&self) -> Vec<TCBStatistics> {
+        let values: Vec<&TCB> = self.tcbs.values().collect();
+        let mut statistics = Vec::with_capacity(values.len());
+        for tcb in values {
+            statistics.push(tcb.get_statistics());
+        }
+        statistics
     }
 }
 
