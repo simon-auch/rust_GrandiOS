@@ -23,7 +23,7 @@ pub fn exec(args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
         selected_column:0,
         color_: vt::Color{ct: vt::ColorType::Background, cc: vt::ColorCode::Bit8(019)},
         color_selected: vt::Color{ct: vt::ColorType::Background, cc: vt::ColorCode::Bit8(033)},
-        num_of_static_rows: 2,
+        num_of_static_rows: 3,
     };
     let mut c;
     print!("{}",&vt::CursorControl::Hide);
@@ -70,8 +70,11 @@ fn draw(spot_data: &SpotData, tcbs: &Vec<TCBStatistics>) -> usize {
     let c_n = if spot_data.selected_column == 5 {&spot_data.color_selected} else {&spot_data.color_};
     let headersize = 34; // table header size without "Name"-column
     let termsize = vt::get_size();
-    let mut spaces = termsize.0 as usize - (headersize + 4);
+    //print name
+    let mut spaces = (termsize.0 as usize)/2 - 17; // centering the name
+    println!("{:<name_width$}{}SPOT - Spot Processes Or Threads{}","",&spot_data.color_,&vt::CB_STANDARD,name_width=spaces);
     //print table header
+    spaces = termsize.0 as usize - (headersize + 4);
     println!("{}{:^10}{}{:3}{}{:^7}{}{:>8}{}{:>5}{} {:<name_width$}{}",
              c_i, "ID", c_p, "PRI", c_s, "State", c_t, "CPU_Time", c_m, "Mem", c_n, "Name", &vt::CB_STANDARD,
              name_width=(4+spaces)); // named arguments
