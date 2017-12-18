@@ -272,7 +272,13 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
         if TABSTATE.is_none() { TABSTATE = Some(TabState::new()); }
     }
     loop {
-        let c = read!();
+        let mut c;
+        loop {
+            match read!(2000) {
+                None => {},
+                Some(temp) => {c = temp; break;},
+            }
+        }
         match c {
             10 | 13 => { //newline
                 unsafe {

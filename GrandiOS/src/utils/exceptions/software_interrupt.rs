@@ -11,6 +11,8 @@
 //Important note from the docu for the push, pop operations:
 //"Registers are stored on the stack in numerical order, with the lowest numbered register at the lowest address."
 
+//Blocking interrupts (eg. read, sleep) must be used inside select.
+
 use swi;
 use core::ptr::read_volatile;
 use driver::interrupts::*;
@@ -43,9 +45,6 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
     match immed {
         SWITCH!() => {
             sched.switch(regs, scheduler::State::Ready);
-        },
-        READ!() => {
-            sched.switch(regs, scheduler::State::WaitingRead);
         },
         WRITE!() => {
             let mut input : &mut swi::write::Input = unsafe{ &mut *(regs.r1 as *mut _) };
@@ -88,17 +87,24 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
                 _ => {}
             };
         },
-        SLEEP!() => {
-            sched.switch(regs, scheduler::State::Sleep);
-        },
+        SELECT!() => {
+            let mut input : &mut swi::select::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            let mut output: &mut swi::select::Output= unsafe{ &mut *(regs.r0 as *mut _) };
+            let mut correct = true;
+            correct = (correct) & (input.swi_numbers.len() == input.swi_inputs.len());
+            correct = (correct) & (input.swi_numbers.len() == output.swi_outputs.len());
+            if correct {
+                sched.switch(regs, scheduler::State::Waiting(input.swi_numbers.clone()));
+            }
+        }
         TCBS_STATISTICS!() => {
             let mut output: &mut swi::tcbs_statistics::Output = unsafe{ &mut *(regs.r0 as *mut _) };
             output.c = sched.get_all_tcb_statistics();
         },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };
+            write!(debug_unit, "{}Unknown SWI{}\n", &vt::CF_RED, &vt::CF_STANDARD).unwrap();
             write!(debug_unit, "{}Exception{} software_interrupt at: 0x{:x}, instruction: 0x{:x}, swi value: 0x{:x}, registers:{:?}\n", &vt::CF_YELLOW, &vt::CF_STANDARD, regs.lr_irq - 0x4, instruction, immed, regs).unwrap();
-            write!(debug_unit, "{}Unknown SWI{}", &vt::CF_RED, &vt::CF_STANDARD).unwrap();
         }
     }
 }
@@ -109,13 +115,53 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
 pub mod work {
     use utils::thread::TCB;
     use swi;
-
+    
     pub fn read(tcb: &mut  TCB, c: u8){
-        let mut output : &mut swi::read::Output = unsafe{ &mut *(tcb.register_stack.r0 as *mut _) };
-        output.c = c;
+        //read should only be used inside select
+        let mut select_input : &mut swi::select::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
+        let mut select_output: &mut swi::select::Output= unsafe{ &mut *(tcb.register_stack.r0 as *mut _) };
+        //find correct index for input and output struct
+        for i in 0..select_input.swi_numbers.len() {
+            match select_input.swi_numbers[i] {
+                READ!() => {
+                    select_output.index = i as u32;
+                    let mut output : &mut swi::read::Output = unsafe{ &mut *(select_output.swi_outputs[i] as *mut _) };
+                    output.c = c;
+                    return;
+                },
+                _ => {}
+            }
+        }
     }
-    pub fn sleep(tcb: &mut  TCB) -> u32{
-        let input : &mut swi::sleep::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
-        return input.t;
+    pub fn sleep_get_ticks(tcb: &mut  TCB) -> u32{
+        let mut select_input : &mut swi::select::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
+        let mut select_output: &mut swi::select::Output= unsafe{ &mut *(tcb.register_stack.r0 as *mut _) };
+        //find correct index for input and output struct
+        let mut ticks = 0;
+        for i in 0..select_input.swi_numbers.len() {
+            match select_input.swi_numbers[i] {
+                SLEEP!() => {
+                    let mut input : &mut swi::sleep::Input = unsafe{ &mut *(select_input.swi_inputs[i] as *mut _) };
+                    ticks = input.t;
+                    break;
+                },
+                _ => {}
+            }
+        }
+        return ticks;
+    }
+    pub fn sleep(tcb: &mut  TCB){
+        let mut select_input : &mut swi::select::Input = unsafe{ &mut *(tcb.register_stack.r1 as *mut _) };
+        let mut select_output: &mut swi::select::Output= unsafe{ &mut *(tcb.register_stack.r0 as *mut _) };
+        //find correct index for input and output struct
+        for i in 0..select_input.swi_numbers.len() {
+            match select_input.swi_numbers[i] {
+                SLEEP!() => {
+                    select_output.index = i as u32;
+                    return;
+                },
+                _ => {}
+            }
+        }
     }
 }

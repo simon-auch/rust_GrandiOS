@@ -81,6 +81,7 @@ macro_rules! build_swi {
     ($name_mod:ident; $name_macro:ident; $($in:ident : $ti:ty),*; $($out:ident : $to:ty),*; $($use:path),*) => (
         pub mod $name_mod {
             $(use $use;)*
+            pub const NUMBER: u32 = $name_macro!();
             IO!($($in : $ti),*; $($out : $to),*);
             CALL!($name_macro);
         }
@@ -96,7 +97,7 @@ build_swi!(get_led; GET_LED  ; l:u8; s:bool);
 build_swi!(set_led; SET_LED  ; l:u8, s:bool; );
 build_swi!(sleep  ; SLEEP    ; t:u32; );
 build_swi!(exit   ; EXIT     ; ; ;);
-build_swi!(select ; SELECT   ; c:Vec<usize>, i:Vec<Vec<u8>>; c:usize; alloc::vec::Vec);
+build_swi!(select ; SELECT   ; swi_numbers:Vec<u32>, swi_inputs:Vec<u32>; index:u32, swi_outputs:Vec<u32>; alloc::vec::Vec);
 build_swi!(ipc_wait; IPC_WAIT ; c:usize; );
 build_swi!(ipc_read; IPC_READ ; c:usize; p:Vec<u8>; alloc::vec::Vec);
 build_swi!(ipc_write; IPC_WRITE; c:usize, i:Vec<u8>; ; alloc::vec::Vec);
