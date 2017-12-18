@@ -9,6 +9,10 @@ use core::fmt::Write;
 static mut CACHE: Option<Vec<(VecDeque<Argument>, VecDeque<Argument>)>> = None;
 
 pub fn exec(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    if help_call(&args) {
+        println!("cache will remember what functions evaluate to with certain arguments");
+        return Ok(VecDeque::new());
+    }
     unsafe { if CACHE.is_none() { CACHE = Some(vec![]); } }
     args.pop_front();
     eval_args(&mut args, 0);

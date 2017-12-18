@@ -59,6 +59,7 @@ mod utils{
 use utils::evaluate::*;
 
 mod commands{
+    pub mod barry;
     pub mod logo;
     pub mod cat;
     pub mod spot;

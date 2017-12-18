@@ -35,6 +35,10 @@ fn print_line(i: isize) {
 }
 
 pub fn exec(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    if help_call(&args) {
+        println!("in-ram hex editor. call with a start address and an optional length");
+        return Ok(VecDeque::new());
+    }
     args.pop_front();
     eval_args(&mut args, 0);
     if args.len() < 1 {

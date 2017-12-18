@@ -15,6 +15,10 @@ pub fn populate(commands: &mut Vec<(Argument, fn(VecDeque<Argument>) -> Result<V
 }
 
 pub fn map(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    if help_call(&args) {
+        println!("applies a function to each element of a list");
+        return Ok(VecDeque::new());
+    }
     if args.len() < 3 { return Ok(args); }
     args.pop_front();
     eval_args(&mut args, 2);
@@ -33,6 +37,10 @@ pub fn map(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
 }
 
 pub fn fix(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    if help_call(&args) {
+        println!("calls a function with itself as first argument");
+        return Ok(VecDeque::new());
+    }
     if args.len() < 3 { return Ok(args); }
     let f = args.pop_front().unwrap();
     eval_args(&mut args, 1);
@@ -48,6 +56,10 @@ pub fn fix(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
 }
 
 pub fn foldl(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    if help_call(&args) {
+        println!("folds a given list to a scalar");
+        return Ok(VecDeque::new());
+    }
     if args.len() < 4 { return Ok(args); }
     args.pop_front();
     eval_args(&mut args, 3);

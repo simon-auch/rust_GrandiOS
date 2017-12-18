@@ -53,6 +53,10 @@ pub fn bor(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
 }
 
 pub fn bif(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    if help_call(&args) {
+        println!("Syntax: if <predicate> then <true case> else <false case>");
+        return Ok(VecDeque::new());
+    }
     if args.len() < 6 { return Ok(args); }
     if !args[2].is_method() || args[2].get_method_name().unwrap() != "then" ||
        !args[4].is_method() || args[4].get_method_name().unwrap() != "else" {
@@ -83,6 +87,10 @@ pub fn bif(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
 }
 
 pub fn not(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    if help_call(&args) {
+        println!("Okay, I won't!");
+        return Ok(VecDeque::new());
+    }
     if args.len() < 2 { return Ok(args); }
     args.pop_front();
     eval_args(&mut args, 1);

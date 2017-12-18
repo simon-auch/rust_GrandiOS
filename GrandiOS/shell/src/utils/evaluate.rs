@@ -36,6 +36,7 @@ pub fn get_position(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, 
 pub fn populate_commands() {
     unsafe {
         COMMANDS = Some(vec![
+            command!(Method, "barry", exec, barry),
             command!(Method, "pos", get_position),
             command!(Method, "size", get_size),
             command!(Method, "cache", exec, cache),
@@ -76,6 +77,10 @@ unsafe fn load_prelude() {
             }
         }
     }
+}
+
+pub fn help_call(args: &VecDeque<Argument>) -> bool {
+    args[1].is_method() && args[1].get_method_name().unwrap() == "help"
 }
 
 pub fn set_var(name: String, arg: &Argument) {
