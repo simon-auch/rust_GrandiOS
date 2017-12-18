@@ -16,8 +16,8 @@ use driver::system_timer::*;
 static mut SCHEDULER: Option<Scheduler> = None;
 
 pub unsafe fn init(current_tcb: TCB){
-    let mut tcbs = BTreeMap::<u32, TCB>::new();
-    let id = current_tcb.get_order();
+    let mut tcbs = BTreeMap::<TCB_ID, TCB>::new();
+    let id = TCB_ID(current_tcb.get_order());
     tcbs.insert(id, current_tcb);
     SCHEDULER = Some(Scheduler{
         tcbs: tcbs,
@@ -26,7 +26,7 @@ pub unsafe fn init(current_tcb: TCB){
         queue_terminate: BinaryHeap::new(),
         queue_waiting_read: BinaryHeap::new(),
         queue_waiting_read_input: VecDeque::new(),
-        queue_sleep: BinaryHeap::new(),
+        queue_waiting_sleep: BinaryHeap::new(),
     });
 }
 
@@ -45,7 +45,7 @@ pub enum State{
     Sleep,
 }
 
-//struct that contains a tcb and a priority which to use for scheduling
+//struct that contains a something and a priority which to use for scheduling
 #[derive(Debug)]
 struct Priority<T>{
     priority: u32,
@@ -86,27 +86,36 @@ impl<T: Ord> Ord for ReverseOrder<T> {
     }
 }
 
+//Macro to create an identifier, which can be compared, but not used in math.
+macro_rules! identifier (
+    ($name:ident) => {
+        #[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone, Copy)]
+        struct TCB_ID(u32);
+    }
+);
+
+identifier!(TCB_ID);
 
 pub struct Scheduler{
-    tcbs: BTreeMap<u32, TCB>,
-    running: u32,
+    tcbs: BTreeMap<TCB_ID, TCB>,
+    running: TCB_ID,
     //Queues for the threads
-    queue_ready: BinaryHeap<Priority<u32>>,
-    queue_terminate: BinaryHeap<Priority<u32>>,
-    queue_waiting_read: BinaryHeap<Priority<u32>>,
-    queue_sleep: BinaryHeap<ReverseOrder<Priority<u32>>>,
+    queue_ready: BinaryHeap<Priority<TCB_ID>>,
+    queue_terminate: BinaryHeap<Priority<TCB_ID>>,
+    queue_waiting_read: BinaryHeap<Priority<TCB_ID>>,
+    queue_waiting_sleep: BinaryHeap<ReverseOrder<Priority<TCB_ID>>>,
     //Queues for stuff that threads can wait for
     queue_waiting_read_input: VecDeque<u8>,
 }
 
-fn add_thread_to_queue(queue: &mut BinaryHeap<Priority<u32>>, tcb: & TCB){
-    queue.push(Priority{priority: tcb.get_priority(), data: tcb.get_order()});
+fn add_thread_to_queue(queue: &mut BinaryHeap<Priority<TCB_ID>>, tcb: & TCB){
+    queue.push(Priority{priority: tcb.get_priority(), data: TCB_ID(tcb.get_order())});
 }
 
 impl Scheduler{
     pub fn add_thread(&mut self, tcb: TCB){
         add_thread_to_queue(&mut self.queue_ready, & tcb);
-        let id = tcb.get_order();
+        let id = TCB_ID(tcb.get_order());
         self.tcbs.insert(id, tcb);
     }
     pub fn switch(&mut self, register_stack: &mut RegisterStack, new_state: State){
@@ -144,7 +153,7 @@ impl Scheduler{
             State::Sleep => {
                 //add thread to sleeping queue, with priority set to the time it wants o sleep
                 let t = software_interrupt::work::sleep(&mut running);
-                self.queue_sleep.push(ReverseOrder{data: Priority{priority: current_time+t, data: running.get_order()}});
+                self.queue_waiting_sleep.push(ReverseOrder{data: Priority{priority: current_time+t, data: TCB_ID(running.get_order())}});
             }
         }
         }
@@ -152,7 +161,7 @@ impl Scheduler{
         while let Some(priority) = self.queue_terminate.pop() {
             self.terminate(priority.data);
         }
-        while let Some(rev_ord) = self.queue_sleep.pop() {
+        while let Some(rev_ord) = self.queue_waiting_sleep.pop() {
             let mut priority = rev_ord.data;
             if priority.priority <= current_time {
                 let id  = priority.data;
@@ -166,7 +175,7 @@ impl Scheduler{
                     //next_wanted_wakeup_temp cant be zero, because that would imply that delta_ticks was zero, but then we would have taken the other branch of the if.
                     next_wanted_wakeup = next_wanted_wakeup_temp;
                 }
-                self.queue_sleep.push(ReverseOrder{data: priority});
+                self.queue_waiting_sleep.push(ReverseOrder{data: priority});
                 break;
             }
         }
@@ -177,7 +186,7 @@ impl Scheduler{
         //println!("Loading Registers");
         (&next).load_registers(register_stack);
         //println!("Current registers: {:#?}", register_stack);
-        self.running = next.get_order();
+        self.running = TCB_ID(next.get_order());
         
         //configure the st to wake us up when we need it.
         //println!("Setting piv to: 0x{:x}", next_wanted_wakeup);
@@ -198,8 +207,8 @@ impl Scheduler{
             },
         }
     }
-    fn terminate(&mut self, id: u32) {
-        if id == 0 { return; } //We do NOT kill the idle thread!
+    fn terminate(&mut self, id: TCB_ID) {
+        if id == TCB_ID(0) { return; } //We do NOT kill the idle thread!
         match self.tcbs.remove(&id){
             None => { //No thread with the given id exists 
             },
