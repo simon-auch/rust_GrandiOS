@@ -3,7 +3,6 @@
 use utils::thread::TCB;
 use swi::TCBStatistics;
 use alloc::vec::Vec;
-use alloc::heap::Layout;
 use alloc::vec_deque::VecDeque;
 use alloc::binary_heap::BinaryHeap;
 use alloc::btree_map::BTreeMap;
@@ -199,24 +198,13 @@ impl Scheduler{
             },
         }
     }
-    pub fn alloc(&mut self, ptr: *mut u8, layout: Layout) {
-        let mut running = self.tcbs.get_mut(&self.running).unwrap();
-        running.allocs.push((ptr, layout));
-    }
     fn terminate(&mut self, id: u32) {
         if id == 0 { return; } //We do NOT kill the idle thread!
         match self.tcbs.remove(&id){
             None => { //No thread with the given id exists 
             },
             Some(tcb) => {
-                //TODO this does not yet work, since we do not remove the deallocations from the users allocations and would therefore double free memory.
-                /*
-                for (ptr, layout) in tcb.allocs.into_iter() {
-                    unsafe {
-                        (&mut &::GLOBAL).dealloc(ptr, layout);
-                    }
-                }
-                */
+                //Cleanup code
             },
         }
     }

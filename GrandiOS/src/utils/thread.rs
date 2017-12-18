@@ -1,5 +1,4 @@
 use driver::serial::*;
-use alloc::heap::Layout;
 use alloc::vec::Vec;
 use alloc::string::String;
 use utils::exceptions::common_code::RegisterStack;
@@ -16,7 +15,6 @@ pub struct TCB {
     priority: u32,
     // ...
     pub register_stack: RegisterStack,
-    pub allocs: Vec<(*mut u8, Layout)>,
     //memory information (should later contain mmu parameters) for now it contains a memory location that is the used for the thread stack
     memory: Vec<u8>,
 }
@@ -43,7 +41,6 @@ impl TCB {
             cpu_time: 0,
             priority: 0,
             register_stack: regs,
-            allocs: vec![],
             memory: memory,
         }
     }

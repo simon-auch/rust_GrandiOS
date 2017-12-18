@@ -58,7 +58,6 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
             let layout = input.l.clone();
             let ptr = unsafe { Some((&mut &::GLOBAL).alloc(layout)) };
             output.r = ptr.clone();
-            sched.alloc(ptr.unwrap().unwrap(), input.l.clone());
         },
         DEALLOC!() => {
             let mut input : &mut swi::userdealloc::Input = unsafe{ &mut *(regs.r1 as *mut _) };
