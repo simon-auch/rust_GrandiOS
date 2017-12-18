@@ -17,7 +17,7 @@ pub fn populate(commands: &mut Vec<(Argument, fn(VecDeque<Argument>) -> Result<V
 pub fn map(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     if args.len() < 3 { return Ok(args); }
     args.pop_front();
-    unpack_args(&mut args, 2);
+    eval_args(&mut args, 2);
     if !args[1].is_list() { return Err("Arg2: List expected".to_string()); }
     let mut res = vec![];
     for e in args[1].get_list() {
@@ -35,7 +35,7 @@ pub fn map(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
 pub fn fix(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     if args.len() < 3 { return Ok(args); }
     let f = args.pop_front().unwrap();
-    unpack_args(&mut args, 1);
+    eval_args(&mut args, 1);
     if !args[0].is_application() { args[0] = Argument::Application(VecDeque::from(vec![args[0].clone()])); }
     let mut arg = args[0].get_application();
     arg = get_cmd(&mut arg, Argument::Application(VecDeque::from(vec![f, args[0].clone()])), true);
@@ -50,7 +50,7 @@ pub fn fix(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
 pub fn foldl(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     if args.len() < 4 { return Ok(args); }
     args.pop_front();
-    unpack_args(&mut args, 3);
+    eval_args(&mut args, 3);
     if !args[2].is_list() { return Err("Arg3: List expected".to_string()); }
     let mut akk = args.swap_remove_front(1).unwrap();
     for e in args[1].get_list() {

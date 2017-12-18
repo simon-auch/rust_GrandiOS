@@ -51,6 +51,7 @@ pub fn populate_commands() {
         bool::populate(COMMANDS.as_mut().unwrap());
         math::populate(COMMANDS.as_mut().unwrap());
         list::populate(COMMANDS.as_mut().unwrap());
+        led::populate(COMMANDS.as_mut().unwrap());
         VARS = Some(vec![("it".to_string(), Argument::Nothing)]);
         load_prelude();
     }

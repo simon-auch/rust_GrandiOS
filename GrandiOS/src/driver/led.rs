@@ -79,7 +79,7 @@ impl PIO {
 		write_volatile(&mut (*(self.hw_pio)).oer, self.pin);
         //Lesen
 		read_volatile(&mut (*(self.hw_pio)).odsr);
-        (*(self.hw_pio)).odsr != 0
+        (*(self.hw_pio)).odsr & self.pin != 0
         }
     }
 }

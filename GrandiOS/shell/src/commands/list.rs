@@ -34,7 +34,7 @@ pub fn filter(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String
 pub fn plusplus(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
     if args.len() < 3 { return Ok(args); }
     args.swap_remove_front(1);
-    unpack_args(&mut args, 2);
+    eval_args(&mut args, 2);
     if !args[1].is_list() || !args[0].is_list() { return Err("Lists expected".to_string()); }
     let mut res = args[0].get_list();
     res.append(&mut args[1].get_list());

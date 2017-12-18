@@ -4,6 +4,10 @@ let length = foldl (\x y->(1+x)) 0
 let True = 1==1
 let False = 1/=1
 let id = \x -> x
-let min x y = if (x < y) then x else y
-let max x y = if (x > y) then x else y
+let min x y = if (x < y) then (x) else (y)
+let max x y = if (x > y) then (x) else (y)
+let minimum xs = foldl (min) (head xs) (tail xs)
+let maximum xs = foldl (max) (head xs) (tail xs)
 let fib x = if (x < 2) then 1 else (cache fib (x-1) + cache fib (x-2))
+let quicksort xs = if (length xs <= 1) then (xs) else ((\p r -> ((quicksort (filter (<=p) r))++(map id [p])++(quicksort (filter (>p) r))))(head xs)(tail xs))
+let init xs = if (length xs <=1) then ([]) else ((map id [(head xs)])++(init (tail xs)))

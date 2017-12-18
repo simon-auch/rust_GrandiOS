@@ -70,6 +70,7 @@ mod commands{
     pub mod bool;
     pub mod higher;
     pub mod list;
+    pub mod led;
     pub mod u3;
     pub mod exit;
 }
