@@ -26,7 +26,7 @@ pub fn exec(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> 
             if (c as char) == '\r' || (c as char) == '\n' {
                 match str::from_utf8(&buffer[..]).unwrap() {
                     "kommt drauf an" => {
-                        println!("Worauf?");
+                        println!("\nWorauf?");
                         return Ok(args);
                     },
                     "geld" | "spiele" => {
@@ -41,7 +41,7 @@ pub fn exec(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> 
                     },
                     _ => { println!(""); }
                 }
-                buffer.clear();
+                buffer = vec![];
             } else {
                 print!("{}", c as char);
                 buffer.push(c);
