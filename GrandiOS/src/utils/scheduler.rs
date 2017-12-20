@@ -163,10 +163,11 @@ impl Scheduler{
         self.tcbs.insert(id, tcb);
     }
     fn remove_select(&mut self, select_id: & SELECT_ID){
-        let mut queue_filtered = BTreeSet::from_iter(self.queue_waiting_read.iter().filter(|prio| & prio.data == select_id).map(|v| v.clone()));
+        let mut queue_filtered = BTreeSet::from_iter(self.queue_waiting_read.iter().filter(|prio| & prio.data != select_id).map(|v| v.clone()));
         self.queue_waiting_read = queue_filtered;
-        let mut queue_filtered = BTreeSet::from_iter(self.queue_waiting_sleep.iter().filter(|prio| & prio.data.data == select_id).map(|v| v.clone()));
+        let mut queue_filtered = BTreeSet::from_iter(self.queue_waiting_sleep.iter().filter(|prio| & prio.data.data != select_id).map(|v| v.clone()));
         self.queue_waiting_sleep = queue_filtered;
+        self.selects.remove(select_id);
     }
     //part of switch which safes the state of the running process
     fn switch_running_thread(&mut self, register_stack: &mut RegisterStack, new_state: State, current_time: u32, next_wanted_wakeup : &mut u16){
@@ -246,13 +247,16 @@ impl Scheduler{
             }
         }
         while (self.queue_waiting_read.len() > 0) && (self.queue_waiting_read_input.len() > 0) {
-            let c = self.queue_waiting_read_input.pop_back().unwrap();
+            let c = self.queue_waiting_read_input.pop_front().unwrap();
             let select_id = btree_set_min(&mut self.queue_waiting_read).unwrap().data;
+            {
             let select = self.selects.get(& select_id).unwrap();
             let tcb_id = select.tcb_id;
             let mut tcb = self.tcbs.get_mut(&tcb_id).unwrap();
             software_interrupt::work::read(&mut tcb, c);
             self.queue_ready.push(Priority{priority: tcb.get_priority(), data: tcb_id});
+            }
+            self.remove_select(& select_id);
         }
         }
         //println!("queue_ready: {:#?}", self.queue_ready);
@@ -270,22 +274,7 @@ impl Scheduler{
 
     //set of function to push something into the queue_waiting_*_input queues
     pub fn push_queue_waiting_read_input(&mut self, c: u8){
-        match btree_set_min(&mut self.queue_waiting_read) {
-            None => { //No thread is waiting for this input
-                self.queue_waiting_read_input.push_back(c);
-            },
-            Some(priority) => {
-                let select_id = priority.data;
-                {
-                let select = self.selects.get(& select_id).unwrap();
-                let tcb_id = select.tcb_id;
-                let mut tcb = self.tcbs.get_mut(&tcb_id).unwrap();
-                software_interrupt::work::read(&mut tcb, c);
-                self.queue_ready.push(Priority{priority: tcb.get_priority(), data: tcb_id});
-                }
-                self.remove_select(& select_id);
-            },
-        }
+        self.queue_waiting_read_input.push_back(c);
     }
     fn terminate(&mut self, id: TCB_ID) {
         if id == TCB_ID(0) { return; } //We do NOT kill the idle thread!
