@@ -274,12 +274,15 @@ pub fn read_command(history: &mut VecDeque<LinkedList<u8>>) -> LinkedList<u8> {
     }
     loop {
         let mut c;
+        c = read!();
+        /*
         loop {
             match read!(2000) {
                 None => {},
                 Some(temp) => {c = temp; break;},
             }
         }
+        */
         match c {
             10 | 13 => { //newline
                 unsafe {

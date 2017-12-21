@@ -4,7 +4,7 @@
 \begin{description}
 \AUFGABE{Nachrichten unterschiedlicher Länge}{5 Punkte}
 
-Im Allgemeinen sind an Kommunikationsobjekten NAchrichten unterschiedlicher Länge zugelassen.
+Im Allgemeinen sind an Kommunikationsobjekten Nachrichten unterschiedlicher Länge zugelassen.
     \begin{itemize}
       \item Welche Auswirkungen hat dies auf die Daten des Kommunikationsobjekts? Bei welchen Varianten der Nachrichtenübergabe hat dies weitere Auswirkungen, und bei welchen hat dies sonst keine weiteren Auswirkungen?
       \item Welche Probleme können aus der Sicht der Kommunikationspartner auftreten, wenn Nachrichten unterschiedlicher Länge zugelassen sind? Schlagen Sie geeignete Lösungen vor!
@@ -17,21 +17,21 @@ Im Allgemeinen sind an Kommunikationsobjekten NAchrichten unterschiedlicher Län
 In  dieser  Aufgabe  soll  Ihr  Betriebssystem  um  die  Fähigkeit  des  präemptiven  Multitaskings erweitert  werden,  um  so  mehrere  Threads  quasi-parallel  ausführen  zu  können.  Der  System-Timer dient  dabei  als  Zeitgeber  und  gibt  das  Intervall  vor,  in  dem  der  Kern  den  gerade ausgeführten Thread automatisch wechselt. 
 
 \textbf{Lösung:}
-Anleitung zum erstellen eines mit qemu benutzbaren Kernels:
+Anleitung zum Erstellen eines mit qemu benutzbaren Kernels:
 \begin{enumerate}
   \item Wechseln in den Ordner \texttt{GrandiOS}
   \item Zunächst wird mit dem Script \texttt{setup\_env.sh} die Toolchain von Rust vorbereitet. Unter Umständen sind Benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
-  \item Ausführen von \texttt{make run} zum erstellen eines Kernels und starten von Qemu mit diesem.
+  \item Ausführen von \texttt{make run} zum Erstellen eines Kernels und starten von Qemu mit diesem.
 \end{enumerate}
-Das vorbereiten der Toolchain mittels \texttt{setup\_env.sh} ist nur einmal notwendig.
+Das Vorbereiten der Toolchain mittels \texttt{setup\_env.sh} ist nur einmal notwendig.
 
-Für den unwahrscheinlichen Fall, dass aus irgend einem Grund das bauen des Kernels fehlschlägt, ist unter {\texttt{GrandiOS/kernels/kernel\_04}} noch ein von uns gebauter Kernel vorhanden.
+Für den unwahrscheinlichen Fall, dass aus irgendeinem Grund das Bauen des Kernels fehlschlägt, ist unter {\texttt{GrandiOS/kernels/kernel\_04}} noch ein von uns gebauter Kernel vorhanden.
 
-Eine kleine Übersicht wo die für diese Aufgabe relevanten Codesegmente zu finden sind:
+Eine kleine Übersicht, wo die für diese Aufgabe relevanten Codesegmente zu finden sind:
 \begin{itemize}
-	\item \texttt{GrandiOS/src/utils/scheduler.rs} Implementation der Thread Verwaltung. Unsere Zeitscheibenlänge beträgt standardmäßig 2 Sekunden, es sei denn ein Interrupt verkürzt diese. Insbesondere werden jedoch auch bei benutzung eines sleep swi die zeitscheibe so eingestellt, das der nächste thread pünktlich gestartet werden kann. Falls es mehrere Threads der gleichen Priorität gibt, ergibt sich durch die verwendung der Priority Queues automatisch ein round robin scheduling. Die maximale/minimale Zeitscheibenlänge kann hierbei zu beginn/am Ende der switch Funktion eingestellt werden (in ticks, wobei ein tick als 1/1024 sekunden eingestellt ist). Der Fall, dass es keinen Thread zum ausführen gibt, kann nicht eintreten, da wir immer einen Idle Thread haben welcher immer ausgeführt werden kann (und nicht beendet werden kann). Der Idle Thread pausiert insbesondere auch die CPU (siehe ganz unten in der Datei). Ein Thread kann mittels des exit syscalls beendet werden, dies entfernt ihn aus allen warteschlangen aus dem scheduler und gibt später vielleicht irgendwann mal benutzte resourcen frei.
-	\item \texttt{GrandiOS/src/utils/exceptions/common\_code.rs} Beinhaltet den Trampolincode für unsere Interrupts (sowohl swi als auch irq). Hierbei werden alle relevanten register auf dem interrupt stack gesichert. Falls der thread gewechselt werden soll müssen diese nur woanders gespeichert werden und im stack überschrieben werden.
-	\item \texttt{GrandiOS/src/utils/exceptions/irq.rs} Beinhaltet die Implementierung des Threads den wir starten als auch die Ausgabe des Ausrufezeichens. Der Thread benutzt leider kein sleep aufruf, da er hierfür in der aktuellen implementation einen Allocator benutzen muss, was jedoch im Kontext des kernels (zu dem diese Datei gehört) leider der gleiche Allocator wie vom Scheduler ist und daher nicht ohne Kernellock benutzt werden sollte. Deswegen machen wir stattdessen einfach bussy-waiting.
+	\item \texttt{GrandiOS/src/utils/scheduler.rs} Implementation der Thread-Verwaltung. Unsere Zeitscheibenlänge beträgt standardmäßig 2 Sekunden, es sei denn ein Interrupt verkürzt diese. Insbesondere werden jedoch auch bei Benutzung eines Sleep-SWI die Zeitscheibe so eingestellt, dass der nächste Thread pünktlich gestartet werden kann. Falls es mehrere Threads der gleichen Priorität gibt, ergibt sich durch die Verwendung der Priority-Queue automatisch ein Round-Robin-Scheduling. Die maximale/minimale Zeitscheibenlänge kann hierbei zu Beginn/am Ende der Switch-Funktion eingestellt werden (in Ticks, wobei ein Tick als 1/1024 Sekunden eingestellt ist). Der Fall, dass es keinen Thread zum Ausführen gibt, kann nicht eintreten, da wir immer einen Idle-Thread haben, welcher immer ausgeführt werden kann (und nicht beendet werden kann). Der Idle-Thread pausiert insbesondere auch die CPU (siehe ganz unten in der Datei). Ein Thread kann mittels des Exit-Syscalls beendet werden, dies entfernt ihn aus allen Warteschlangen aus dem Scheduler und gibt später vielleicht irgendwann mal benutzte Ressourcen frei.
+	\item \texttt{GrandiOS/src/utils/exceptions/common\_code.rs} Beinhaltet den Trampolincode für unsere Interrupts (sowohl swi als auch irq). Hierbei werden alle relevanten Register auf dem Interrupt-Stack gesichert. Falls der Thread gewechselt werden soll müssen diese nur woanders gespeichert werden und im Stack überschrieben werden.
+	\item \texttt{GrandiOS/src/utils/exceptions/irq.rs} Beinhaltet die Implementierung des Threads, den wir starten, als auch die Ausgabe des Ausrufezeichens. Der Thread benutzt leider kein Sleep-Aufruf, da er hierfür in der aktuellen implementation einen Allocator benutzen muss, was jedoch im Kontext des Kernels (zu dem diese Datei gehört) leider der gleiche Allocator wie vom Scheduler ist und daher nicht ohne Kernellock benutzt werden sollte. Deswegen machen wir stattdessen einfach busy-waiting.
 \end{itemize}
 
 \end{description}
