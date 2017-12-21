@@ -212,6 +212,7 @@ impl Scheduler{
         }
     }
     pub fn switch(&mut self, register_stack: &mut RegisterStack, new_state: State){
+        println!("");
         //self.print();
 
         let mut st =  unsafe{ get_system_timer() };
@@ -269,6 +270,11 @@ impl Scheduler{
         
         //configure the st to wake us up when we need it.
         //println!("Setting piv to: 0x{:x}", next_wanted_wakeup);
+        //make sure the next wanted wakeup is not too close
+        let next_wanted_wakeup_temp = st.ticks_to_piv(10); //minimum of 10 ticks per timeslice
+        if next_wanted_wakeup_temp > next_wanted_wakeup {
+            next_wanted_wakeup = next_wanted_wakeup_temp;
+        }
         st.set_piv(next_wanted_wakeup);
     }
 

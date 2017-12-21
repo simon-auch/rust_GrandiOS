@@ -52,6 +52,7 @@ mod utils{
 }
 use driver::*;
 use alloc::string::ToString;
+use core::fmt;
 
 #[global_allocator]
 pub static GLOBAL: utils::allocator::Allocator = utils::allocator::Allocator::new(0x22000000, 0x23ffffff);
@@ -122,9 +123,9 @@ fn main(){
     let mut sched = unsafe {utils::scheduler::get_scheduler()};
     
     //Add shell
-    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x40000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
-    tcb_shell.set_priority(10);
-    sched.add_thread(tcb_shell);
+    //let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x40000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
+    //tcb_shell.set_priority(10);
+    //sched.add_thread(tcb_shell);
     //Add small thread that 
     //let mut tcb_sleep = utils::thread::TCB::new("Sleep Thread".to_string(), p_sleep as *const (), 0x800, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT);
     //tcb_sleep.set_priority(15);
@@ -172,27 +173,27 @@ fn init_stacks(){
         bic     r0, r0, #0x1F	//set all mode bits to zero
         orr     r1, r0, #0x11	//ARM_MODE_FIQ
         msr     CPSR, r1
-        add     r2, #0x800
+        add     r2, #0x2000
         mov     sp, r2		//set stack pointer for fiq mode
         orr     r1, r0, #0x12	//ARM_MODE_IRQ
         msr     CPSR, r1
-        add     r2, #0x800
+        add     r2, #0x0
         mov     sp, r2		//set stack pointer for irq mode
         orr     r1, r0, #0x13	//ARM_MODE_ABORT
         msr     CPSR, r1
-        add     r2, #0x800
+        add     r2, #0x0
         mov     sp, r2		//set stack pointer for abort mode
         orr     r1, r0, #0x17	//ARM_MODE_supervisor
         msr     CPSR, r1
-        add     r2, #0x800
+        add     r2, #0x0
         mov     sp, r2		//set stack pointer for supervisor mode
         orr     r1, r0, #0x1B	//ARM_MODE_UNDEFINED
         msr     CPSR, r1
-        add     r2, #0x800
+        add     r2, #0x0
         mov     sp, r2		//set stack pointer for undefined mode
         orr     r1, r0, #0x1F	//ARM_MODE_SYS
         msr     CPSR, r1
-        add     r2, #0x1800
+        add     r2, #0x2000
         mov     sp, r2		//set stack pointer for system/user mode
         "
         :
@@ -209,8 +210,10 @@ fn init_stacks(){
 extern fn eh_personality() {}
 #[lang = "panic_fmt"]
 #[no_mangle]
-pub fn panic_fmt() -> ! { loop {} }
-
+pub extern fn panic_fmt(msg: core::fmt::Arguments, file: &'static str, line: u32) -> ! {
+    println!("Unhandled panic in {} on line {}:\n{}", file, line, msg);
+    loop {}
+}
 // We need this to remove a linking error for the allocator
 #[no_mangle]
 pub unsafe fn __aeabi_unwind_cpp_pr0() { loop {} }
