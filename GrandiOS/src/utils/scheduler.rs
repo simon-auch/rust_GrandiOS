@@ -43,10 +43,10 @@ pub unsafe fn get_scheduler() -> &'static mut Scheduler {
 
 //What states can our processes have?
 #[derive(Debug)]
-pub enum State{
+pub enum State<'a>{
     Ready,
     Terminate,
-    Waiting(Vec<u32>), //swi numbers
+    Waiting(&'a[u32]), //swi numbers
 }
 
 //struct that contains a something and a priority which to use for scheduling
@@ -192,11 +192,11 @@ impl Scheduler{
                 let select_id = SELECT_ID(self.select_counter);
                 for swi_number in swis {
                     match swi_number {
-                        READ!() => {
+                        & READ!() => {
                             count += 1;
                             self.queue_waiting_read.insert(Priority{priority: 0, data: select_id});
                         },
-                        SLEEP!() => {
+                        & SLEEP!() => {
                             count += 1;
                             let t = software_interrupt::work::sleep_get_ticks(&mut running);
                             self.queue_waiting_sleep.insert(ReverseOrder{data: Priority{priority: current_time+t, data: select_id}});
@@ -212,7 +212,7 @@ impl Scheduler{
         }
     }
     pub fn switch(&mut self, register_stack: &mut RegisterStack, new_state: State){
-        println!("");
+        //println!("");
         //self.print();
 
         let mut st =  unsafe{ get_system_timer() };

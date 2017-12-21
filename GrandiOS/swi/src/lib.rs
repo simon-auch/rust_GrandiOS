@@ -48,13 +48,13 @@ macro_rules! TCBS_STATISTICS {() => {13}; ( name ) => {tcbs_statistics};}
 
 //creates the input and output structs with the given types and identifiers
 macro_rules! IO {
-    ($($in:ident : $ti:ty),*; $($out:ident : $to:ty),*) => (
+    ($($in:ident : $ti:ty),*; $($out:ident : $to:ty),*; $($gp:tt),*) => (
         #[repr(C)]
-        pub struct Input{
+        pub struct Input<$($gp),*>{
             $(pub $in: $ti),*
         }
         #[repr(C)]
-        pub struct Output{
+        pub struct Output<$($gp),*>{
             $(pub $out: $to),*
         }
     );
@@ -76,13 +76,13 @@ macro_rules! CALL {
 //builds an swi call function and structs needed.
 macro_rules! build_swi {
     ($name_mod:ident; $name_macro:ident; $($in:ident : $ti:ty),*; $($out:ident : $to:ty),*) => (
-        build_swi!($name_mod; $name_macro; $($in:$ti),*; $($out:$to),*;);
+        build_swi!($name_mod; $name_macro; $($in:$ti),*; $($out:$to),*;;);
     );
-    ($name_mod:ident; $name_macro:ident; $($in:ident : $ti:ty),*; $($out:ident : $to:ty),*; $($use:path),*) => (
+    ($name_mod:ident; $name_macro:ident; $($in:ident : $ti:ty),*; $($out:ident : $to:ty),*; $($use:path),*; $($gp:tt),*) => (
         pub mod $name_mod {
             $(use $use;)*
             pub const NUMBER: u32 = $name_macro!();
-            IO!($($in : $ti),*; $($out : $to),*);
+            IO!($($in : $ti),*; $($out : $to),*; $($gp),*);
             CALL!($name_macro);
         }
     );
@@ -91,14 +91,18 @@ macro_rules! build_swi {
 build_swi!(switch ; SWITCH   ; ; );
 build_swi!(read   ; READ     ; ; c:u8);
 build_swi!(write  ; WRITE    ; c:u8; );
-build_swi!(useralloc  ; ALLOC    ; l:Layout; r:Option<Result<*mut u8, AllocErr>>; alloc::heap::Layout, alloc::heap::AllocErr);
-build_swi!(userdealloc; DEALLOC  ; p:*mut u8, l:Layout; ; alloc::heap::Layout);
+build_swi!(useralloc  ; ALLOC    ; l:Layout; r:Option<Result<*mut u8, AllocErr>>; alloc::heap::Layout, alloc::heap::AllocErr; );
+build_swi!(userdealloc; DEALLOC  ; p:*mut u8, l:Layout; ; alloc::heap::Layout; );
 build_swi!(get_led; GET_LED  ; l:u8; s:bool);
 build_swi!(set_led; SET_LED  ; l:u8, s:bool; );
 build_swi!(sleep  ; SLEEP    ; t:u32; );
-build_swi!(exit   ; EXIT     ; ; ;);
-build_swi!(select ; SELECT   ; swi_numbers:Vec<u32>, swi_inputs:Vec<u32>; index:u32, swi_outputs:Vec<u32>; alloc::vec::Vec);
+build_swi!(exit   ; EXIT     ; ;);
+//swi_numbers,swi_inputs,swi_outputs musst point into slices of the same size containing:
+//swi_numbers: the numbers of the swis: [u32, n]
+//swi_inputs:  pointers to the corresponding input  structs: [u32, n]
+//swi_outputs: pointers to the corresponding output structs: [u32, n]
+build_swi!(select ; SELECT   ; swi_numbers:&'a[u32], swi_inputs:&'a[u32]; index:u32, swi_outputs:&'a[u32]; ; 'a); 
 build_swi!(ipc_wait; IPC_WAIT ; c:usize; );
-build_swi!(ipc_read; IPC_READ ; c:usize; p:Vec<u8>; alloc::vec::Vec);
-build_swi!(ipc_write; IPC_WRITE; c:usize, i:Vec<u8>; ; alloc::vec::Vec);
-build_swi!(tcbs_statistics; TCBS_STATISTICS; ; c:Vec<TCBStatistics>; alloc::vec::Vec,TCBStatistics);
+build_swi!(ipc_read; IPC_READ ; c:usize; p:Vec<u8>; alloc::vec::Vec; );
+build_swi!(ipc_write; IPC_WRITE; c:usize, i:Vec<u8>; ; alloc::vec::Vec; );
+build_swi!(tcbs_statistics; TCBS_STATISTICS; ; c:Vec<TCBStatistics>; alloc::vec::Vec,TCBStatistics; );

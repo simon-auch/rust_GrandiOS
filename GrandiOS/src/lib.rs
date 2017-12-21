@@ -123,9 +123,9 @@ fn main(){
     let mut sched = unsafe {utils::scheduler::get_scheduler()};
     
     //Add shell
-    //let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x40000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
-    //tcb_shell.set_priority(10);
-    //sched.add_thread(tcb_shell);
+    let mut tcb_shell = utils::thread::TCB::new("Shell Thread".to_string(), _shell_start as *const (), 0x40000, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT); //function, memory, and cpsr will be set when calling the switch interrupt
+    tcb_shell.set_priority(10);
+    sched.add_thread(tcb_shell);
     //Add small thread that 
     //let mut tcb_sleep = utils::thread::TCB::new("Sleep Thread".to_string(), p_sleep as *const (), 0x800, utils::registers::CPSR_MODE_USER | utils::registers::CPSR_IMPRECISE_ABORT);
     //tcb_sleep.set_priority(15);

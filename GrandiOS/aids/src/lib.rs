@@ -55,26 +55,36 @@ macro_rules! init {
 #[macro_export]
 macro_rules! read {
     () => {{
+        let numbers_slice = &[::swi::read::NUMBER];
         let input      = ::swi::read::Input{};
         let mut output = ::swi::read::Output{c: 0};
         let input_ref : u32 = ((&input) as *const _)as u32;
         let output_ref: u32 = ((&mut output) as *mut _) as u32;
-        let select_input = ::swi::select::Input{swi_numbers: vec!(::swi::read::NUMBER), swi_inputs: vec!(input_ref)};
-        let mut select_output = ::swi::select::Output{index: 0, swi_outputs: vec!(output_ref)};
+        let input_slice = &[input_ref];
+        let output_slice= &[output_ref];
+        let select_input = ::swi::select::Input{swi_numbers: numbers_slice, swi_inputs: input_slice};
+        let mut select_output = ::swi::select::Output{index: 0, swi_outputs: output_slice};
         ::swi::select::call(& select_input, &mut select_output);
         output.c
     }};
     ( $ticks:expr ) => {{
+        let numbers_slice = &[::swi::read::NUMBER, ::swi::sleep::NUMBER];
+        
         let read_input      = ::swi::read::Input{};
         let mut read_output = ::swi::read::Output{c: 0};
-        let read_input_ref : u32 = ((&read_input) as *const _)as u32;
-        let read_output_ref: u32 = ((&mut read_output) as *mut _) as u32;
         let sleep_input      = ::swi::sleep::Input{t:$ticks};
         let mut sleep_output = ::swi::sleep::Output{};
+
+        let read_input_ref : u32 = ((&read_input) as *const _)as u32;
+        let read_output_ref: u32 = ((&mut read_output) as *mut _) as u32;
         let sleep_input_ref : u32 = ((&sleep_input) as *const _)as u32;
         let sleep_output_ref: u32 = ((&mut sleep_output) as *mut _) as u32;
-        let select_input = ::swi::select::Input{swi_numbers: vec!(::swi::read::NUMBER, ::swi::sleep::NUMBER), swi_inputs: vec!(read_input_ref, sleep_input_ref)};
-        let mut select_output = ::swi::select::Output{index: 0, swi_outputs: vec!(read_output_ref, sleep_output_ref)};
+        
+        let input_slice = &[read_input_ref, sleep_input_ref];
+        let output_slice= &[read_output_ref, sleep_output_ref];
+        let select_input = ::swi::select::Input{swi_numbers: numbers_slice, swi_inputs: input_slice};
+        let mut select_output = ::swi::select::Output{index: 0, swi_outputs: output_slice};
+
         ::swi::select::call(& select_input, &mut select_output);
         match select_output.index {
             0 => {Some(read_output.c)},
@@ -133,13 +143,20 @@ macro_rules! set_led {
 }
 #[macro_export]
 macro_rules! sleep {
-    ( $t:expr ) => ({
-        let input      = ::swi::sleep::Input{t:$t};
-        let mut output = ::swi::sleep::Output{};
-        let input_ref : u32 = ((&input) as *const _)as u32;
-        let output_ref: u32 = ((&mut output) as *mut _) as u32;
-        let select_input = ::swi::select::Input{swi_numbers: vec!(::swi::sleep::NUMBER), swi_inputs: vec!(input_ref)};
-        let mut select_output = ::swi::select::Output{index: 0, swi_outputs: vec!(output_ref)};
+    ( $ticks:expr ) => ({
+        let numbers_slice = &[::swi::sleep::NUMBER];
+
+        let sleep_input      = ::swi::sleep::Input{t:$ticks};
+        let mut sleep_output = ::swi::sleep::Output{};
+
+        let sleep_input_ref : u32 = ((&sleep_input) as *const _)as u32;
+        let sleep_output_ref: u32 = ((&mut sleep_output) as *mut _) as u32;
+
+        let input_slice = &[sleep_input_ref];
+        let output_slice= &[sleep_output_ref];
+        let select_input = ::swi::select::Input{swi_numbers: numbers_slice, swi_inputs: input_slice};
+        let mut select_output = ::swi::select::Output{index: 0, swi_outputs: output_slice};
+
         ::swi::select::call(& select_input, &mut select_output);
     });
 }

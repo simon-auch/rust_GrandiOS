@@ -94,7 +94,7 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
             correct = (correct) & (input.swi_numbers.len() == input.swi_inputs.len());
             correct = (correct) & (input.swi_numbers.len() == output.swi_outputs.len());
             if correct {
-                sched.switch(regs, scheduler::State::Waiting(input.swi_numbers.clone()));
+                sched.switch(regs, scheduler::State::Waiting(input.swi_numbers));
             }
         }
         TCBS_STATISTICS!() => {
