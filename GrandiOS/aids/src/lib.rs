@@ -57,41 +57,51 @@ macro_rules! init {
         pub unsafe fn __aeabi_unwind_cpp_pr0() { loop {} }
     );
 }
+/*
+let i1 = ...;
+let mut o1 = swi::read::Output::Default();
+
+let i2 = ...;
+let mut o2 = ..;
+
+let i3 = ...;
+let mut o3 = ..;
+
+
+match select!((1,&i1,&mut o1),(2,&i2,&mut o2),(3,&i3,&mut o3)) {
+  0 => o1.blah,
+  1 => o2.blah,
+  2 => o3.c,
+}
+*/
 #[macro_export]
-macro_rules! read {
-    () => {{
-        let numbers_slice = &[::swi::read::NUMBER];
-        let input      = ::swi::read::Input{};
-        let mut output = ::swi::read::Output{c: 0};
-        let input_ref : u32 = ((&input) as *const _)as u32;
-        let output_ref: u32 = ((&mut output) as *mut _) as u32;
-        let input_slice = &[input_ref];
-        let output_slice= &[output_ref];
+macro_rules! select {
+    ($( ($num:expr, $input:ident, $output:ident) );*) => {{
+        let numbers_slice = &[$($num),*];
+        let input_slice   = &[$(((& $input)  as *const _) as u32),*];
+        let output_slice  = &[$(((&mut $output) as *mut _) as u32),*];
         let select_input = ::swi::select::Input{swi_numbers: numbers_slice, swi_inputs: input_slice};
         let mut select_output = ::swi::select::Output{index: 0, swi_outputs: output_slice};
         ::swi::select::call(& select_input, &mut select_output);
+        select_output.index
+    }};
+}
+
+#[macro_export]
+macro_rules! read {
+    () => {{
+        let input      = ::swi::read::Input{};
+        let mut output = ::swi::read::Output{c: 0};
+        let _ = select!((::swi::read::NUMBER, input, output));
         output.c
     }};
     ( $ticks:expr ) => {{
-        let numbers_slice = &[::swi::read::NUMBER, ::swi::sleep::NUMBER];
-        
         let read_input      = ::swi::read::Input{};
         let mut read_output = ::swi::read::Output{c: 0};
         let sleep_input      = ::swi::sleep::Input{t:$ticks};
         let mut sleep_output = ::swi::sleep::Output{};
-
-        let read_input_ref : u32 = ((&read_input) as *const _)as u32;
-        let read_output_ref: u32 = ((&mut read_output) as *mut _) as u32;
-        let sleep_input_ref : u32 = ((&sleep_input) as *const _)as u32;
-        let sleep_output_ref: u32 = ((&mut sleep_output) as *mut _) as u32;
         
-        let input_slice = &[read_input_ref, sleep_input_ref];
-        let output_slice= &[read_output_ref, sleep_output_ref];
-        let select_input = ::swi::select::Input{swi_numbers: numbers_slice, swi_inputs: input_slice};
-        let mut select_output = ::swi::select::Output{index: 0, swi_outputs: output_slice};
-
-        ::swi::select::call(& select_input, &mut select_output);
-        match select_output.index {
+        match select!((::swi::read::NUMBER, read_input, read_output); (::swi::sleep::NUMBER, sleep_input, sleep_output)) {
             0 => {Some(read_output.c)},
             _ => {None},
         }
@@ -182,21 +192,6 @@ macro_rules! generate_input {
             _ => { corepack::to_bytes(::swi::ipc_read::Input{c:$channel, i:corepack::to_bytes($input).unwrap()}).unwrap() }
         }
     }};
-}
-#[macro_export]
-macro_rules! select {
-    ( $($c:expr, $i:expr);* ) => ({
-        let c = vec![];
-        let i = vec![];
-        $(
-            c.push($c);
-            i.push(generate_input!($c, $i));
-        )*
-        let input      = ::swi::select::Input{c:c, i:i};
-        let mut output = ::swi::select::Output{c:0};
-        ::swi::select::call(& input, &mut output);
-        output.c
-    });
 }
 #[macro_export]
 macro_rules! ipc_read {
