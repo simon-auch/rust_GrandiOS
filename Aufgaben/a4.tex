@@ -12,7 +12,11 @@ Im Allgemeinen sind an Kommunikationsobjekten Nachrichten unterschiedlicher Län
 
 \textbf{Lösung:}
     \begin{itemize}
-      \item
+      \item Daten unterschiedlicher Länge sind genau dann kein Problem, wenn trotz der Unterschiedlichkeit ein Maximum existiert (z.B. Enums, in historischen Sprachen Unions genannt). Man geht einfach bei Empfänger- und Versender-Seite davon aus, dass jede Nachricht diese Maximallänge einnimmt. Die Information der konkreten Ausprägung ist entweder ohnehin Teil dieses Datums oder kann schon auf Versender-Seite nicht festgestellt werden und muss daher auch nicht separat kodiert werden.
+        Auch stellt sich die Frage der übertragungsfreundlichen Darstellung, wofür allerdings üblicherweise entweder direkt der Speicher so übertragen wird, wie er auf der Versender-Seite im Speicher liegt (eventuelle Anpassungen bei verschiedener Endianness notwendig), oder man verwendet eine geeignete Form der Serialisierung.
+
+        Weitere Auswirkungen haben Nachrichten unterschiedlicher Länge lediglich bei theoretisch unbeschränkten (oder zu schwach beschränkten, denn ein Array hat theoretisch auch eine Maximallänge) Nachrichten.
+        Dies sind im Wesentlichen folgende:
       \item Bei Nachrichten unterschiedlicher Länge entsteht auf Seiten des Empfängers das Problem, dass möglicherweise für die Nachricht veranschlagter Speicher überschritten und in andere Speicherbereiche geschrieben wird, oder ein Re-Alloziieren und damit ein Kopieren des gesamten bis dahin empfangenen Inhalts notwendig ist -- unter Umständen mehrfach für eine Nachricht.
 
         Es gibt 2 mögliche Lösungsansätze für diese Problematik:
