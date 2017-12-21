@@ -7,3 +7,4 @@ authors = ["myname"]
 
 [dependencies]
 swi = { path = "../swi" }
+vt  = { path = "../vt" }

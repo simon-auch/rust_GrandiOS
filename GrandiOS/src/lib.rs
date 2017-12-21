@@ -48,7 +48,7 @@ mod utils{
     pub mod scheduler;
     pub mod registers;
     pub mod ring;
-    extern crate vt;
+    pub extern crate vt;
 }
 use driver::*;
 use alloc::string::ToString;
@@ -211,7 +211,7 @@ extern fn eh_personality() {}
 #[lang = "panic_fmt"]
 #[no_mangle]
 pub extern fn panic_fmt(msg: core::fmt::Arguments, file: &'static str, line: u32) -> ! {
-    println!("Unhandled panic in {} on line {}:\n{}", file, line, msg);
+    println!("Unhandled panic in {}/{} on line {}{}{}{}:\n{}!!!{} {}{}", env!("CARGO_PKG_NAME"), file, &utils::vt::CF_BLUE, &utils::vt::ATT_BRIGHT ,line, &utils::vt::CF_STANDARD, &utils::vt::CF_RED, &utils::vt::CF_STANDARD,msg, &utils::vt::ATT_RESET);
     loop {}
 }
 // We need this to remove a linking error for the allocator

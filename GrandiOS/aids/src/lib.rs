@@ -7,6 +7,7 @@
 #![allow(unused_macros)]
 extern crate swi;
 extern crate alloc;
+extern crate vt;
 pub mod allocator;
 #[macro_export]
 macro_rules! init {
@@ -45,7 +46,11 @@ macro_rules! init {
         extern fn eh_personality() {}
         #[lang = "panic_fmt"]
         #[no_mangle]
-        pub fn panic_fmt() -> ! { loop {} }
+        pub extern fn panic_fmt(msg: core::fmt::Arguments, file: &'static str, line: u32) -> ! {
+            println!("Unhandled panic in {}/{} on line {}{}{}{}:\n{}!!!{} {}{}", env!("CARGO_PKG_NAME"), file, &vt::CF_BLUE, &vt::ATT_BRIGHT ,line, &vt::CF_STANDARD, &vt::CF_RED, &vt::CF_STANDARD,msg, &vt::ATT_RESET);
+            exit!();
+            loop {}
+        }
 
         // We need this to remove a linking error for the allocator
         #[no_mangle]
