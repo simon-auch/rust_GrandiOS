@@ -80,7 +80,7 @@ unsafe fn load_prelude() {
 }
 
 pub fn help_call(args: &VecDeque<Argument>) -> bool {
-    args[1].is_method() && args[1].get_method_name().unwrap() == "help"
+    args.len() > 1 && args[1].is_method() && args[1].get_method_name().unwrap() == "help"
 }
 
 pub fn set_var(name: String, arg: &Argument) {
