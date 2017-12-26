@@ -82,6 +82,7 @@ pub enum Input {
     End,
     PgUp,
     PgDn,
+    Mouseclick,
 }
 
 pub enum DisplayAttribute{
@@ -129,6 +130,7 @@ impl Input {
             &Input::End => "4~",
             &Input::PgUp => "5~",
             &Input::PgDn => "6~",
+            &Input::Mouseclick => "M",
             _ => "",
         }
     }

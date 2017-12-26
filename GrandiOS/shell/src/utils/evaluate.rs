@@ -32,6 +32,14 @@ pub fn get_position(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, 
     args[0] = Argument::List(vec![Argument::Int(w as isize), Argument::Int(h as isize)]);
     Ok(args)
 }
+pub fn activate_mouse(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    print!("{}[?9h", 27 as char);
+    Ok(args)
+}
+pub fn deactivate_mouse(mut args: VecDeque<Argument>) -> Result<VecDeque<Argument>, String> {
+    print!("{}[?9l", 27 as char);
+    Ok(args)
+}
 
 pub fn populate_commands() {
     unsafe {
@@ -39,6 +47,8 @@ pub fn populate_commands() {
             command!(Method, "barry", exec, barry),
             command!(Method, "pos", get_position),
             command!(Method, "size", get_size),
+            command!(Method, "mouse", activate_mouse),
+            command!(Method, "unmouse", deactivate_mouse),
             command!(Method, "cache", exec, cache),
             command!(Method, "logo", exec, logo),
             command!(Method, "colors", exec, colors),
