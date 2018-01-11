@@ -64,6 +64,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate corepack;
 extern crate compiler_builtins;
+extern crate rlibc;
 #[macro_use]
 extern crate swi;
 

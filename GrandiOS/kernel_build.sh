@@ -57,17 +57,17 @@ which xargo >/dev/null 2>&1
 if [ $? -eq 1 ]; then
   PATH=~/.cargo/bin:$PATH
 fi
+RUST_TARGET_PATH=$PWD
+export RUST_TARGET_PATH
 
 #build
 #First we build the shell
 cd shell
-cp ../armv4t-none-eabi.json armv4t-none-eabi.json #Ja das muss sein, sonst gibts kryptische fehlermeldungen von xargo
 if [[ "$CLEAN" = true ]]; then #ja das ist bescheuert = true zu machen, aber es ist bash und sonst kann man das kaput machen
   xargo clean
 fi
 xargo build --target armv4t-none-eabi $ARGS
 if [ $? -ne 0 ]; then exit; fi
-rm armv4t-none-eabi.json
 #add prefixes for the symbols.
 $OBJCOPY --prefix-symbols=_shell target/armv4t-none-eabi/$TARGET/libshell.a shell.a
 cd ..

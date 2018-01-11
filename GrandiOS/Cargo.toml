@@ -14,3 +14,4 @@ compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-built
 serde = { version = "1.0.23", default-features = false, features = ["derive", "alloc"] }
 serde_derive = { version = "1.0.23", default-features = false }
 corepack = { version = "~0.3.0", default-features = false, features = ["alloc"] }
+rlibc = "1.0.0"
