@@ -45,7 +45,7 @@ benötige 400 Taktzyklen. Berechnen Sie die prozentuale CPU-Auslastung durch das
     \begin{enumerate}[label=\arabic*.]
       \item Maus mit einer Abfragerate von 30/sec, 
 
-        30 Abfragen pro Sekunde mit je 400 Taktzyklen ergibt 12kHz. 12kHz/200000kHz = 0,000060 + 0,006\% Auslastung.
+        30 Abfragen pro Sekunde mit je 400 Taktzyklen ergibt 12kHz. 12kHz/200000kHz = 0,000060 = 0,006\% Auslastung.
       \item Diskettenlaufwerk: Datentransfer in 16-bit-Wörtern mit einer Datenrate von 50KB/sec, 
 
         50kB (Kilobyte, nicht Kelvin-Byte wie in der Aufgabenstellung) entsprechen 3125 16-Bit-Wörtern. Wir erhalten wieder 400*3125 = 1,25MHz; 1,25MHz/200MHz = 0,00625 = 0,625\%.
@@ -59,9 +59,54 @@ benötige 400 Taktzyklen. Berechnen Sie die prozentuale CPU-Auslastung durch das
 
     Analog zu den vorherigen Berechnungen erhalten wir 1,0004MHz/200MHz = .005002 = 0,5002\%.
 
-\AUFGABE{Kontextwechsel und präemptives Multitasking}{15 Punkte}
+\AUFGABE{User-/Kernel-Interface}{15 Punkte}
 
-In  dieser  Aufgabe  soll  Ihr  Betriebssystem  um  die  Fähigkeit  des  präemptiven  Multitaskings erweitert  werden,  um  so  mehrere  Threads  quasi-parallel  ausführen  zu  können.  Der  System-Timer dient  dabei  als  Zeitgeber  und  gibt  das  Intervall  vor,  in  dem  der  Kern  den  gerade ausgeführten Thread automatisch wechselt. 
+In dieser Aufgabe soll Ihr Betriebssystem um eine einfache Koordination einerseits und 
+andererseits um eine effizientere Ressourcen-Nutzung erweitert werden. 
+
+Definieren Sie hierzu eine ordentliche Schnittstelle zwischen Anwendungen und Betriebs-
+system und führen Sie blockierende Systemrufe ein, damit wartende Threads nicht unnötig die CPU blockieren. 
+\begin{enumerate}[label=\arabic*.]
+  \item Legen Sie eine Aufrufkonvention für Systemrufe mittels SWI fest. 
+  \item Definieren Sie Systemrufe für die Aufgaben „Zeichen ausgeben“, „Zeichen einlesen“, 
+„Thread beenden“, „Thread erzeugen“ und „Thread für bestimmte Zeitspanne ver-
+zögern“. 
+  \item Implementieren Sie die Systemrufe auf Seite des Kernels. Dabei sollen „Zeichen 
+einlesen“ und „Thread verzögern“ blockierend arbeiten. Das heißt, der Thread wird so 
+lange nicht mehr durch den Scheduler erfasst, bis ein Zeichen da ist bzw. die 
+vorgegebene Zeitspanne vorbei ist. Überlegen Sie sich, ob ein aufwachender oder 
+neuer Thread dem gerade laufenden Thread vorgezogen werden sollte oder nicht. 
+  \item Implementieren Sie eine „Bibliothek“, die für Anwendungen eine leichter zu benutzende 
+Schnittstelle zur Verfügung stellt, als direkt SWIs aufzurufen. Idealerweise sind der 
+Code für Anwendungen/Anwendungsbibliotheken und der Code für das Betriebs-
+system/Betriebssystembibliotheken zum Schluss vollständig unabhängig voneinander. 
+\end{enumerate}
+Durch die SWI-Schnittstelle wird zum einen eine logische Trennung von Anwendungen und 
+Betriebssystem erzeugt. Zum anderen wird – da nur einen Kern vorhanden ist – automatisch 
+ein gegenseitiger Ausschluss sämtlicher Kernel-Funktionen realisiert (sofern Sie in 
+privilegierten Modus [Modi] die Interrupts nicht demaskiert, siehe Zusatzaufgabe). 
+Die Demonstration ist ähnlich wie in der letzten Aufgabe zu implementieren, diesmal jedoch mit 
+eigenem Thread: 
+\begin{enumerate}
+  \item[5.] Schreiben Sie eine Anwendung, die stets auf Zeichen wartet. Wann immer ein Zeichen 
+empfangen wird, erzeugt diese Anwendung einen neuen (Anwendungs-)Thread und 
+gibt diesem das empfangende Zeichen als Parameter mit. 
+  \item[6.] Der neu erzeugte Thread soll das Zeichen wiederholt (aber nicht endlos) mit kleinen 
+Pausen ausgeben und sich anschließend beenden. Handelt es sich bei dem Zeichen 
+um einen Großbuchstaben wird zur Erzeugung der Pause aktiv gewartet (wie bisher), 
+bei anderen Zeichen wird die Pause durch den neu eingeführten Systemruf erzeugt. 
+\end{enumerate}
+Bei den daraus resultierenden Ausgaben ist insbesondere das zeitliche Verhalten spannend. 
+Die folgenden Beispiele gehen davon aus, dass die Rechenzeit beim aktiven Warten genauso 
+lang ist, wie die Dauer der Verzögerung via Systemruf. (Und beides ist ein Vielfaches der 
+Zeitscheibenlänge.) 
+\begin{description}
+  \item[2x aktives Warten:] ABABABABABABABABABABAB 
+  \item[1x aktiv + 1x passiv:] AbAbAbAbAbAbAbAbAbAbAb 
+  \item[2x passiv:] ababababababababababab 
+  \item[1x aktiv + 2x passiv:] AbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAbc 
+  \item[2x aktiv + 1x passiv:] ABcAcBcAcBcAcBcAcBcAcBABABABAB
+\end{description}
 
 \textbf{Lösung:}
 Anleitung zum Erstellen eines mit qemu benutzbaren Kernels:
