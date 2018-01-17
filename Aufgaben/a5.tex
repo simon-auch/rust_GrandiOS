@@ -112,18 +112,22 @@ Zeitscheibenlänge.)
 Anleitung zum Erstellen eines mit qemu benutzbaren Kernels:
 \begin{enumerate}
   \item Wechseln in den Ordner \texttt{GrandiOS}
-  \item Zunächst wird mit dem Script \texttt{setup\_env.sh} die Toolchain von Rust vorbereitet. Unter Umständen sind Benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
+  \item Zunächst wird mit \texttt{make setup} die Toolchain von Rust vorbereitet. Unter Umständen sind Benutzereingaben erwartet, diese können einfach mit Enter bestätigt werden.
+  \item Alternativ kann mittels \texttt{make update} die Toolchain und alle abhängigkeiten aktualisiert werden.
   \item Ausführen von \texttt{make run} zum Erstellen eines Kernels und starten von Qemu mit diesem.
 \end{enumerate}
-Das Vorbereiten der Toolchain mittels \texttt{setup\_env.sh} ist nur einmal notwendig.
+Das Vorbereiten der Toolchain mittels \texttt{make setup} ist nur einmal notwendig.
 
-Für den unwahrscheinlichen Fall, dass aus irgendeinem Grund das Bauen des Kernels fehlschlägt, ist unter {\texttt{GrandiOS/kernels/kernel\_04}} noch ein von uns gebauter Kernel vorhanden.
+Für den unwahrscheinlichen Fall, dass aus irgendeinem Grund das Bauen des Kernels fehlschlägt, ist unter {\texttt{GrandiOS/kernels/kernel\_05}} noch ein von uns gebauter Kernel vorhanden.
+
+Die Aufgabenstellung kann getestet werden indem in der Shell \texttt{u5} ausgeführt wird.
 
 Eine kleine Übersicht, wo die für diese Aufgabe relevanten Codesegmente zu finden sind:
 \begin{itemize}
-	\item \texttt{GrandiOS/src/utils/scheduler.rs} Implementation der Thread-Verwaltung. Unsere Zeitscheibenlänge beträgt standardmäßig 2 Sekunden, es sei denn ein Interrupt verkürzt diese. Insbesondere werden jedoch auch bei Benutzung eines Sleep-SWI die Zeitscheibe so eingestellt, dass der nächste Thread pünktlich gestartet werden kann. Falls es mehrere Threads der gleichen Priorität gibt, ergibt sich durch die Verwendung der Priority-Queue automatisch ein Round-Robin-Scheduling. Die maximale/minimale Zeitscheibenlänge kann hierbei zu Beginn/am Ende der Switch-Funktion eingestellt werden (in Ticks, wobei ein Tick als 1/1024 Sekunden eingestellt ist). Der Fall, dass es keinen Thread zum Ausführen gibt, kann nicht eintreten, da wir immer einen Idle-Thread haben, welcher immer ausgeführt werden kann (und nicht beendet werden kann). Der Idle-Thread pausiert insbesondere auch die CPU (siehe ganz unten in der Datei). Ein Thread kann mittels des Exit-Syscalls beendet werden, dies entfernt ihn aus allen Warteschlangen aus dem Scheduler und gibt später vielleicht irgendwann mal benutzte Ressourcen frei.
-	\item \texttt{GrandiOS/src/utils/exceptions/common\_code.rs} Beinhaltet den Trampolincode für unsere Interrupts (sowohl swi als auch irq). Hierbei werden alle relevanten Register auf dem Interrupt-Stack gesichert. Falls der Thread gewechselt werden soll müssen diese nur woanders gespeichert werden und im Stack überschrieben werden.
-	\item \texttt{GrandiOS/src/utils/exceptions/irq.rs} Beinhaltet die Implementierung des Threads, den wir starten, als auch die Ausgabe des Ausrufezeichens. Der Thread benutzt leider kein Sleep-Aufruf, da er hierfür in der aktuellen implementation einen Allocator benutzen muss, was jedoch im Kontext des Kernels (zu dem diese Datei gehört) leider der gleiche Allocator wie vom Scheduler ist und daher nicht ohne Kernellock benutzt werden sollte. Deswegen machen wir stattdessen einfach busy-waiting.
+	\item \texttt{GrandiOS/swi/src/lib.rs} Gibt die Aufrufkonvention für Systemaufrufe mittels SWI vor. Grob zusammengefasst muss in r0 ein Zeiger auf ein Struct für die Ausgabe des Aufrufs und in r1 ein Zeiger auf ein Struct für die Eingaben des Aufrufs stehen. Die jeweiligen Structs werden mit den Aufrufen \texttt{build\_swi!} erstellt.
+	\item \texttt{GrandiOS/aids/src/lib.rs} Stellt die Abstraktionsschicht über die Systemaufrufe dar.
+	\item \texttt{GrandiOS/src/utils/exceptions/software\_interrupt.rs} Beinhaltet die Abarbeitung der Systemaufrufe. Von hier werden entsprechend die Funktionen anderer Teile des Kernels aufgerufen.
+	\item \texttt{GrandiOS/shell/src/commands/u5.rs} Beinhaltet die Funktion der Shell die entsprechenden Threads zu starten, als auch die Funktion die der neue Thread ausführen soll.
 \end{itemize}
 
 \end{description}
