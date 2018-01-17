@@ -57,6 +57,7 @@ pub fn populate_commands() {
             command!(Method, "cat", exec, cat),
             command!(Method, "spot", exec, spot),
             command!(Method, "exit", exec, exit),
+            command!(Method, "u5", exec, u5),
         ]);
         higher::populate(COMMANDS.as_mut().unwrap());
         bool::populate(COMMANDS.as_mut().unwrap());

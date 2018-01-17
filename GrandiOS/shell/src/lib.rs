@@ -73,6 +73,7 @@ mod commands{
     pub mod list;
     pub mod led;
     pub mod u3;
+    pub mod u5;
     pub mod exit;
 }
 

@@ -28,7 +28,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "compiler_builtins"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang-nursery/compiler-builtins#0ba07e49264a54cb5bbd4856fcea083bb3fbec15"
+source = "git+https://github.com/rust-lang-nursery/compiler-builtins#bf912e607e1d6282995ebcf931314ef3ac5f555c"
 
 [[package]]
 name = "corepack"

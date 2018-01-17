@@ -28,9 +28,9 @@ pub unsafe fn init(current_tcb: TCB){
         selects: BTreeMap::new(),
         queue_ready: BinaryHeap::new(),
         queue_terminate: BinaryHeap::new(),
-        queue_waiting_read: BTreeSet::new(),
+        queue_waiting_read: BinaryHeap::new(),
         queue_waiting_read_input: VecDeque::new(),
-        queue_waiting_sleep: BTreeSet::new(),
+        queue_waiting_sleep: BinaryHeap::new(),
     });
 }
 
@@ -117,8 +117,8 @@ pub struct Scheduler{
     //Queues for the threads
     queue_ready: BinaryHeap<Priority<TCB_ID>>,
     queue_terminate: BinaryHeap<Priority<TCB_ID>>,
-    queue_waiting_read: BTreeSet<Priority<SELECT_ID>>,
-    queue_waiting_sleep: BTreeSet<ReverseOrder<Priority<SELECT_ID>>>,
+    queue_waiting_read: BinaryHeap<Priority<SELECT_ID>>,
+    queue_waiting_sleep: BinaryHeap<ReverseOrder<Priority<SELECT_ID>>>,
     //Queues for stuff that threads can wait for
     queue_waiting_read_input: VecDeque<u8>,
 }
@@ -154,7 +154,7 @@ fn btree_set_min<U: Clone + Ord>(set: &mut BTreeSet<U>) -> Option<U> {
 }
 
 impl Scheduler{
-    fn print(&self){
+    pub fn print(&self){
         println!("{:#?}", &self);
     }
     pub fn add_thread(&mut self, tcb: TCB){
@@ -163,9 +163,9 @@ impl Scheduler{
         self.tcbs.insert(id, tcb);
     }
     fn remove_select(&mut self, select_id: & SELECT_ID){
-        let mut queue_filtered = BTreeSet::from_iter(self.queue_waiting_read.iter().filter(|prio| & prio.data != select_id).map(|v| v.clone()));
+        let mut queue_filtered = BinaryHeap::from_iter(self.queue_waiting_read.iter().filter(|prio| & prio.data != select_id).map(|v| v.clone()));
         self.queue_waiting_read = queue_filtered;
-        let mut queue_filtered = BTreeSet::from_iter(self.queue_waiting_sleep.iter().filter(|prio| & prio.data.data != select_id).map(|v| v.clone()));
+        let mut queue_filtered = BinaryHeap::from_iter(self.queue_waiting_sleep.iter().filter(|prio| & prio.data.data != select_id).map(|v| v.clone()));
         self.queue_waiting_sleep = queue_filtered;
         self.selects.remove(select_id);
     }
@@ -194,12 +194,13 @@ impl Scheduler{
                     match swi_number {
                         & READ!() => {
                             count += 1;
-                            self.queue_waiting_read.insert(Priority{priority: 0, data: select_id});
+                            self.queue_waiting_read.push(Priority{priority: 0, data: select_id});
                         },
                         & SLEEP!() => {
                             count += 1;
                             let t = software_interrupt::work::sleep_get_ticks(&mut running);
-                            self.queue_waiting_sleep.insert(ReverseOrder{data: Priority{priority: current_time+t, data: select_id}});
+                            let mut queue_input = ReverseOrder{data: Priority{priority: current_time+t, data: select_id}};
+                            self.queue_waiting_sleep.push(queue_input);
                         },
                         _ => {},
                     }
@@ -207,6 +208,8 @@ impl Scheduler{
                 if count > 0 {
                     self.selects.insert(select_id, select);
                     self.select_counter += 1;
+                } else {
+                    panic!("This should not have happened.");
                 }
             },
         }
@@ -223,7 +226,7 @@ impl Scheduler{
         while let Some(priority) = self.queue_terminate.pop() {
             self.terminate(priority.data);
         }
-        while let Some(rev_ord) = btree_set_min(&mut self.queue_waiting_sleep) {
+        while let Some(rev_ord) = self.queue_waiting_sleep.pop() {
             let mut priority = rev_ord.data;
             if priority.priority <= current_time {
                 let select_id  = priority.data;
@@ -243,13 +246,13 @@ impl Scheduler{
                     //next_wanted_wakeup_temp cant be zero, because that would imply that delta_ticks was zero, but then we would have taken the other branch of the if.
                     next_wanted_wakeup = next_wanted_wakeup_temp;
                 }
-                self.queue_waiting_sleep.insert(ReverseOrder{data: priority});
+                self.queue_waiting_sleep.push(ReverseOrder{data: priority});
                 break;
             }
         }
         while (self.queue_waiting_read.len() > 0) && (self.queue_waiting_read_input.len() > 0) {
             let c = self.queue_waiting_read_input.pop_front().unwrap();
-            let select_id = btree_set_min(&mut self.queue_waiting_read).unwrap().data;
+            let select_id = self.queue_waiting_read.pop().unwrap().data;
             {
             let select = self.selects.get(& select_id).unwrap();
             let tcb_id = select.tcb_id;
@@ -262,7 +265,7 @@ impl Scheduler{
         }
         //println!("queue_ready: {:#?}", self.queue_ready);
         let mut next = self.tcbs.get_mut(&(self.queue_ready.pop().unwrap().data)).unwrap();  //muss es immer geben, da idle thread
-        //println!("Switching to: {}", next.name);
+        //println!("Switching to: {}\n\n\n\n", next.name);
         //println!("Loading Registers");
         (&next).load_registers(register_stack);
         //println!("Current registers: {:#?}", register_stack);
@@ -274,6 +277,14 @@ impl Scheduler{
         let next_wanted_wakeup_temp = st.ticks_to_piv(10); //minimum of 10 ticks per timeslice
         if next_wanted_wakeup_temp > next_wanted_wakeup {
             next_wanted_wakeup = next_wanted_wakeup_temp;
+        }
+        //make sure we make the timeslice not too long if other processes want something too
+        if (self.running != TCB_ID(0)) && (self.queue_ready.len() >= 2) {
+            //we are not running the idle thread and there is at leats one other non idle threat waiting.
+            let next_wanted_wakeup_temp = st.ticks_to_piv(100);
+            if next_wanted_wakeup > next_wanted_wakeup_temp {
+                next_wanted_wakeup = next_wanted_wakeup_temp; //roughly a hundred 
+            }
         }
         st.set_piv(next_wanted_wakeup);
     }

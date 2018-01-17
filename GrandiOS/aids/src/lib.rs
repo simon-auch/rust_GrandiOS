@@ -215,3 +215,16 @@ macro_rules! tcbs_statistics {
         output.c
     }};
 }
+
+#[macro_export]
+macro_rules! spawn {
+    ( $pc:expr, $stack_size:expr, $r0:expr ) => {{
+        let input = ::swi::spawn::Input{pc: $pc, stack_size: $stack_size, r0: $r0};
+        let mut output = ::swi::spawn::Output{id: 0};
+        ::swi::spawn::call(&input, &mut output);
+        output.id
+    }};
+    ( $pc:expr, $stack_size:expr ) => {{
+        spawn!($pc, $stack_size, 0)
+    }};
+}
