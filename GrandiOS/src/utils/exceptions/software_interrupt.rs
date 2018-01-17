@@ -22,6 +22,9 @@ use utils::vt;
 use utils::scheduler;
 use alloc::allocator::Alloc;
 use utils::exceptions::common_code::RegisterStack;
+use utils::thread::TCB;
+use utils::registers;
+use alloc::string::ToString;
 
 pub fn init(ic: &mut InterruptController) {
     //set the handler for the software interrupt
@@ -100,6 +103,21 @@ extern fn handler_software_interrupt_helper(reg_sp: u32){
         TCBS_STATISTICS!() => {
             let mut output: &mut swi::tcbs_statistics::Output = unsafe{ &mut *(regs.r0 as *mut _) };
             output.c = sched.get_all_tcb_statistics();
+        },
+        SPAWN!() => {
+            let mut input : &mut swi::spawn::Input = unsafe{ &mut *(regs.r1 as *mut _) };
+            let mut output: &mut swi::spawn::Output= unsafe{ &mut *(regs.r0 as *mut _) };
+            //create new tcb
+            let mut tcb = TCB::new(
+                "Maybe we should add the ability to give new threads names...".to_string(), 
+                input.pc, 
+                input.stack_size, 
+                registers::CPSR_MODE_USER | registers::CPSR_IMPRECISE_ABORT
+            );
+            tcb.register_stack.r0 = input.r0;
+            tcb.set_priority(5);
+            sched.add_thread(tcb);
+            sched.switch(regs, scheduler::State::Ready);
         },
         _ => {
             let mut debug_unit = unsafe { DebugUnit::new(0xFFFFF200) };

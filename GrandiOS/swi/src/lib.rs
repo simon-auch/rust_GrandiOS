@@ -45,6 +45,8 @@ macro_rules! IPC_READ {() => {11}; ( name ) => {ipc_read};}
 macro_rules! IPC_WRITE {() => {12}; ( name ) => {ipc_write};}
 #[macro_export]
 macro_rules! TCBS_STATISTICS {() => {13}; ( name ) => {tcbs_statistics};}
+#[macro_export]
+macro_rules! SPAWN {() => {14}; ( name ) => {spawn};}
 
 //creates the input and output structs with the given types and identifiers
 macro_rules! IO {
@@ -106,3 +108,4 @@ build_swi!(ipc_wait; IPC_WAIT ; c:usize; );
 build_swi!(ipc_read; IPC_READ ; c:usize; p:Vec<u8>; alloc::vec::Vec; );
 build_swi!(ipc_write; IPC_WRITE; c:usize, i:Vec<u8>; ; alloc::vec::Vec; );
 build_swi!(tcbs_statistics; TCBS_STATISTICS; ; c:Vec<TCBStatistics>; alloc::vec::Vec,TCBStatistics; );
+build_swi!(spawn; SPAWN; pc: *const (), stack_size:usize, r0:u32; id: u32);
