@@ -32,15 +32,32 @@ Transfers pro Sekunde sind bei 2MB/sec und 4KB Transfergröße notwendig?)
     \begin{description}
       \item[memory mapped I/O]
         Teil des Adressraums wird für Speicher und I/O verwendet; Belegt also Teil des verfügbaren Adressraums; I/O Geräte reagieren auf Zugriffen des Bereichs
+
+        Beispiel: Das setzen eines Bits einer bestimmten Adresse sorgt dafür, dass in dieser beim nächsten Lesen ein Zeichen der Benutzereingabe steht.
       \item[DMA]
-        Erlaubt Zugriff auf den Speicher ohne I/O -Operationen via CPU nutzen zu müssen;
-      \item[polling] Das Abfragen eines Geräts (o.Ä.), ob entsprechendes bereit ist
+        Erlaubt Zugriff auf den Speicher ohne I/O -Operationen via CPU nutzen zu müssen.
+      \item[polling] Das Abfragen eines Geräts (o.Ä.), ob entsprechendes bereit ist.
+        Der Nachteil dieses Vorgehens besteht darin, dass relativ viel Rechenzeit dafür verwendet wird, diese Abfragen zu tätigen. Als gegenteiliges Vorgehen lässt man sich z.B. durch einen Callback über die Bereitschaft informieren.
     \end{description}
-    \begin{enumerate}
-      \item
-      \item
-      \item
+
+Gegeben sei nun ein Prozessor mit einer 200MHz Taktfrequenz. Eine Polling-Operation 
+benötige 400 Taktzyklen. Berechnen Sie die prozentuale CPU-Auslastung durch das Polling für die folgenden Geräte. Bei 2 und 3 ist dabei die Abfragerate so zu wählen, dass keine Daten verloren gehen. 
+    \begin{enumerate}[label=\arabic*.]
+      \item Maus mit einer Abfragerate von 30/sec, 
+
+        30 Abfragen pro Sekunde mit je 400 Taktzyklen ergibt 12kHz. 12kHz/200000kHz = 0,000060 + 0,006\% Auslastung.
+      \item Diskettenlaufwerk: Datentransfer in 16-bit-Wörtern mit einer Datenrate von 50KB/sec, 
+
+        50kB (Kilobyte, nicht Kelvin-Byte wie in der Aufgabenstellung) entsprechen 3125 16-Bit-Wörtern. Wir erhalten wieder 400*3125 = 1,25MHz; 1,25MHz/200MHz = 0,00625 = 0,625\%.
+      \item Plattengerät, das die Daten in 32-bit-Wörtern mit einer Rate von 2MB/sec transportiert. 
+
+        2MB entsprechen 62500 32-Bit-Wörtern. 62500*400 = 25MHz entspricht 12,5\%.
     \end{enumerate}
+
+    Bei 2MB/s sind 500 Transfers von je 4kB nötig.
+    Wir erhalten 2000*500=1MHz, zuzüglich Initialisierung 1,0004MHz.
+
+    Analog zu den vorherigen Berechnungen erhalten wir 1,0004MHz/200MHz = .005002 = 0,5002\%.
 
 \AUFGABE{Kontextwechsel und präemptives Multitasking}{15 Punkte}
 
